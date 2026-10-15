@@ -9,6 +9,9 @@ Purpose: a working prototype to show leadership how the forwarded-email/PDF orde
 
 Video moments to mirror (owner-supplied): 0:19-0:31 automated extraction and entry; 0:34-0:38 business rule validation; 0:36-0:44 MOQ check; 0:45-0:53 price verification; 0:54-1:04 outdated GTIN; 1:05-1:10 learning from corrections. Our learning is approved, scoped rule reuse with an administrator gate (DECISIONS.md D03), not autonomous retraining. Present it as "agent memory with provenance".
 
+## Update (2026-10-15, retailer EDI compliance, D47)
+Branch `claude/edi-retailer-compliance-ly1pbc`. EANCOM 2002 D.01B messages, EDI setup, SSCC pallet/carton ASN, invoice tax/allowances/three-way match, send blocked by retailer rules, ts-edifact and pydifact checks. Mapping in docs/08-edi-mapping.md is provisional: waiting on real PO PDFs and the retailer's MIG PDFs from the owner. gs1.org and edi.mediamarktsaturn.com cannot be fetched from the cloud environment.
+
 ## Update (2026-10-15, second session)
 Branch `claude/gifted-faraday-o6apzv`. PR #1 was merged with only Slice 1; Slice 2 and this file were brought over from `claude/funny-maxwell-20w31v`. Slices 3-7 and the click-through guided demo (owner confirmed: click through without a presenter) are done. `scripts/verify.sh` passes: 47 backend tests, typecheck, build, 3 Playwright tests including the full 15-step demo with screenshots in docs/screenshots/. Not yet done: a live-Gemini rehearsal of the demo (needs GEMINI_API_KEY as an environment secret) and an owner walkthrough on a projector.
 

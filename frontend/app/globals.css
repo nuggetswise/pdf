@@ -177,3 +177,27 @@ iframe { width: 100%; height: 640px; border: 1px solid var(--line); border-radiu
 .onboard .row input, .onboard .row select { flex: 1 1 140px; min-width: 0; }
 .onboard .row input.short { flex: 0 0 72px; }
 .additions table { width: 100%; }
+
+/* Retailer compliance, EDI setup, packing and invoice tax (D47) */
+.compliance { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 14px; display: grid; gap: 6px; }
+.compliance.ok { background: var(--ok-soft); border-color: #8fd1ab; }
+.compliance.warn { background: var(--warn-soft); border-color: #f0c674; }
+.compliance.bad { background: var(--bad-soft); border-color: #f2a59c; }
+.compliance .findings { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.compliance a { color: var(--accent); }
+.edi-setup h4 button { margin-left: 8px; font-size: 13px; }
+.setup-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.setup-grid fieldset { border: 1px solid var(--line); border-radius: 10px; display: grid; gap: 6px; margin: 0; }
+.setup-grid label { display: grid; gap: 2px; font-size: 13px; }
+.setup-grid > p, .setup-grid > div { grid-column: 1 / -1; }
+.row-inline { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.row-inline label { display: grid; gap: 2px; font-size: 13px; }
+.allowances { display: grid; gap: 6px; }
+.review-grid > * { min-width: 0; }
+.portal, .portal .flow, .portal-form { min-width: 0; }
+.portal-form { overflow-x: auto; }
+.allowances .row-inline select { max-width: 100%; }
+.portal-form table.lines { font-size: 13px; }
+.portal-form td input.qty { width: 4.5em; }
+.row-inline > * { min-width: 0; }
+.allowances .row-inline select { flex: 1 1 180px; }

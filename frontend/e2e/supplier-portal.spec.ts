@@ -27,9 +27,11 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
   await expect(portal.getByLabel("Shipping notice")).toContainText("ASN-00001");
   await expect(portal.getByLabel("Shipping notice").locator(".flowstate")).toHaveText("ERP synced, EDI to retailer delivered");
 
-  // Step 3: invoice from the ASN: 10 x 24.00 + 3 x 24.00 = 312.00, not the ordered 360.00.
+  // Step 3: invoice from the ASN: 10 x 24.00 + 3 x 24.00 = 312.00, not the ordered 360.00, plus the fictional
+  // demo supplier's default GST 5% (15.60) = 327.60.
   await portal.getByRole("button", { name: "Create invoice" }).click();
-  await expect(page.locator(".invtotal")).toContainText("312.00");
+  await expect(page.getByLabel("Amounts", { exact: true })).toContainText("Lines 312.00");
+  await expect(page.locator(".invtotal")).toContainText("327.60");
   await page.getByRole("button", { name: "Submit invoice" }).click();
   await expect(portal.getByLabel("Invoice")).toContainText("INV-00001");
   await expect(portal.getByLabel("Invoice").locator(".flowstate")).toContainText("ERP synced, EDI to retailer delivered");
@@ -41,14 +43,16 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
   await expect(page.locator(".edi-card[data-kind=DESADV]")).toHaveCount(1);
   await expect(page.locator(".edi-card[data-kind=INVOIC]")).toHaveCount(1);
   await expect(page.locator(".edi-card[data-kind=ORDRSP]")).toHaveCount(1);
-  await expect(page.getByText(/FICTIONAL GLN/)).toBeVisible();
+  await expect(page.getByText(/FICTIONAL identifiers \(GS1 demo prefix 952\)/)).toBeVisible();
   const desadv = page.locator(".edi-card[data-kind=DESADV]");
   await desadv.getByRole("button", { name: "Show message" }).click();
-  await expect(desadv.getByLabel("Raw message")).toContainText("QTY+12:10:");
+  await expect(desadv.getByLabel("Raw message")).toContainText("QTY+12:10'");
+  await expect(desadv.getByLabel("Raw message")).toContainText("UNH+1+DESADV:D:01B:UN:EAN007'");
   const invoic = page.locator(".edi-card[data-kind=INVOIC]");
   await invoic.getByRole("button", { name: "Show message" }).click();
-  await expect(invoic.getByLabel("Raw message")).toContainText("QTY+47:10:");
-  await expect(invoic.getByLabel("Raw message")).toContainText("MOA+86:312.00'");
+  await expect(invoic.getByLabel("Raw message")).toContainText("QTY+47:10'");
+  await expect(invoic.getByLabel("Raw message")).toContainText("MOA+79:312.00'");
+  await expect(invoic.getByLabel("Raw message")).toContainText("MOA+77:327.60'");
   await expect(invoic.getByLabel("Field mapping")).toContainText("Invoiced quantity 10");
   const dl = page.waitForEvent("download");
   await invoic.getByRole("button", { name: "Download" }).click();

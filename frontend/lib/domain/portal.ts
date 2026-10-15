@@ -1,12 +1,23 @@
-// Supplier portal (D45): order confirmation, ASN and invoice, each with its own simulated outbound deliveries.
+// Supplier portal (D45, D47): order confirmation, ASN and invoice, each with its own simulated outbound deliveries.
 // Pure functions over RunState, like workflow.ts. Every outbound message has its own status
 // (pending / delivered / failed), its own idempotency key and a safe retry that first asks the simulated
 // receiver whether it already holds the message. Nothing leaves the browser tab: the "Retailer EDI outbox"
 // and the "supplier ERP" are records in RunState.portal.received.
-import { buildDesadv, buildInvoic, buildOrdrsp, type EdiLine, type EdiMessage } from "./edifact";
-import { Dec, money } from "./money";
+//
+// D47: every EDIFACT message is checked against the trading partner's compliance profile before it is sent.
+// An ASN or invoice that would fail a blocking rule is refused with the reasons, so nothing the retailer would
+// reject leaves the portal. The ASN carries a pallet and carton hierarchy with SSCCs; the invoice carries tax
+// per rate and allowances or charges, and is matched line by line against the order and the ASN.
+import { type ComplianceResult, PROFILES, blocking, checkMessage, rateKey, refusal } from "./compliance";
 import {
-  type Asn, type Invoice, type OutboundMessage, type Portal, type RunState, decimalString, emptyPortal,
+  type EdiAllowance, type EdiLine, type EdiMessage, type EdiParties, type EdiPallet, buildDesadv, buildInvoic, buildOrdrsp,
+} from "./edifact";
+import { sscc } from "./gs1";
+import { Dec, money } from "./money";
+import { partnerFor, supplierSetup, validRate } from "./partners";
+import {
+  type Asn, type ComplianceSummary, type Invoice, type InvoiceAllowance, type OutboundMessage, type Pallet, type Portal,
+  type RunState, decimalString, emptyPortal,
 } from "./run-state";
 import { Conflict, type Clock, Forbidden, type Who, systemClock } from "./workflow";
 
@@ -16,6 +27,8 @@ const requireReviewer = (role: string) => {
 };
 const pad = (n: number) => String(n).padStart(5, "0");
 const nextId = (rows: { id: number }[]) => rows.reduce((m, r) => Math.max(m, r.id), 0) + 1;
+const HUNDRED = Dec.of("100");
+const NEG = Dec.of("-1");
 
 type Run = RunState & { portal: Portal };
 const withPortal = (s: RunState): Run => { s.portal ??= emptyPortal(); return s as Run; };
@@ -31,7 +44,7 @@ const RECEIVER_PREFIX: Record<OutboundMessage["kind"], string> = {
 };
 
 function addMessage(s: Run, now: string, m: Pick<OutboundMessage, "kind" | "channel" | "documentId" | "sourceType"
-  | "sourceId" | "idempotencyKey" | "format" | "body" | "mapping">): OutboundMessage {
+  | "sourceId" | "idempotencyKey" | "format" | "body" | "mapping"> & { compliance?: ComplianceSummary }): OutboundMessage {
   const existing = s.portal.outbound.find((x) => x.idempotencyKey === m.idempotencyKey);
   if (existing) return existing;
   const msg: OutboundMessage = { id: nextId(s.portal.outbound), ...m, status: "pending", attempts: [], receiverRef: null,
@@ -95,22 +108,60 @@ function dispatch(s: Run, now: string, msg: OutboundMessage) {
   note(msg, now, "delivered", "delivered", `Placed in the simulated Retailer EDI outbox as ${msg.receiverRef}`);
 }
 
-const edifact = (m: EdiMessage) => ({ format: "edifact" as const, body: m.text,
-  mapping: m.segments.map((x) => ({ segment: x.raw, meaning: x.meaning })) });
+const summary = (c: ComplianceResult): ComplianceSummary =>
+  ({ profile: c.profile, rulesChecked: c.rulesChecked, rulesPassed: c.rulesPassed, findings: c.findings });
+const edifact = (m: EdiMessage, c: ComplianceResult) => ({ format: "edifact" as const, body: m.text,
+  mapping: m.segments.map((x) => ({ segment: x.raw, meaning: x.meaning })), compliance: summary(c) });
 const json = (v: unknown, mapping: { segment: string; meaning: string }[]) =>
   ({ format: "json" as const, body: JSON.stringify(v, null, 2), mapping });
 
-function orderFor(s: RunState, docId: number) {
+type OrderRow = RunState["orders"][number];
+function orderFor(s: RunState, docId: number): OrderRow {
   const o = s.orders.find((x) => x.documentId === docId);
   if (!o) throw new Conflict("Unknown order");
   return o;
 }
-const partiesOf = (o: RunState["orders"][number]) => ({
-  poNumber: o.validation.order.po_number ?? "", customerName: o.validation.order.customer_name,
-  shipTo: o.validation.order.ship_to_id, currency: o.validation.order.currency,
-});
+
+/** Key for the delivery party when the PO printed no ship-to. */
+export const DEFAULT_SHIP_TO = "(no ship-to on the PO)";
+
+/** Parties for the EDI header from the supplier setup and the retailer's trading partner setup. */
+export function ediContext(s: RunState, o: OrderRow): { parties: EdiParties; profile: keyof typeof PROFILES } {
+  const sup = supplierSetup(s);
+  const ord = o.validation.order;
+  const partner = partnerFor(s, ord.customer_id);
+  const shipTo = ord.ship_to_id ?? DEFAULT_SHIP_TO;
+  return {
+    profile: partner.profile,
+    parties: {
+      poNumber: ord.po_number ?? "", currency: ord.currency,
+      supplier: { gln: sup.gln, vatId: sup.vatId, name: sup.name },
+      buyer: { gln: partner.buyerGln, vatId: partner.buyerVatId, name: ord.customer_name },
+      deliveryParty: { gln: partner.shipToGlns.find((t) => t.shipToId === shipTo)?.gln ?? null, printedId: ord.ship_to_id },
+      contractRef: partner.contractRef,
+    },
+  };
+}
+
+const ediLine = (o: OrderRow, lineIndex: number, quantity: string): EdiLine => {
+  const l = o.validation.order.lines.find((x) => x.line_index === lineIndex)!;
+  return { sourceLineId: l.source_line_id, gtin: l.gtin, sku: l.sku ?? "", customerItemCode: l.customer_item_code,
+    description: l.description, unit: l.unit ?? "", quantity };
+};
+
+const dateOnly = (iso: string) => iso.slice(0, 10);
+const isIsoDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
 
 // ---------- step 1: order confirmation, automatic on ERP delivery ----------
+
+function ordrspFor(s: RunState, o: OrderRow, createdAt: string) {
+  const erpOrderId = o.erpOrderId!;
+  const ctx = ediContext(s, o);
+  const lines = o.validation.order.lines.map((l) => ediLine(o, l.line_index, l.quantity ?? "0"));
+  const msg = buildOrdrsp({ ref: `ORDRSP-${erpOrderId.replace(/^SIM-ERP-/, "")}`, createdAt, erpOrderId,
+    orderDate: o.validation.order.order_date, ...ctx.parties }, lines);
+  return { msg, check: checkMessage("ORDRSP", msg.text, ctx.profile) };
+}
 
 /** Called by workflow.deliver once the ERP holds the order. Mutates the run copy it is given. */
 export function confirmOrder(state: RunState, now: string, docId: number) {
@@ -119,80 +170,166 @@ export function confirmOrder(state: RunState, now: string, docId: number) {
   if (!o.erpOrderId) return;
   const key = `ORDRSP:${o.erpOrderId}`;
   if (s.portal.outbound.some((m) => m.idempotencyKey === key)) return;
-  const lines: EdiLine[] = o.validation.order.lines.map((l) => ({ sourceLineId: l.source_line_id, gtin: l.gtin,
-    sku: l.sku ?? "", description: l.description, unit: l.unit ?? "", quantity: l.quantity ?? "0" }));
-  const ref = `ORDRSP-${o.erpOrderId.replace(/^SIM-ERP-/, "")}`;
+  const { msg: built, check } = ordrspFor(s, o, now);
   const msg = addMessage(s, now, { kind: "ORDRSP", channel: "retailer_edi_outbox", documentId: docId, sourceType: "order",
-    sourceId: o.erpOrderId, idempotencyKey: key,
-    ...edifact(buildOrdrsp({ ref, createdAt: now, erpOrderId: o.erpOrderId, orderDate: o.validation.order.order_date,
-      ...partiesOf(o) }, lines)) });
+    sourceId: o.erpOrderId, idempotencyKey: key, ...edifact(built, check) });
+  if (blocking(check).length) {
+    note(msg, now, "pending", "held", `Held, not sent: ${refusal(check)} Fix the EDI setup, then retry.`);
+    return;
+  }
   dispatch(s, now, msg);
 }
 
-// ---------- step 2: ASN ----------
+// ---------- step 2: ASN with packing ----------
 
-export interface AsnInput { lines: { lineIndex: number; shippedQty: string; overrideReason?: string | null }[] }
+export interface PackingInput {
+  /** Cartons per pallet; default: every carton on one pallet. */
+  cartonsPerPallet?: number | null;
+  /** Units per carton for each line; default: the whole line in one carton. */
+  unitsPerCarton?: { lineIndex: number; units: string }[];
+}
+export interface AsnInput {
+  lines: { lineIndex: number; shippedQty: string; overrideReason?: string | null }[];
+  despatchDate?: string | null;
+  estimatedDelivery?: string | null;
+  packing?: PackingInput;
+}
+
+const MAX_UNITS = 2000;
+
+/** Split shipped lines into cartons, then cartons onto pallets, numbering every unit with an SSCC. */
+export function packShipment(shipped: { lineIndex: number; sourceLineId: string; shippedQty: string }[],
+  packing: PackingInput | undefined, companyPrefix: string, lastSerial: number): { pallets: Pallet[]; lastSerial: number } {
+  const per = new Map((packing?.unitsPerCarton ?? []).map((u) => [u.lineIndex, u.units.trim()]));
+  const cartons: Pallet["cartons"][number]["contents"][] = [];
+  for (const l of shipped) {
+    const q = Dec.of(l.shippedQty);
+    const raw = per.get(l.lineIndex) || l.shippedQty;
+    if (!decimalString.safeParse(raw).success || !Dec.ZERO.lt(Dec.of(raw))) {
+      throw new Conflict(`Line ${l.sourceLineId}: units per carton must be a number above zero`);
+    }
+    const u = Dec.of(raw);
+    if (!q.isIntegral() || !u.isIntegral() || !u.lt(q)) { cartons.push([{ lineIndex: l.lineIndex, quantity: l.shippedQty }]); continue; }
+    let left = q;
+    while (Dec.ZERO.lt(left)) {
+      const take = left.lt(u) ? left : u;
+      cartons.push([{ lineIndex: l.lineIndex, quantity: take.normalize().toFixedPoint() }]);
+      left = left.add(take.mul(NEG));
+      if (cartons.length > MAX_UNITS) throw new Conflict(`More than ${MAX_UNITS} cartons; check the units per carton`);
+    }
+  }
+  const perPallet = packing?.cartonsPerPallet ?? cartons.length;
+  if (!Number.isInteger(perPallet) || perPallet < 1) throw new Conflict("Cartons per pallet must be a whole number of 1 or more");
+  let serial = lastSerial;
+  const pallets: Pallet[] = [];
+  for (let i = 0; i < cartons.length; i += perPallet) {
+    const pallet = sscc(companyPrefix, ++serial);
+    pallets.push({ sscc: pallet, cartons: cartons.slice(i, i + perPallet).map((contents) => ({ sscc: sscc(companyPrefix, ++serial), contents })) });
+  }
+  return { pallets, lastSerial: serial };
+}
+
+export interface AsnDraft { asn: Asn; message: EdiMessage; compliance: ComplianceResult; lastSerial: number }
+
+/** Build the ASN and its DESADV without changing the run. Throws Conflict for input that cannot be an ASN. */
+export function draftAsn(s: RunState, docId: number, input: AsnInput, actor: string, now: string): AsnDraft {
+  const o = orderFor(s, docId);
+  if (o.deliveryState !== "erp_created" || !o.erpOrderId) throw new Conflict("An ASN needs an order delivered to the ERP");
+  const prior = s.portal?.asns.find((a) => a.documentId === docId);
+  if (prior) throw new Conflict(`This order already has ${prior.asnNumber}`);
+  const orderLines = o.validation.order.lines;
+  const given = new Map(input.lines.map((l) => [l.lineIndex, l]));
+  if (given.size !== input.lines.length || given.size !== orderLines.length
+    || orderLines.some((l) => !given.has(l.line_index))) {
+    throw new Conflict("Give a shipped quantity for every order line");
+  }
+  let anyShipped = false;
+  const lines: Asn["lines"] = orderLines.map((l) => {
+    const g = given.get(l.line_index)!;
+    if (!decimalString.safeParse(g.shippedQty).success || g.shippedQty.startsWith("-")) {
+      throw new Conflict(`Line ${l.source_line_id}: shipped quantity must be a number of zero or more`);
+    }
+    if (!l.sku || !l.quantity || !l.unit) throw new Conflict(`Line ${l.source_line_id} has no matched item and quantity`);
+    const shipped = Dec.of(g.shippedQty);
+    const ordered = Dec.of(l.quantity);
+    const reason = g.overrideReason?.trim() || null;
+    if (ordered.lt(shipped) && !reason) {
+      throw new Conflict(`Line ${l.source_line_id}: shipped ${g.shippedQty} is more than the ${l.quantity} ordered. `
+        + "Give an override reason to ship more.");
+    }
+    if (!shipped.isZero()) anyShipped = true;
+    return { lineIndex: l.line_index, sourceLineId: l.source_line_id, sku: l.sku, gtin: l.gtin, description: l.description,
+      unit: l.unit, orderedQty: l.quantity, shippedQty: g.shippedQty, overrideReason: ordered.lt(shipped) ? reason : null };
+  });
+  if (!anyShipped) throw new Conflict("Nothing is shipped: at least one line needs a quantity above zero");
+
+  const despatchDate = input.despatchDate?.trim() || dateOnly(now);
+  const requested = o.validation.order.requested_delivery_date ?? "";
+  const estimatedDelivery = input.estimatedDelivery === undefined
+    ? (isIsoDate(requested) ? requested : "") : (input.estimatedDelivery ?? "").trim();
+  for (const [v, what] of [[despatchDate, "Despatch date"], [estimatedDelivery, "Estimated delivery date"]] as const) {
+    if (v && !isIsoDate(v)) throw new Conflict(`${what} must be a date (YYYY-MM-DD)`);
+  }
+
+  const sup = supplierSetup(s);
+  const shipped = lines.filter((l) => !Dec.of(l.shippedQty).isZero());
+  const { pallets, lastSerial } = packShipment(shipped, input.packing, sup.companyPrefix, s.portal?.ssccSerial ?? 0);
+  const id = nextId(s.portal?.asns ?? []);
+  const asn: Asn = { id, asnNumber: `ASN-${pad(id)}`, documentId: docId, erpOrderId: o.erpOrderId, lines, despatchDate,
+    ...(estimatedDelivery ? { estimatedDelivery } : {}), pallets, createdBy: actor, createdAt: now };
+
+  const ctx = ediContext(s, o);
+  const ediPallets: EdiPallet[] = pallets.map((p) => ({ sscc: p.sscc,
+    cartons: p.cartons.map((c) => ({ sscc: c.sscc, lines: c.contents.map((x) => ediLine(o, x.lineIndex, x.quantity)) })) }));
+  const message = buildDesadv({ ref: asn.asnNumber, createdAt: now, despatchDate, estimatedDelivery: estimatedDelivery || null,
+    ...ctx.parties }, ediPallets);
+  return { asn, message, compliance: checkMessage("DESADV", message.text, ctx.profile), lastSerial };
+}
 
 export function submitAsn(state: RunState, docId: number, input: AsnInput, who: Who, clock: Clock = systemClock): RunState {
   requireReviewer(who.role);
   return act(state, clock, (s, now) => {
+    const { asn, message, compliance, lastSerial } = draftAsn(s, docId, input, who.actor, now);
+    if (blocking(compliance).length) throw new Conflict(refusal(compliance));
     const o = orderFor(s, docId);
-    if (o.deliveryState !== "erp_created" || !o.erpOrderId) throw new Conflict("An ASN needs an order delivered to the ERP");
-    const prior = s.portal.asns.find((a) => a.documentId === docId);
-    if (prior) throw new Conflict(`This order already has ${prior.asnNumber}`);
-    const orderLines = o.validation.order.lines;
-    const given = new Map(input.lines.map((l) => [l.lineIndex, l]));
-    if (given.size !== input.lines.length || given.size !== orderLines.length
-      || orderLines.some((l) => !given.has(l.line_index))) {
-      throw new Conflict("Give a shipped quantity for every order line");
-    }
-    let anyShipped = false;
-    const lines: Asn["lines"] = orderLines.map((l) => {
-      const g = given.get(l.line_index)!;
-      if (!decimalString.safeParse(g.shippedQty).success || g.shippedQty.startsWith("-")) {
-        throw new Conflict(`Line ${l.source_line_id}: shipped quantity must be a number of zero or more`);
-      }
-      if (!l.sku || !l.quantity || !l.unit) throw new Conflict(`Line ${l.source_line_id} has no matched item and quantity`);
-      const shipped = Dec.of(g.shippedQty);
-      const ordered = Dec.of(l.quantity);
-      const reason = g.overrideReason?.trim() || null;
-      if (ordered.lt(shipped) && !reason) {
-        throw new Conflict(`Line ${l.source_line_id}: shipped ${g.shippedQty} is more than the ${l.quantity} ordered. `
-          + "Give an override reason to ship more.");
-      }
-      if (!shipped.isZero()) anyShipped = true;
-      return { lineIndex: l.line_index, sourceLineId: l.source_line_id, sku: l.sku, gtin: l.gtin, description: l.description,
-        unit: l.unit, orderedQty: l.quantity, shippedQty: g.shippedQty, overrideReason: ordered.lt(shipped) ? reason : null };
-    });
-    if (!anyShipped) throw new Conflict("Nothing is shipped: at least one line needs a quantity above zero");
-    const id = nextId(s.portal.asns);
-    const asn: Asn = { id, asnNumber: `ASN-${pad(id)}`, documentId: docId, erpOrderId: o.erpOrderId, lines,
-      createdBy: who.actor, createdAt: now };
     s.portal.asns.push(asn);
+    s.portal.ssccSerial = lastSerial;
+    const lines = asn.lines;
     s.audit.push({ id: nextId(s.audit), entityType: "document", entityId: docId, event: "asn_submitted", actor: who.actor,
-      detail: { asn: asn.asnNumber, short_lines: lines.filter((l) => Dec.of(l.shippedQty).lt(Dec.of(l.orderedQty))).length },
+      detail: { asn: asn.asnNumber, short_lines: lines.filter((l) => Dec.of(l.shippedQty).lt(Dec.of(l.orderedQty))).length,
+        pallets: asn.pallets!.length, cartons: asn.pallets!.reduce((t, p) => t + p.cartons.length, 0) },
       createdAt: now });
 
     const shippedLines = lines.filter((l) => !Dec.of(l.shippedQty).isZero());
     const erp = addMessage(s, now, { kind: "ERP_SHIPMENT", channel: "supplier_erp", documentId: docId, sourceType: "asn",
       sourceId: asn.asnNumber, idempotencyKey: `ERP-SHIPMENT:${asn.asnNumber}`,
       ...json({ shipment_for: o.erpOrderId, asn: asn.asnNumber, po_number: o.validation.order.po_number,
+        despatch_date: asn.despatchDate, estimated_delivery: asn.estimatedDelivery ?? null,
         lines: shippedLines.map((l) => ({ sku: l.sku, shipped_qty: l.shippedQty, ordered_qty: l.orderedQty, unit: l.unit,
-          override_reason: l.overrideReason })) },
+          override_reason: l.overrideReason })),
+        pallets: asn.pallets },
       [{ segment: "shipment_for", meaning: `Shipment against ERP order ${o.erpOrderId}` },
-        { segment: "lines[].shipped_qty", meaning: "Quantity actually shipped, as entered on the ASN" }]) });
+        { segment: "lines[].shipped_qty", meaning: "Quantity actually shipped, as entered on the ASN" },
+        { segment: "pallets[].sscc", meaning: "Pallet and carton SSCCs, to print on the logistic labels" }]) });
     const edi = addMessage(s, now, { kind: "DESADV", channel: "retailer_edi_outbox", documentId: docId, sourceType: "asn",
-      sourceId: asn.asnNumber, idempotencyKey: `DESADV:${asn.asnNumber}`,
-      ...edifact(buildDesadv({ ref: asn.asnNumber, createdAt: now, ...partiesOf(o) },
-        shippedLines.map((l) => ({ ...l, quantity: l.shippedQty })))) });
+      sourceId: asn.asnNumber, idempotencyKey: `DESADV:${asn.asnNumber}`, ...edifact(message, compliance) });
     dispatch(s, now, erp);
     dispatch(s, now, edi);
   });
 }
 
-// ---------- step 3: invoice ----------
+// ---------- step 3: invoice with tax, allowances and a three-way match ----------
 
-export interface InvoiceInput { lines: { lineIndex: number; quantity: string }[] }
+export const ALLOWANCE_CODES = {
+  allowance: { DI: "Discount" },
+  charge: { FC: "Freight charge" },
+} as const;
+
+export interface InvoiceInput {
+  lines: { lineIndex: number; quantity: string; taxRate?: string | null }[];
+  allowances?: { kind: "allowance" | "charge"; code: string; description?: string | null; percent?: string | null;
+    amount?: string | null; taxRate: string }[];
+}
 
 /** The invoice lines the ASN allows: shipped quantity times the order's unit price. */
 export function invoiceLinesFor(s: RunState, asn: Asn): Invoice["lines"] {
@@ -205,47 +342,150 @@ export function invoiceLinesFor(s: RunState, asn: Asn): Invoice["lines"] {
   });
 }
 
+export interface InvoiceTotals {
+  lineTotal: string; taxableAmount: string; taxAmount: string; invoiceAmount: string;
+  byRate: { rate: string; taxable: string; tax: string }[];
+}
+
+/** Lines per rate, less allowances, plus charges; tax per rate rounded half-up to cents; then the sums. */
+export function invoiceTotals(lines: Invoice["lines"], allowances: InvoiceAllowance[]): InvoiceTotals {
+  const base = new Map<string, Dec>();
+  const add = (rate: string, d: Dec) => { const k = rateKey(Dec.of(rate)); base.set(k, (base.get(k) ?? Dec.ZERO).add(d)); };
+  let lineTotal = Dec.ZERO;
+  for (const l of lines) { lineTotal = lineTotal.add(Dec.of(l.lineAmount)); add(l.taxRate!, Dec.of(l.lineAmount)); }
+  for (const a of allowances) add(a.taxRate, a.kind === "allowance" ? Dec.of(a.amount).mul(NEG) : Dec.of(a.amount));
+  const byRate = [...base.entries()].sort((a, b) => Dec.of(a[0]).cmp(Dec.of(b[0]))).map(([rate, b]) => {
+    if (b.lt(Dec.ZERO)) throw new Conflict(`Allowances at ${rate}% are larger than the lines taxed at ${rate}%`);
+    return { rate, taxable: money(b), tax: money(b.mul(Dec.of(rate)).div(HUNDRED)) };
+  });
+  const taxable = byRate.reduce((t, r) => t.add(Dec.of(r.taxable)), Dec.ZERO);
+  const tax = byRate.reduce((t, r) => t.add(Dec.of(r.tax)), Dec.ZERO);
+  return { lineTotal: money(lineTotal), taxableAmount: money(taxable), taxAmount: money(tax),
+    invoiceAmount: money(taxable.add(tax)), byRate };
+}
+
+export interface MatchRow {
+  sourceLineId: string; description: string | null; unit: string;
+  poQty: string; poPrice: string | null; asnQty: string; invoiceQty: string | null; invoicePrice: string | null;
+  status: "matched" | "short_shipped" | "over_shipped" | "not_shipped" | "mismatch"; note: string;
+}
+
+/** PO against ASN against invoice, line by line. Only "mismatch" blocks; short and over shipments are explained. */
+export function threeWayMatch(s: RunState, asn: Asn, invLines: Invoice["lines"]): MatchRow[] {
+  const o = orderFor(s, asn.documentId);
+  return asn.lines.map((a) => {
+    const po = o.validation.order.lines.find((x) => x.line_index === a.lineIndex)!;
+    const inv = invLines.find((x) => x.lineIndex === a.lineIndex) ?? null;
+    const shipped = Dec.of(a.shippedQty);
+    const row = { sourceLineId: a.sourceLineId, description: a.description, unit: a.unit, poQty: a.orderedQty,
+      poPrice: po.unit_price, asnQty: a.shippedQty, invoiceQty: inv?.quantity ?? null, invoicePrice: inv?.unitPrice ?? null };
+    if (shipped.isZero()) {
+      return inv ? { ...row, status: "mismatch" as const, note: "Invoiced but not shipped" }
+        : { ...row, status: "not_shipped" as const, note: "Not shipped, not invoiced" };
+    }
+    if (!inv) return { ...row, status: "mismatch" as const, note: "Shipped but missing from the invoice" };
+    if (!Dec.of(inv.quantity).eq(shipped)) return { ...row, status: "mismatch" as const, note: `Invoice quantity ${inv.quantity} is not the shipped ${a.shippedQty}` };
+    if (!po.unit_price || !Dec.of(inv.unitPrice).eq(Dec.of(po.unit_price))) {
+      return { ...row, status: "mismatch" as const, note: `Invoice price ${inv.unitPrice} is not the order price ${po.unit_price ?? "(none)"}` };
+    }
+    if (shipped.lt(Dec.of(a.orderedQty))) return { ...row, status: "short_shipped" as const, note: "Short shipment: invoiced what shipped" };
+    if (Dec.of(a.orderedQty).lt(shipped)) return { ...row, status: "over_shipped" as const, note: `Over-shipped: ${a.overrideReason ?? ""}` };
+    return { ...row, status: "matched" as const, note: "Order, ASN and invoice agree" };
+  });
+}
+
+export interface InvoiceDraft {
+  invoice: Invoice; message: EdiMessage; compliance: ComplianceResult; match: MatchRow[]; totals: InvoiceTotals;
+}
+
+export function draftInvoice(s: RunState, asnId: number, input: InvoiceInput, actor: string, now: string): InvoiceDraft {
+  const asn = s.portal?.asns.find((a) => a.id === asnId);
+  if (!asn) throw new Conflict("Unknown ASN");
+  const prior = s.portal?.invoices.find((i) => i.asnId === asnId);
+  if (prior) throw new Conflict(`${asn.asnNumber} already has invoice ${prior.invoiceNumber}; one invoice per ASN`);
+  const sup = supplierSetup(s);
+  const base = invoiceLinesFor(s, asn);
+  // The invoice must match its ASN line for line: same lines, same quantities.
+  const given = new Map(input.lines.map((l) => [l.lineIndex, l]));
+  const mismatch = base.find((l) => {
+    const q = given.get(l.lineIndex)?.quantity;
+    return q === undefined || !decimalString.safeParse(q).success || !Dec.of(q).eq(Dec.of(l.quantity));
+  });
+  if (mismatch || given.size !== base.length || input.lines.length !== base.length) {
+    const l = mismatch ?? base[0];
+    throw new Conflict(`Invoice does not match ${asn.asnNumber}: line ${l?.sourceLineId ?? "?"} must invoice the shipped `
+      + `quantity ${l?.quantity ?? ""}${given.size !== base.length ? " and only lines that were shipped" : ""}`);
+  }
+  const lines = base.map((l) => {
+    const rate = (given.get(l.lineIndex)!.taxRate ?? sup.defaultTaxRate ?? "").trim();
+    if (!validRate(rate)) throw new Conflict(`Line ${l.sourceLineId}: give a tax rate from 0 to 100 percent`);
+    return { ...l, taxRate: rate };
+  });
+  const lineRates = new Set(lines.map((l) => rateKey(Dec.of(l.taxRate))));
+  const allowances: InvoiceAllowance[] = (input.allowances ?? []).map((a, i) => {
+    const codes = ALLOWANCE_CODES[a.kind] as Record<string, string> | undefined;
+    if (!codes || !(a.code in codes)) throw new Conflict(`Allowance or charge ${i + 1}: unknown reason code`);
+    if (!validRate(a.taxRate) || !lineRates.has(rateKey(Dec.of(a.taxRate)))) {
+      throw new Conflict(`Allowance or charge ${i + 1}: its tax rate must be one of the line rates`);
+    }
+    const pct = a.percent?.trim() || null;
+    let amount: string;
+    if (pct !== null) {
+      if (!validRate(pct) || Dec.of(pct).isZero()) throw new Conflict(`Allowance or charge ${i + 1}: percent must be above 0 and at most 100`);
+      const atRate = lines.filter((l) => rateKey(Dec.of(l.taxRate)) === rateKey(Dec.of(a.taxRate)))
+        .reduce((t, l) => t.add(Dec.of(l.lineAmount)), Dec.ZERO);
+      amount = money(atRate.mul(Dec.of(pct)).div(HUNDRED));
+    } else {
+      const amt = a.amount?.trim() ?? "";
+      if (!decimalString.safeParse(amt).success || !Dec.ZERO.lt(Dec.of(amt))) {
+        throw new Conflict(`Allowance or charge ${i + 1}: give an amount above zero or a percent`);
+      }
+      amount = money(Dec.of(amt));
+    }
+    const description = (a.description ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, 70) || codes[a.code];
+    return { kind: a.kind, code: a.code, description, percent: pct, amount, taxRate: a.taxRate.trim() };
+  });
+  const totals = invoiceTotals(lines, allowances);
+  const o = orderFor(s, asn.documentId);
+  const id = nextId(s.portal?.invoices ?? []);
+  const invoice: Invoice = { id, invoiceNumber: `INV-${pad(id)}`, asnId, documentId: asn.documentId,
+    currency: o.validation.order.currency ?? "", lines, subtotal: totals.lineTotal, total: totals.invoiceAmount,
+    rounding: "ROUND_HALF_UP to 0.01", taxType: sup.taxType, allowances, taxableAmount: totals.taxableAmount,
+    taxAmount: totals.taxAmount, taxByRate: totals.byRate, createdBy: actor, createdAt: now };
+  const ctx = ediContext(s, o);
+  const edi: EdiAllowance[] = allowances.map((a) => ({ ...a }));
+  const message = buildInvoic({ ref: invoice.invoiceNumber, createdAt: now, asnRef: asn.asnNumber, taxType: sup.taxType,
+    ...ctx.parties }, lines.map((l) => ({ ...l, customerItemCode: o.validation.order.lines.find((x) => x.line_index === l.lineIndex)
+    ?.customer_item_code ?? null })), edi, totals);
+  return { invoice, message, compliance: checkMessage("INVOIC", message.text, ctx.profile),
+    match: threeWayMatch(s, asn, lines), totals };
+}
+
 export function submitInvoice(state: RunState, asnId: number, input: InvoiceInput, who: Who,
   clock: Clock = systemClock): RunState {
   requireReviewer(who.role);
   return act(state, clock, (s, now) => {
-    const asn = s.portal.asns.find((a) => a.id === asnId);
-    if (!asn) throw new Conflict("Unknown ASN");
-    const prior = s.portal.invoices.find((i) => i.asnId === asnId);
-    if (prior) throw new Conflict(`${asn.asnNumber} already has invoice ${prior.invoiceNumber}; one invoice per ASN`);
-    const lines = invoiceLinesFor(s, asn);
-    // The invoice must match its ASN line for line: same lines, same quantities.
-    const given = new Map(input.lines.map((l) => [l.lineIndex, l.quantity]));
-    const mismatch = lines.find((l) => {
-      const q = given.get(l.lineIndex);
-      return q === undefined || !decimalString.safeParse(q).success || !Dec.of(q).eq(Dec.of(l.quantity));
-    });
-    if (mismatch || given.size !== lines.length || input.lines.length !== lines.length) {
-      const l = mismatch ?? lines[0];
-      throw new Conflict(`Invoice does not match ${asn.asnNumber}: line ${l?.sourceLineId ?? "?"} must invoice the shipped `
-        + `quantity ${l?.quantity ?? ""}${given.size !== lines.length ? " and only lines that were shipped" : ""}`);
-    }
-    const o = orderFor(s, asn.documentId);
-    const subtotal = money(lines.reduce((t, l) => t.add(Dec.of(l.lineAmount)), Dec.ZERO));
-    const id = nextId(s.portal.invoices);
-    const inv: Invoice = { id, invoiceNumber: `INV-${pad(id)}`, asnId, documentId: asn.documentId,
-      currency: o.validation.order.currency ?? "", lines, subtotal, total: subtotal, rounding: "ROUND_HALF_UP to 0.01",
-      createdBy: who.actor, createdAt: now };
+    const { invoice: inv, message, compliance, match } = draftInvoice(s, asnId, input, who.actor, now);
+    const bad = match.filter((m) => m.status === "mismatch");
+    if (bad.length) throw new Conflict(`Three-way match failed: ${bad.map((m) => `line ${m.sourceLineId}: ${m.note}`).join("; ")}`);
+    if (blocking(compliance).length) throw new Conflict(refusal(compliance));
+    const asn = s.portal.asns.find((a) => a.id === asnId)!;
     s.portal.invoices.push(inv);
     s.audit.push({ id: nextId(s.audit), entityType: "document", entityId: asn.documentId, event: "invoice_submitted",
       actor: who.actor, detail: { invoice: inv.invoiceNumber, asn: asn.asnNumber, total: inv.total }, createdAt: now });
     const erp = addMessage(s, now, { kind: "ERP_INVOICE", channel: "supplier_erp", documentId: asn.documentId,
       sourceType: "invoice", sourceId: inv.invoiceNumber, idempotencyKey: `ERP-INVOICE:${inv.invoiceNumber}`,
       ...json({ invoice: inv.invoiceNumber, asn: asn.asnNumber, erp_order: asn.erpOrderId, currency: inv.currency,
-        lines: lines.map((l) => ({ sku: l.sku, quantity: l.quantity, unit_price: l.unitPrice, line_amount: l.lineAmount })),
-        subtotal: inv.subtotal, total: inv.total },
+        lines: inv.lines.map((l) => ({ sku: l.sku, quantity: l.quantity, unit_price: l.unitPrice, line_amount: l.lineAmount,
+          tax_rate: l.taxRate })),
+        allowances: inv.allowances, line_total: inv.subtotal, taxable_amount: inv.taxableAmount, tax_type: inv.taxType,
+        tax_by_rate: inv.taxByRate, tax_amount: inv.taxAmount, invoice_amount: inv.total },
       [{ segment: "lines[].quantity", meaning: `Quantity from ${asn.asnNumber}, not the purchase order` },
         { segment: "lines[].unit_price", meaning: "Unit price from the delivered order" },
-        { segment: "total", meaning: "Exact decimal sum, rounded half-up to cents; tax not calculated" }]) });
+        { segment: "invoice_amount", meaning: "Taxable amount plus tax; exact decimals, tax rounded half-up to cents per rate" }]) });
     const edi = addMessage(s, now, { kind: "INVOIC", channel: "retailer_edi_outbox", documentId: asn.documentId,
       sourceType: "invoice", sourceId: inv.invoiceNumber, idempotencyKey: `INVOIC:${inv.invoiceNumber}`,
-      ...edifact(buildInvoic({ ref: inv.invoiceNumber, createdAt: now, asnRef: asn.asnNumber, subtotal: inv.subtotal,
-        total: inv.total, ...partiesOf(o) }, lines)) });
+      ...edifact(message, compliance) });
     dispatch(s, now, erp);
     dispatch(s, now, edi);
   });
@@ -260,6 +500,16 @@ export function retryOutbound(state: RunState, messageId: number, who: Who, cloc
     if (!msg) throw new Conflict("Unknown outbound message");
     if (msg.status === "delivered") throw new Conflict("Already delivered; nothing to retry");
     msg.attempts.push({ at: now, outcome: "retry_requested", detail: `Retry by ${who.actor}; checking the receiver first` });
+    // An order confirmation held by the compliance check is rebuilt from the current EDI setup before it goes.
+    if (msg.kind === "ORDRSP" && msg.attempts.some((a) => a.outcome === "held")
+      && !s.portal.received.some((r) => r.idempotencyKey === msg.idempotencyKey)) {
+      const { msg: built, check } = ordrspFor(s, orderFor(s, msg.documentId), msg.createdAt);
+      Object.assign(msg, edifact(built, check));
+      if (blocking(check).length) {
+        note(msg, now, "pending", "held", `Still held: ${refusal(check)}`);
+        return;
+      }
+    }
     dispatch(s, now, msg);
   });
 }

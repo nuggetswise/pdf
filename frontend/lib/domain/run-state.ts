@@ -9,6 +9,7 @@
 // Money and quantities are always strings. A JSON number in any of those fields is rejected, so a
 // binary float can never enter the run.
 import { z } from "zod";
+import { PROFILE_IDS } from "./compliance";
 
 // ---------- primitives ----------
 
@@ -369,6 +370,16 @@ export const AsnLine = z.strictObject({
   overrideReason: maybe(z.string()),
 });
 
+/** D47 packing: pallets, each holding cartons, each holding quantities of ASN lines. Every unit has an SSCC. */
+const ssccString = z.string().regex(/^\d{18}$/);
+export const Pallet = z.strictObject({
+  sscc: ssccString,
+  cartons: z.array(z.strictObject({
+    sscc: ssccString,
+    contents: z.array(z.strictObject({ lineIndex: z.number().int().nonnegative(), quantity: decimalString })).min(1),
+  })).min(1),
+});
+
 /** Advance shipping notice. Submitted in one step; one per delivered order. */
 export const Asn = z.strictObject({
   id,
@@ -376,6 +387,10 @@ export const Asn = z.strictObject({
   documentId: id,
   erpOrderId: z.string(),
   lines: z.array(AsnLine).min(1),
+  /** D47 (optional so earlier runs load): dates as YYYY-MM-DD and the packing hierarchy. */
+  despatchDate: z.string().optional(),
+  estimatedDelivery: z.string().optional(),
+  pallets: z.array(Pallet).optional(),
   createdBy: z.string(),
   createdAt: isoTime,
 });
@@ -390,6 +405,19 @@ export const InvoiceLine = z.strictObject({
   quantity: decimalString,
   unitPrice: decimalString,
   lineAmount: decimalString,
+  /** D47: tax rate in percent. */
+  taxRate: decimalString.optional(),
+});
+
+export const TaxType = z.enum(["VAT", "GST"]);
+/** D47: an allowance (discount) or charge on the whole invoice, at one tax rate. */
+export const InvoiceAllowance = z.strictObject({
+  kind: z.enum(["allowance", "charge"]),
+  code: z.string(),
+  description: z.string(),
+  percent: maybe(decimalString),
+  amount: decimalString,
+  taxRate: decimalString,
 });
 
 /** Invoice built from a submitted ASN: quantities from the ASN, prices from the delivered order. */
@@ -403,6 +431,12 @@ export const Invoice = z.strictObject({
   subtotal: decimalString,
   total: decimalString,
   rounding: z.literal("ROUND_HALF_UP to 0.01"),
+  /** D47 (optional so earlier runs load): tax and allowances. subtotal = line total; total = invoice amount. */
+  taxType: TaxType.optional(),
+  allowances: z.array(InvoiceAllowance).optional(),
+  taxableAmount: decimalString.optional(),
+  taxAmount: decimalString.optional(),
+  taxByRate: z.array(z.strictObject({ rate: decimalString, taxable: decimalString, tax: decimalString })).optional(),
   createdBy: z.string(),
   createdAt: isoTime,
 });
@@ -421,6 +455,8 @@ export const OutboundMessage = z.strictObject({
   mapping: z.array(z.strictObject({ segment: z.string(), meaning: z.string() })),
   attempts: z.array(z.strictObject({ at: isoTime, outcome: z.string(), detail: z.string() })),
   receiverRef: maybe(z.string()),
+  /** D47: the retailer rule check this message passed (optional so earlier runs load). */
+  compliance: z.lazy(() => ComplianceSummary).optional(),
   createdAt: isoTime,
   updatedAt: isoTime,
 });
@@ -435,12 +471,51 @@ export const ReceivedMessage = z.strictObject({
   receivedAt: isoTime,
 });
 
+export const ComplianceSummary = z.strictObject({
+  profile: z.enum(PROFILE_IDS),
+  rulesChecked: z.number().int().nonnegative(),
+  rulesPassed: z.number().int().nonnegative(),
+  findings: z.array(z.strictObject({
+    ruleId: z.string(), severity: z.enum(["block", "warn"]), text: z.string(),
+    basis: z.enum(["sourced", "inferred"]), sources: z.array(z.string()),
+  })),
+});
+
+const glnString = z.string().regex(/^\d{13}$/);
+const setupMeta = { updatedBy: z.string(), updatedAt: isoTime };
+/** D47: the supplier's own EDI identity. Absent means the labelled fictional demo supplier. */
+export const SupplierSetup = z.strictObject({
+  name: maybe(z.string()),
+  gln: glnString,
+  vatId: maybe(z.string()),
+  /** GS1 company prefix used to number SSCCs. */
+  companyPrefix: z.string().regex(/^\d{6,12}$/),
+  taxType: TaxType,
+  defaultTaxRate: maybe(decimalString),
+  ...setupMeta,
+});
+/** D47: per retailer (customer) EDI setup. Absent means the default for that customer (see partners.ts). */
+export const TradingPartner = z.strictObject({
+  customerId: z.string(),
+  profile: z.enum(PROFILE_IDS),
+  buyerGln: maybe(glnString),
+  buyerVatId: maybe(z.string()),
+  contractRef: maybe(z.string()),
+  shipToGlns: z.array(z.strictObject({ shipToId: z.string(), gln: glnString })),
+  ...setupMeta,
+});
+
 export const Portal = z.strictObject({
   asns: z.array(Asn),
   invoices: z.array(Invoice),
   outbound: z.array(OutboundMessage),
   received: z.array(ReceivedMessage),
   ediFailureMode: EdiFailureMode,
+  /** D47, optional so earlier runs load. */
+  supplier: SupplierSetup.optional(),
+  partners: z.array(TradingPartner).optional(),
+  /** Last SSCC serial reference used in this run. */
+  ssccSerial: z.number().int().nonnegative().optional(),
 });
 export const emptyPortal = (): z.infer<typeof Portal> =>
   ({ asns: [], invoices: [], outbound: [], received: [], ediFailureMode: "none" });
@@ -503,6 +578,11 @@ export type Asn = z.infer<typeof Asn>;
 export type Portal = z.infer<typeof Portal>;
 export type Invoice = z.infer<typeof Invoice>;
 export type OutboundMessage = z.infer<typeof OutboundMessage>;
+export type Pallet = z.infer<typeof Pallet>;
+export type InvoiceAllowance = z.infer<typeof InvoiceAllowance>;
+export type SupplierSetup = z.infer<typeof SupplierSetup>;
+export type TradingPartner = z.infer<typeof TradingPartner>;
+export type ComplianceSummary = z.infer<typeof ComplianceSummary>;
 export type ExtractionPayload = z.infer<typeof ExtractionPayload>;
 export type ValidationResult = z.infer<typeof ValidationResult>;
 export type ReferenceData = z.infer<typeof ReferenceData>;
