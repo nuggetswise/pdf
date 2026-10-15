@@ -18,10 +18,13 @@
 - Backend tests: `cd backend && .venv/bin/python -m pytest -q`
 - Backend start: `backend/.venv/bin/uvicorn app.main:app --app-dir backend --port 8000`
 - Frontend setup/build: `cd frontend && npm ci && npm run typecheck && npm run build`
+- Frontend unit tests (Vitest, lib/): `cd frontend && npm test`
 - Frontend start: `cd frontend && npm run dev` (open http://localhost:3000)
 - End-to-end (deterministic, test adapter): `cd frontend && npx playwright test`
 - Regenerate fictional fixtures: `backend/.venv/bin/python scripts/generate_fixtures.py`
-- Single verify command: `scripts/verify.sh` (backend tests, typecheck, build, Playwright e2e incl. guided demo)
+- Regenerate the Python side of the TypeScript parity check: `backend/.venv/bin/python scripts/validation_parity.py`
+- Export SQLite state as RunState JSON: `backend/.venv/bin/python scripts/export_run_state.py <sqlite> <out.json>`
+- Single verify command: `scripts/verify.sh` (backend tests, Vitest, typecheck, build, Playwright e2e incl. guided demo)
 
 ## Invariants
 - No binary floats for money. Keep currencies, units, original values and versions explicit.

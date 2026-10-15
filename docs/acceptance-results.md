@@ -66,3 +66,13 @@ Honest gaps: P24 has no dedicated backend unit test (covered end to end only). L
 Command: `cd frontend && npx playwright test -c playwright.live.config.ts` (key read from the git-ignored .env; not part of verify.sh)
 Result: 1 passed. All 15 guided-demo steps reached their expected real states with AI extraction. Screenshots: docs/screenshots/live/.
 Observed: Google returned frequent 429/503; every extraction succeeded through the retry and fallback path (gemini-3.8-flash), typically 20-60 s per order. The demo showed "waiting" status honestly during these delays.
+
+## Vercel rebuild, slice 1 (2026-10-15)
+- `cd frontend && npx playwright test e2e/guided-demo.spec.ts` -> 1 passed; its SQLite state was exported with `backend/.venv/bin/python scripts/export_run_state.py <sqlite> frontend/lib/domain/__fixtures__/full-demo-run.json`
+- `cd frontend && npm test` -> 8 passed: the full-demo export parses into RunState with nothing dropped or changed; JSON-number money, a malformed decimal, an unknown field and an unknown review state are each rejected; a fresh run starts in Review-all; the run is about 110 KB, well under the sessionStorage limit
+- `cd frontend && npm run typecheck && npm run build` -> passed
+
+## Vercel rebuild, slice 2 (2026-10-15)
+- `backend/.venv/bin/python scripts/validation_parity.py` -> wrote 41 decimal, 44 normalise and 148 validate cases from the Python prototype (every fixture PDF, the regression sample, 33 edge-case orders, 4 raw model-style results; all 17 issue codes appear)
+- `cd frontend && npm test` -> 249 passed; every parity case matches Python byte for byte. Mutation check: changing one issue title failed 23 cases, and switching half-even rounding to half-up failed 5
+- `cd frontend && npm run typecheck` -> passed

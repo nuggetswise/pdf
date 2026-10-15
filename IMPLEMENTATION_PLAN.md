@@ -168,3 +168,23 @@ Checklist
 - [x] Rehearsal mode uses the TEST ADAPTER and is labelled "not AI" everywhere
 - [x] Executive summary tiles (no time-saved claim), mode badge, animated timeline, evidence highlighted in PDF text, plain-language issue cards, ERP record with simulator order ID
 - [x] Playwright test runs the full demo and saves one screenshot per step to docs/screenshots/
+
+## Vercel rebuild (plan: https://claude.ai/code/artifact/612c2257-983e-4bf9-8830-cfcda7975be0)
+One Next.js app on Vercel, run state held in the browser tab, stateless server. FastAPI keeps serving the demo until rebuild slice 5.
+
+Rebuild slice 1: scaffold and RunState schema
+- [x] Add decimal.js, zod, postal-mime, pdfjs-dist and Vitest to frontend/ (exact versions)
+- [x] Define RunState in frontend/lib/domain/run-state.ts, one array per SQLite table
+- [x] Export the SQLite state of a full guided-demo run (scripts/export_run_state.py) and commit it as a test fixture
+- [x] Vitest: the export parses unchanged; JSON-number money, malformed decimals, unknown fields and unknown states are rejected
+- [x] Vitest added to scripts/verify.sh
+
+Rebuild slice 2: pure domain port with Python parity
+- [x] money.ts: exact decimal that behaves like Python's decimal module (28 digits, kept exponents, half-even context, half-up cents)
+- [x] normalise.ts and validation.ts, with POLICY and TITLES copied verbatim
+- [x] pyjson.ts: Python json.dumps output, used for issue fingerprints and the parity check
+- [x] scripts/validation_parity.py records Python output for every fixture, the regression sample and edge cases (all 17 issue codes)
+- [x] Vitest compares TypeScript output with Python byte for byte; verify.sh fails if the Python side is stale
+- [x] Guard test: no Number(), parseFloat, toFixed or Math.round in lib/domain
+
+Remaining rebuild slices: 3 workflow port, 4 browser intake and Gemini route, 5 UI switch-over (Playwright parity gate), 6 Vercel deploy, 7 retire Python.
