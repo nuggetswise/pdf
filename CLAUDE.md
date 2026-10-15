@@ -27,7 +27,7 @@
 - Regenerate the FastAPI read-endpoint answers the selectors are compared with: `backend/.venv/bin/python scripts/read_models.py`
 - Regenerate the edge-case intake PDFs (encrypted, text-free): `backend/.venv/bin/python scripts/intake_fixtures.py`
 - Export SQLite state as RunState JSON: `backend/.venv/bin/python scripts/export_run_state.py <sqlite> <out.json>`
-- Single verify command: `scripts/verify.sh` (backend tests, Vitest, typecheck, build, Playwright e2e incl. guided demo)
+- Single verify command: `scripts/verify.sh` (backend tests, Vitest, typecheck, build, Playwright e2e incl. the full app flow)
 
 ## Invariants
 - No binary floats for money. Keep currencies, units, original values and versions explicit.

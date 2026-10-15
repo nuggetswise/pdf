@@ -9,12 +9,11 @@ Status: the prototype's 7 slices are done; the Vercel rebuild has reached slice 
 
 The Python prototype in `backend/` is kept only for comparison tests until it is retired (rebuild slice 7); the app does not use it.
 
-## Run the guided demo
-Open http://localhost:3000. The "Guided demo" tab walks through the full story in 15 steps. Click the blue button once to perform a step (it waits for the real result), and again to move on. Play runs it by itself; arrow keys and space also work. Starting resets the run in this tab.
-- "Start demo with live AI extraction" needs a Gemini key (below). Gemini can take over a minute when busy; the demo says so and offers Retry or rehearsal mode.
-- "Start in rehearsal mode" uses a fixture parser called the TEST ADAPTER. It is labelled "not AI" everywhere.
-
-Other tabs: "Inbox & review" (forward emails and decide issues yourself; switch role top right), "Agent memory" (activate or revoke learned rules as Administrator), "ERP records" (what the simulator holds).
+## Use it
+The app opens on "Inbox & review". Upload a PDF purchase order (or a forwarded .eml with the PDF attached) by clicking or dropping it on the upload box. The agent reads it, matches the customer and products, checks MOQ, agreed price and retired product codes, and holds only what needs a person. Decide each held issue with a reason; when nothing is left, the order goes to the ERP simulator by itself, with no Send button. Sample fictional orders are one click away under the upload box.
+- Switch role top right. As Administrator you can turn on Exception-only mode (clean orders go straight through), activate or revoke learned rules under "Agent memory", switch rehearsal mode (TEST ADAPTER, labelled "not AI") and make the ERP simulator fail or time out to see the safe retry.
+- "ERP records" shows what the simulator holds.
+- Supplier portal (simulated EDI): once an order is in the ERP, an order confirmation (EDIFACT ORDRSP) goes to a simulated retailer outbox by itself. On the order, "Create ASN" lets you enter what actually ships (it starts at the ordered quantity; more than ordered needs a reason); Submit sends a shipping notice (DESADV) to the retailer outbox and a shipment record to the ERP simulator. "Create invoice" then bills the shipped quantities at the order's prices; Submit sends an INVOIC and an ERP invoice record. Each message shows its own status (for example "ERP synced, EDI to retailer pending") with a safe retry. The "EDI" tab lists every message with the raw EDIFACT, what each line means, and a download. GLNs are fictional; nothing is sent to a real retailer.
 
 ## Check everything
 `scripts/verify.sh` runs the Python comparison tests, the TypeScript tests, the typecheck, the production build and the browser tests (which save screenshots to docs/screenshots/).
@@ -38,4 +37,4 @@ Demo roles are picked top right and travel with each action. This is demo-only, 
 
 ## What is real and what is simulated
 Real: PDF reading (Gemini when a key is set), evidence checks, business rules, decisions, versions, approvals, automatic delivery, idempotency and reconciliation, memory rules, audit trail, the run kept for the browser tab's session.
-Simulated: email arrives from local .eml files (no Outlook); the ERP is a simulator held in the browser tab; sign-in is demo-only; all data is fictional. Time saved is not measured.
+Simulated: email arrives from local .eml files (no Outlook); the ERP and the retailer EDI outbox are simulators held in the browser tab (EDIFACT messages are generated but never sent); sign-in is demo-only; all data is fictional. Time saved is not measured.

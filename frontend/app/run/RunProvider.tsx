@@ -3,7 +3,7 @@
 // sends each action to the server one at a time, and runs the agent's background work: reading forwarded PDFs
 // and asking the server to extract them. The original PDF bytes stay in memory only and are gone after a reload.
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { DEMO_EMAILS, demoEmailPath, intakeEml, type Intake } from "../../lib/intake/intake";
+import { DEMO_EMAILS, demoEmailPath, intakeEml, intakeUpload, type Intake } from "../../lib/intake/intake";
 import { IntakeRejected } from "../../lib/intake/pdf";
 import { browserPdfjs } from "../../lib/intake/pdfjs-browser";
 import { emptyRunState, RunState, runStateSizeBytes, SESSION_STORAGE_WARN_BYTES } from "../../lib/domain/run-state";
@@ -29,6 +29,7 @@ type Agent = {
   run: (action: Action) => Promise<number[]>;
   forwardDemo: (name: string) => Promise<number[]>;
   importEml: (raw: Uint8Array) => Promise<number[]>;
+  uploadPdf: (pdf: Uint8Array, filename: string) => Promise<number[]>;
   retryExtraction: (docId: number) => Promise<void>;
   resetDemo: () => Promise<void>;
   pdfBytes: (docId: number) => Uint8Array | undefined;
@@ -139,6 +140,16 @@ export function RunProvider({ children }: { children: ReactNode }) {
 
   const importEml = useCallback(async (raw: Uint8Array) => receive(await readEml(raw, "eml_import")), [receive, readEml]);
 
+  /** A PDF purchase order the user uploads directly: no email around it, so sender and subject are empty. */
+  const uploadPdf = useCallback(async (pdf: Uint8Array, filename: string) => {
+    try {
+      return await receive(await intakeUpload(pdf, filename, { sender: "" }, { pdfjs: await browserPdfjs() }));
+    } catch (e) {
+      if (e instanceof IntakeRejected) throw new Error(e.message);
+      throw e;
+    }
+  }, [receive]);
+
   const retryExtraction = useCallback(async (docId: number) => {
     await run({ type: "retryExtraction", docId });
     await process(docId);
@@ -174,9 +185,9 @@ export function RunProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<Agent>(() => ({
-    state, ready, extraction, serverError, storageWarning, run, forwardDemo, importEml, retryExtraction, resetDemo,
+    state, ready, extraction, serverError, storageWarning, run, forwardDemo, importEml, uploadPdf, retryExtraction, resetDemo,
     latest: () => stateRef.current, pdfBytes: (id) => pdfs.current.get(id),
-  }), [state, ready, extraction, serverError, storageWarning, run, forwardDemo, importEml, retryExtraction, resetDemo]);
+  }), [state, ready, extraction, serverError, storageWarning, run, forwardDemo, importEml, uploadPdf, retryExtraction, resetDemo]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

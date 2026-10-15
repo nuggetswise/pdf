@@ -350,6 +350,101 @@ export const Settings = z.strictObject({
   referenceData: maybe(ReferenceData),
 });
 
+// ---------- supplier portal: ASN, invoice and outbound messages (D45, all simulated) ----------
+
+export const OutboundKind = z.enum(["ORDRSP", "DESADV", "INVOIC", "ERP_SHIPMENT", "ERP_INVOICE"]);
+export const OutboundChannel = z.enum(["retailer_edi_outbox", "supplier_erp"]);
+export const OutboundStatus = z.enum(["pending", "delivered", "failed"]);
+export const EdiFailureMode = z.enum(["none", "fail_next", "hold_next"]);
+
+export const AsnLine = z.strictObject({
+  lineIndex: z.number().int().nonnegative(),
+  sourceLineId: z.string(),
+  sku: z.string(),
+  gtin: maybe(z.string()),
+  description: maybe(text),
+  unit: z.string(),
+  orderedQty: decimalString,
+  shippedQty: decimalString,
+  overrideReason: maybe(z.string()),
+});
+
+/** Advance shipping notice. Submitted in one step; one per delivered order. */
+export const Asn = z.strictObject({
+  id,
+  asnNumber: z.string().regex(/^ASN-\d{5}$/),
+  documentId: id,
+  erpOrderId: z.string(),
+  lines: z.array(AsnLine).min(1),
+  createdBy: z.string(),
+  createdAt: isoTime,
+});
+
+export const InvoiceLine = z.strictObject({
+  lineIndex: z.number().int().nonnegative(),
+  sourceLineId: z.string(),
+  sku: z.string(),
+  gtin: maybe(z.string()),
+  description: maybe(text),
+  unit: z.string(),
+  quantity: decimalString,
+  unitPrice: decimalString,
+  lineAmount: decimalString,
+});
+
+/** Invoice built from a submitted ASN: quantities from the ASN, prices from the delivered order. */
+export const Invoice = z.strictObject({
+  id,
+  invoiceNumber: z.string().regex(/^INV-\d{5}$/),
+  asnId: id,
+  documentId: id,
+  currency: z.string(),
+  lines: z.array(InvoiceLine).min(1),
+  subtotal: decimalString,
+  total: decimalString,
+  rounding: z.literal("ROUND_HALF_UP to 0.01"),
+  createdBy: z.string(),
+  createdAt: isoTime,
+});
+
+export const OutboundMessage = z.strictObject({
+  id,
+  kind: OutboundKind,
+  channel: OutboundChannel,
+  documentId: id,
+  sourceType: z.enum(["order", "asn", "invoice"]),
+  sourceId: z.string(),
+  idempotencyKey: z.string(),
+  status: OutboundStatus,
+  format: z.enum(["edifact", "json"]),
+  body: z.string(),
+  mapping: z.array(z.strictObject({ segment: z.string(), meaning: z.string() })),
+  attempts: z.array(z.strictObject({ at: isoTime, outcome: z.string(), detail: z.string() })),
+  receiverRef: maybe(z.string()),
+  createdAt: isoTime,
+  updatedAt: isoTime,
+});
+
+/** What the simulated receivers hold, keyed by idempotency key so a retry is reconciled, not duplicated. */
+export const ReceivedMessage = z.strictObject({
+  receiverRef: z.string(),
+  channel: OutboundChannel,
+  kind: OutboundKind,
+  idempotencyKey: z.string(),
+  body: z.string(),
+  receivedAt: isoTime,
+});
+
+export const Portal = z.strictObject({
+  asns: z.array(Asn),
+  invoices: z.array(Invoice),
+  outbound: z.array(OutboundMessage),
+  received: z.array(ReceivedMessage),
+  ediFailureMode: EdiFailureMode,
+});
+export const emptyPortal = (): z.infer<typeof Portal> =>
+  ({ asns: [], invoices: [], outbound: [], received: [], ediFailureMode: "none" });
+
 export const RUN_STATE_SCHEMA_VERSION = "run-state-v1";
 
 export const RunState = z.strictObject({
@@ -366,6 +461,8 @@ export const RunState = z.strictObject({
   erpOrders: z.array(ErpOrder),
   audit: z.array(AuditEvent),
   settings: Settings,
+  /** Added by D45. Optional so runs saved before it (and the Python exports) load unchanged. */
+  portal: Portal.optional(),
 });
 
 export type RunState = z.infer<typeof RunState>;
@@ -380,6 +477,10 @@ export type MemoryRule = z.infer<typeof MemoryRule>;
 export type DeliveryAttempt = z.infer<typeof DeliveryAttempt>;
 export type ErpOrder = z.infer<typeof ErpOrder>;
 export type AuditEvent = z.infer<typeof AuditEvent>;
+export type Asn = z.infer<typeof Asn>;
+export type Portal = z.infer<typeof Portal>;
+export type Invoice = z.infer<typeof Invoice>;
+export type OutboundMessage = z.infer<typeof OutboundMessage>;
 export type ExtractionPayload = z.infer<typeof ExtractionPayload>;
 export type ValidationResult = z.infer<typeof ValidationResult>;
 export type ReferenceData = z.infer<typeof ReferenceData>;
@@ -392,6 +493,7 @@ export function emptyRunState(now: string = new Date().toISOString()): RunState 
     policyHistory: [{ id: 1, mode: "review_all", setBy: "system:order-agent", effectiveAt: now }],
     memoryRules: [], deliveries: [], erpOrders: [], audit: [],
     settings: { role: "viewer", rehearsalMode: false, erpFailureMode: "none", referenceData: null },
+    portal: emptyPortal(),
   };
 }
 

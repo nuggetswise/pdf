@@ -214,4 +214,16 @@ Rebuild slice 5: UI switch-over (parity gate)
 - [x] New browser test: the run survives a reload, a new tab starts empty, an extraction cut off by a reload is marked for retry and the retry finishes it
 - [ ] No live Gemini run through the new screens yet (needs the key; playwright.live.config.ts now starts Next.js only)
 
-Remaining rebuild slices: 6 Vercel deploy, 7 retire Python.
+Owner change after slice 5 (D44): real app instead of a guided demo
+- [x] Upload box for a PDF purchase order or .eml (click or drop); samples one click away; app opens on the inbox
+- [x] Guided demo tab, narration and its spec removed; e2e/app-flow.spec.ts clicks the same story through the real screens
+- [x] A file that is not a PDF is refused with the reason shown
+
+Remaining rebuild slices: 6 Vercel deploy (merged to main deploys via Vercel's git integration; live check on production pending), 7 retire Python.
+
+## Supplier portal: ORDRSP, ASN, invoice (D45)
+- [x] Simulated EDIFACT ORDRSP on ERP delivery (own status, idempotency key, retry)
+- [x] ASN from a delivered order with editable shipped quantities; over-shipment needs a reason; DESADV + ERP shipment record
+- [x] Invoice from the ASN (ASN quantities, order prices, exact decimals); mismatch and second invoice refused; INVOIC + ERP invoice record
+- [x] Per-message pending/delivered/failed, reconciling retry, honest mixed-state text; administrator EDI outbox failure control
+- [x] EDI tab (raw message, field mapping, download); Vitest (UNT counts, escaping, ASN quantities on invoice); e2e/supplier-portal.spec.ts

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useAgent } from "./run/RunProvider";
+import { OrderPortal } from "./Portal";
 import {
   ACTION_LABEL, DELIVERY_LABEL, DocDetail, IN_FLIGHT, Issue, PEOPLE, PROCESS_LABEL, REVIEW_LABEL, Role, STOPPED,
 } from "./api";
@@ -174,7 +175,7 @@ export function OrderView({ d, role, onAct, onApprove, onRetry, highlight }: {
     <div className={`order ${highlight ?? ""}`}>
       <div className="order-head">
         <div>
-          <div className="eyebrow">Purchase order from {d.envelope.sender ?? "unknown sender"}</div>
+          <div className="eyebrow">{d.envelope.intake_mode === "demo_envelope_upload" && !d.envelope.sender ? `Uploaded purchase order · ${d.document.original_filename ?? "PDF"}` : `Purchase order from ${d.envelope.sender ?? "unknown sender"}`}</div>
           <h3>{v?.po_number ?? d.latest_version?.payload.header.po_number?.value ?? `Document #${d.document.id}`}
             {v?.customer_name && <span className="sub"> · {v.customer_name} ({v.customer_id ?? "unknown"})</span>}</h3>
         </div>
@@ -257,6 +258,7 @@ export function OrderView({ d, role, onAct, onApprove, onRetry, highlight }: {
                 )}
               </section>
             )}
+            {o.delivery_state === "erp_created" && <OrderPortal docId={d.document.id} role={role} />}
           </div>
           <SourcePanel d={d} focus={focus} />
         </div>

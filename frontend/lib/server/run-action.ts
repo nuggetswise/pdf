@@ -10,6 +10,7 @@ import {
   Conflict, Forbidden, type Who, approve, decide, failExtraction, receive, recordExtraction, recoverDeliveries,
   resetDemo, retryDelivery, retryExtraction, setDemoSetting, setPolicy, setRuleState, startExtraction,
 } from "../domain/workflow";
+import { retryOutbound, setEdiFailureMode, submitAsn, submitInvoice } from "../domain/portal";
 
 /** Demo-only identity (D22): the role picked on screen decides the actor label, as the X-Demo-* headers did. */
 const ACTOR: Record<z.infer<typeof Role>, string> = {
@@ -60,6 +61,15 @@ export const Action = z.discriminatedUnion("type", [
     value: z.string().max(40) }),
   z.strictObject({ type: z.literal("resetDemo"), role: Role }),
   z.strictObject({ type: z.literal("recoverDeliveries") }),
+  // Supplier portal (D45). Quantities are decimal strings; the workflow checks them against the order and ASN.
+  z.strictObject({ type: z.literal("submitAsn"), role: Role, docId,
+    lines: z.array(z.strictObject({ lineIndex: z.number().int().nonnegative(), shippedQty: z.string().max(40),
+      overrideReason: shortText.nullable().optional() })).min(1).max(500) }),
+  z.strictObject({ type: z.literal("submitInvoice"), role: Role, asnId: docId,
+    lines: z.array(z.strictObject({ lineIndex: z.number().int().nonnegative(), quantity: z.string().max(40) }))
+      .min(1).max(500) }),
+  z.strictObject({ type: z.literal("retryOutbound"), role: Role, messageId: docId }),
+  z.strictObject({ type: z.literal("setEdiFailureMode"), role: Role, value: z.enum(["none", "fail_next", "hold_next"]) }),
 ]);
 export type Action = z.infer<typeof Action>;
 
@@ -103,6 +113,14 @@ function apply(s: RunState, a: Action): { state: RunState; documentIds?: number[
       return { state: resetDemo(s, who(a.role)) };
     case "recoverDeliveries":
       return { state: recoverDeliveries(s) };
+    case "submitAsn":
+      return { state: submitAsn(s, a.docId, { lines: a.lines }, who(a.role)) };
+    case "submitInvoice":
+      return { state: submitInvoice(s, a.asnId, { lines: a.lines }, who(a.role)) };
+    case "retryOutbound":
+      return { state: retryOutbound(s, a.messageId, who(a.role)) };
+    case "setEdiFailureMode":
+      return { state: setEdiFailureMode(s, a.value, who(a.role)) };
   }
 }
 

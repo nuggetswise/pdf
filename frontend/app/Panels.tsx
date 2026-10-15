@@ -3,6 +3,7 @@ import { useState } from "react";
 import { documentDetail, documentsList, erpOrdersList, rulesList } from "../lib/domain/selectors";
 import { Health, Issue, PROCESS_LABEL, Role } from "./api";
 import { OrderView } from "./OrderView";
+import { EdiSetting } from "./Portal";
 import { DEMO_EMAILS, useAgent } from "./run/RunProvider";
 
 const who = (actor: string | null) => (actor ? actor.split(":")[1] ?? actor : "—");
@@ -87,32 +88,41 @@ export function Workspace({ role, health }: { role: Role; health: Health | null 
   async function wrap(f: () => Promise<unknown>) {
     try { await f(); setError(null); } catch (e) { setError((e as Error).message); }
   }
+  /** A dropped or chosen file: a PDF goes in directly, an .eml is read as a forwarded email. */
+  const addFile = (f: File) => wrap(async () => {
+    const bytes = new Uint8Array(await f.arrayBuffer());
+    const isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name) || new TextDecoder().decode(bytes.slice(0, 5)) === "%PDF-";
+    const ids = isPdf ? await agent.uploadPdf(bytes, f.name) : await agent.importEml(bytes);
+    setSelected(ids[0]);
+  });
   const act = async (issue: Issue, action: string, reason: string, params: Record<string, unknown>) =>
     wrap(() => agent.run({ type: "decide", role, docId: selected!, issueKey: issue.key, action: action as never,
       reason: reason || null, params }));
 
   return (
     <div className="workspace">
-      <aside className="inbox" aria-label="Local demo inbox">
+      <aside className="inbox" aria-label="Inbox" onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) addFile(f); }}>
         <h3>Inbox</h3>
-        <div className="forward">
-          <select value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Demo email">
-            {emails.map((n) => <option key={n}>{n}</option>)}
-          </select>
-          <button className="primary" disabled={!pick} onClick={() => wrap(async () => {
-            const ids = await agent.forwardDemo(pick);
-            setSelected(ids[0]);
-          })}>Forward to agent</button>
-        </div>
-        <p className="muted small">Imports a local fictional .eml. Nothing is sent over the internet.</p>
-        <label className="muted small upload">Or import an .eml file{" "}
-          <input type="file" accept=".eml,message/rfc822" onChange={(e) => {
-            const f = e.target.files?.[0]; if (!f) return;
-            e.target.value = "";
-            wrap(async () => { const ids = await agent.importEml(new Uint8Array(await f.arrayBuffer())); setSelected(ids[0]); });
-          }} />
+        <label className="dropzone">
+          <input type="file" accept=".pdf,application/pdf,.eml,message/rfc822" aria-label="Upload a purchase order"
+            onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) addFile(f); }} />
+          <b>Upload a purchase order</b>
+          <span className="muted small">PDF, or a forwarded email (.eml) with the PDF attached. Drop it here or click to choose. The file is read in your browser; only its text is sent for extraction.</span>
         </label>
-        {docs?.length === 0 && <p className="placeholder">No forwarded emails yet.</p>}
+        <div className="samples">
+          <span className="muted small">Or try a sample (fictional data):</span>
+          <div className="forward">
+            <select value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Demo email">
+              {emails.map((n) => <option key={n}>{n}</option>)}
+            </select>
+            <button disabled={!pick} onClick={() => wrap(async () => {
+              const ids = await agent.forwardDemo(pick);
+              setSelected(ids[0]);
+            })}>Forward to agent</button>
+          </div>
+        </div>
+        {docs?.length === 0 && <p className="placeholder">No orders yet. Upload a PDF purchase order to start.</p>}
         {docs?.map((d) => (
           <button key={d.id} className={`mail ${selected === d.id ? "active" : ""}`} onClick={() => setSelected(d.id)}>
             <span className="from">{d.subject_metadata?.replace(/^Fwd: /, "").replace(" [FICTIONAL TEST DATA]", "") ?? d.original_filename}</span>
@@ -123,7 +133,7 @@ export function Workspace({ role, health }: { role: Role; health: Health | null 
       </aside>
       <section className="main">
         {error && <div className="alert bad" role="alert">{error}</div>}
-        {!detail ? <div className="placeholder">Select an email to see how the agent handled it.</div> : (
+        {!detail ? <div className="placeholder">Upload a purchase order, or select one in the inbox to see how the agent handled it.</div> : (
           <>
             {detail.document.status === "extraction_failed" || detail.document.status === "extraction_unavailable" ? (
               <button onClick={() => wrap(() => agent.retryExtraction(detail.document.id))}>Retry extraction</button>
@@ -164,6 +174,7 @@ function AdminSettings({ health, onError }: { health: Health; onError: (e: strin
           <option value="none">Succeeds</option><option value="fail_next">Fails</option><option value="timeout_next">Times out after creating</option>
         </select>
       </label>
+      <EdiSetting onError={onError} />
       <button className="ghost danger" onClick={async () => {
         if (!confirm("Reset the demo? The run in this browser tab is cleared.")) return;
         await go(() => agent.resetDemo());

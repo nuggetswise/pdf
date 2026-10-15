@@ -5,7 +5,7 @@ test("forwarded email is processed automatically and shows evidence", async ({ p
   await page.goto("/");
   await expect(page.getByText("Rehearsal: TEST ADAPTER (not AI)")).toBeVisible();
   await page.getByRole("tab", { name: "Inbox & review" }).click();
-  await expect(page.getByText("No forwarded emails yet")).toBeVisible();
+  await expect(page.getByText("No orders yet")).toBeVisible();
 
   await page.getByLabel("Demo email").selectOption("VIDEO-DEMO-001");
   await page.getByRole("button", { name: "Forward to agent" }).click();
