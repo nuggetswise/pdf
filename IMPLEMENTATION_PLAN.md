@@ -192,7 +192,16 @@ Rebuild slice 3: workflow port as pure functions on RunState
 - [x] extract/fixture.ts: the labelled TEST ADAPTER (pulled forward from slice 4 so the workflow can be tested end to end)
 - [x] Guided-demo replay: the 15 steps run through workflow.ts give exactly the run Python recorded (full-demo-run.json), timestamps aside
 - [x] 38 of the 47 pytest cases rewritten in Vitest (all 20 workflow cases), plus the double-retry test: one delivery retried twice gives exactly one ERP record
-- [ ] Carried to slice 4: unsafe inputs, encrypted PDF, filename sanitising, unknown demo names, no content or key in logs, Gemini fallback, health without key (they test browser intake and the server route, which do not exist yet)
+- [x] Carried to slice 4 and ported there: unsafe inputs, encrypted PDF, filename sanitising, unknown demo names, no content or key in logs, Gemini fallback, health without key
 - [ ] Carried to slice 7: fixture generator reproducible, no secrets in tracked files (repository checks; pytest keeps running them until Python is retired)
 
-Remaining rebuild slices: 4 browser intake and Gemini route, 5 UI switch-over (Playwright parity gate), 6 Vercel deploy, 7 retire Python.
+Rebuild slice 4: browser intake and the extraction route
+- [x] lib/intake/: .eml parsing (postal-mime), PDF checks and page text (pdf.js), SHA-256, display-only filenames; an email is accepted whole or not at all
+- [x] Demo inbox served from public/demo/ (byte-identical copies of the generated fictional emails); any other name is refused
+- [x] lib/server/: Gemini adapter (same schema, instruction, retries and fallback; key in a header), extraction run, env config; every module starts with import "server-only"
+- [x] app/api/extract/route.ts: POST page text -> evidence-checked version or the failure to show; GET -> extraction availability
+- [x] Page text from pdf.js matches pypdf for every fixture (identical apart from pypdf's trailing newline) and gives identical extraction and evidence results
+- [x] Recorded 429 then 200, fallback model, timeouts, logs without content or key, health without key, and a guard that only lib/server/ mentions GEMINI_API_KEY
+- [ ] Not exercised until slice 5: the browser loader for pdf.js (lib/intake/pdfjs-browser.ts) and its worker URL in a real browser
+
+Remaining rebuild slices: 5 UI switch-over (Playwright parity gate), 6 Vercel deploy, 7 retire Python.
