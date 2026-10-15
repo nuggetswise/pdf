@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useAgent } from "./run/RunProvider";
 import {
-  ACTION_LABEL, api, DELIVERY_LABEL, DocDetail, IN_FLIGHT, Issue, PEOPLE, PROCESS_LABEL, REVIEW_LABEL, Role, STOPPED,
+  ACTION_LABEL, DELIVERY_LABEL, DocDetail, IN_FLIGHT, Issue, PEOPLE, PROCESS_LABEL, REVIEW_LABEL, Role, STOPPED,
 } from "./api";
 
 const STAGES = ["Received", "Reading PDF", "Matching", "Business rules", "Review", "Approved", "Sending to ERP", "In ERP"];
@@ -47,11 +48,8 @@ function highlightTerms(d: DocDetail, focus: Issue | null): string[] {
 }
 
 export function SourcePanel({ d, focus }: { d: DocDetail; focus: Issue | null }) {
-  const [pages, setPages] = useState<string[] | null>(null);
+  const pages = d.pages;
   const [view, setView] = useState<"evidence" | "pdf">("evidence");
-  useEffect(() => {
-    api<{ pages: string[] }>(`/api/documents/${d.document.id}/text`).then((r) => setPages(r.pages)).catch(() => setPages([]));
-  }, [d.document.id]);
   const terms = highlightTerms(d, focus);
   const norm = (t: string) => t.replace(/\s+/g, " ").trim();
   return (
@@ -61,7 +59,7 @@ export function SourcePanel({ d, focus }: { d: DocDetail; focus: Issue | null })
         <button role="tab" aria-selected={view === "pdf"} onClick={() => setView("pdf")}>Original PDF</button>
       </div>
       {view === "pdf" ? (
-        <iframe title="Source PDF" src={`/api/documents/${d.document.id}/pdf`} />
+        <OriginalPdf docId={d.document.id} />
       ) : (
         <div className="paper" aria-label="PDF text with highlighted evidence">
           {pages === null && <p className="muted">Loading document text...</p>}
@@ -79,6 +77,21 @@ export function SourcePanel({ d, focus }: { d: DocDetail; focus: Issue | null })
       )}
     </div>
   );
+}
+
+/** The PDF bytes stay in this tab's memory (never in the saved run), so they are gone after a reload. */
+function OriginalPdf({ docId }: { docId: number }) {
+  const agent = useAgent();
+  const bytes = agent.pdfBytes(docId);
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!bytes) { setUrl(null); return; }
+    const u = URL.createObjectURL(new Blob([bytes as Uint8Array<ArrayBuffer>], { type: "application/pdf" }));
+    setUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [bytes]);
+  if (!url) return <p className="placeholder">The original PDF is kept only in memory and is gone after a reload. The PDF text and its evidence are still shown under Evidence in PDF text.</p>;
+  return <iframe title="Source PDF" src={url} />;
 }
 
 type Act = (issue: Issue, action: string, reason: string, params: Record<string, unknown>) => Promise<void>;

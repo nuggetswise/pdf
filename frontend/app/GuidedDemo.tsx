@@ -1,17 +1,20 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, DocDetail, ErpOrder, Health, Order, Role, Rule } from "./api";
+import { documentDetail, erpOrdersList, ordersList, rulesList } from "../lib/domain/selectors";
+import { DocDetail, Health } from "./api";
 import { OrderView } from "./OrderView";
 import { MemoryView, ErpView } from "./Panels";
+import { useAgent } from "./run/RunProvider";
 
 /**
- * Click-through guided demo. Every step calls the real local API and waits for the real state change.
- * Nothing here fakes a result: if the backend does not reach the expected state, the step says so.
+ * Click-through guided demo. Every step performs a real action on this tab's run (checked and applied on the
+ * server) and waits for the real state change. Nothing here fakes a result: if the run does not reach the
+ * expected state, the step says so.
  */
 
 type Ctx = {
   docs: Record<string, number>;
-  call: <T>(path: string, init?: RequestInit & { role?: Role; json?: unknown }) => Promise<T>;
+  agent: ReturnType<typeof useAgent>;
   detail: (name: string) => Promise<DocDetail>;
 };
 type View = "order" | "memory" | "erp" | "summary";
@@ -28,8 +31,7 @@ const REASON = {
 };
 
 async function forward(c: Ctx, name: string) {
-  const r = await c.call<{ document_ids: number[] }>(`/api/demo/forward/${name}`, { method: "POST" });
-  c.docs[name] = r.document_ids[0];
+  c.docs[name] = (await c.agent.forwardDemo(name))[0];
 }
 
 function processed(d: DocDetail): string | true {
@@ -46,7 +48,7 @@ async function decide(c: Ctx, name: string, code: string, action: string, reason
   const d = await c.detail(name);
   const issue = d.order?.validation.issues.find((i) => i.code === code && i.status === "open");
   if (!issue) throw new Error(`Expected an open ${code} issue on ${name}, but none was found.`);
-  await c.call(`/api/documents/${d.document.id}/decisions`, { method: "POST", role: "reviewer", json: { issue_key: issue.key, action, reason, params } });
+  await c.agent.run({ type: "decide", role: "reviewer", docId: d.document.id, issueKey: issue.key, action: action as never, reason, params });
 }
 
 const delivered = (name: string) => async (c: Ctx) => {
@@ -60,21 +62,21 @@ export const STEPS: Step[] = [
   {
     title: "Start from a clean, known state", view: "summary", actor: "Alex (demo administrator)",
     say: "This demo processes fictional purchase orders end to end. Each Next click performs a real action in the running prototype and waits for the real result.",
-    real: "Database cleared, Review-all mode restored, ERP simulator emptied.",
-    simulated: "Email arrives from bundled local .eml files. The ERP is a local simulator.",
+    real: "Run in this browser tab cleared, Review-all mode restored, ERP simulator emptied.",
+    simulated: "Email arrives from bundled local .eml files. The ERP is a simulator held in this browser tab.",
     action: "Reset demo",
-    run: async (c) => { await c.call("/api/demo/reset", { method: "POST", role: "administrator" }); },
+    run: (c) => c.agent.resetDemo(),
   },
   {
     title: "Administrator turns on Exception-only mode", view: "summary", actor: "Alex (demo administrator)",
     say: "Clean orders will go straight to the ERP. Anything unusual stops for a person. Only an administrator can switch this on, and the switch is recorded.",
     real: "Automation policy changed to Exception-only and versioned.", action: "Enable Exception-only",
-    run: async (c) => { await c.call("/api/policy", { method: "PUT", role: "administrator", json: { mode: "exception_only" } }); },
+    run: async (c) => { await c.agent.run({ type: "setPolicy", role: "administrator", mode: "exception_only" }); },
   },
   {
     title: "A customer forwards a PDF purchase order", video: "0:19–0:31", view: "order", order: "VIDEO-DEMO-001",
     say: "The email lands in the agent's inbox. No one clicks Extract: the agent reads the PDF, pulls out every field with the line of text it came from, and matches customer and products.",
-    real: "Email and PDF stored with a content hash; fields extracted and checked against the PDF text.",
+    real: "Email and PDF read in this browser with a content hash; fields extracted on the server and checked against the PDF text.",
     simulated: "Forwarding is a local import of a fictional .eml.", action: "Forward VIDEO-DEMO-001",
     run: (c) => forward(c, "VIDEO-DEMO-001"), until: async (c) => processed(await c.detail("VIDEO-DEMO-001")),
   },
@@ -104,7 +106,7 @@ export const STEPS: Step[] = [
     title: "Outdated GTIN: approve the replacement", video: "0:54–1:04", view: "order", order: "VIDEO-DEMO-001", actor: "Rita (demo reviewer)",
     say: "OLD-DEMO-003 is retired; the supplier notice proposes NEW-DEMO-003. The reviewer applies it and offers it to memory. That was the last exception, so the order is approved and sent to the ERP automatically. There is no Send button.",
     real: "Approval bound to this exact version; delivery queued automatically with an idempotency key; the ERP simulator returns its own order ID.",
-    simulated: "ERP is a local, persistent simulator.", action: "Apply replacement GTIN",
+    simulated: "ERP is a simulator held in this browser tab.", action: "Apply replacement GTIN",
     run: (c) => decide(c, "VIDEO-DEMO-001", "outdated_identifier", "apply_mapping", null, { save_for_future: true }),
     until: delivered("VIDEO-DEMO-001"),
   },
@@ -113,9 +115,9 @@ export const STEPS: Step[] = [
     say: "The correction became a candidate rule, scoped to this customer and this code, with its source order and approver. It does nothing until an administrator activates it. This is approved memory with provenance, not model retraining.",
     real: "Rule moves from candidate to active; the activation is audited.", action: "Activate memory rule",
     run: async (c) => {
-      const rule = (await c.call<Rule[]>("/api/memory-rules")).find((r) => r.state === "candidate");
+      const rule = rulesList(c.agent.latest()).find((r) => r.state === "candidate");
       if (!rule) throw new Error("No candidate rule was saved.");
-      await c.call(`/api/memory-rules/${rule.id}/state`, { method: "POST", role: "administrator", json: { state: "active" } });
+      await c.agent.run({ type: "setRuleState", role: "administrator", ruleId: rule.id, state: "active" });
     },
   },
   {
@@ -143,9 +145,9 @@ export const STEPS: Step[] = [
     say: "Memory can be switched off. After revocation, a new Northfield order with the retired code is held again. Orders already in the ERP are not touched.",
     real: "Rule revoked with a reason; later order validated without it.", action: "Revoke rule, forward VIDEO-DEMO-004",
     run: async (c) => {
-      const rule = (await c.call<Rule[]>("/api/memory-rules")).find((r) => r.state === "active");
+      const rule = rulesList(c.agent.latest()).find((r) => r.state === "active");
       if (!rule) throw new Error("No active rule to revoke.");
-      await c.call(`/api/memory-rules/${rule.id}/state`, { method: "POST", role: "administrator", json: { state: "revoked", reason: "Supplier withdrew the notice (fictional)" } });
+      await c.agent.run({ type: "setRuleState", role: "administrator", ruleId: rule.id, state: "revoked", reason: "Supplier withdrew the notice (fictional)" });
       await forward(c, "VIDEO-DEMO-004");
     },
     until: async (c) => {
@@ -160,7 +162,7 @@ export const STEPS: Step[] = [
     say: "Switched back to the default. Even a perfectly clean order now waits for a human approval.",
     real: "Policy changed to Review-all; clean order held as Waiting for approval.", action: "Switch to Review-all, forward VIDEO-DEMO-005",
     run: async (c) => {
-      await c.call("/api/policy", { method: "PUT", role: "administrator", json: { mode: "review_all" } });
+      await c.agent.run({ type: "setPolicy", role: "administrator", mode: "review_all" });
       await forward(c, "VIDEO-DEMO-005");
     },
     until: async (c) => {
@@ -176,8 +178,8 @@ export const STEPS: Step[] = [
     real: "Human approval; ERP created the order but the reply was lost; state is Outcome unknown.",
     simulated: "The timeout is a simulator toggle.", action: "Approve order",
     run: async (c) => {
-      await c.call("/api/demo/erp-failure-mode", { method: "PUT", role: "administrator", json: { value: "timeout_next" } });
-      await c.call(`/api/documents/${c.docs["VIDEO-DEMO-005"]}/approve`, { method: "POST", role: "reviewer" });
+      await c.agent.run({ type: "setDemoSetting", role: "administrator", key: "erp_failure_mode", value: "timeout_next" });
+      await c.agent.run({ type: "approve", role: "reviewer", docId: c.docs["VIDEO-DEMO-005"] });
     },
     until: async (c) => ((await c.detail("VIDEO-DEMO-005")).order?.delivery_state === "unknown" ? true : "Waiting for the ERP…"),
   },
@@ -187,14 +189,13 @@ export const STEPS: Step[] = [
     real: "Reconciliation found the existing ERP order; duplicate file not reprocessed; ERP count unchanged.",
     action: "Retry delivery, forward duplicate",
     run: async (c) => {
-      await c.call(`/api/documents/${c.docs["VIDEO-DEMO-005"]}/retry-delivery`, { method: "POST", role: "reviewer" });
-      const r = await c.call<{ document_ids: number[] }>("/api/demo/forward/VIDEO-DEMO-005", { method: "POST" });
-      c.docs["VIDEO-DEMO-005 (duplicate)"] = r.document_ids[0];
+      await c.agent.run({ type: "retryDelivery", role: "reviewer", docId: c.docs["VIDEO-DEMO-005"] });
+      c.docs["VIDEO-DEMO-005 (duplicate)"] = (await c.agent.forwardDemo("VIDEO-DEMO-005"))[0];
     },
     until: async (c) => {
       const o = (await c.detail("VIDEO-DEMO-005")).order;
-      const erp = await c.call<ErpOrder[]>("/api/erp/orders");
-      const dup = await c.call<DocDetail>(`/api/documents/${c.docs["VIDEO-DEMO-005 (duplicate)"]}`);
+      const erp = erpOrdersList(c.agent.latest());
+      const dup = await c.detail("VIDEO-DEMO-005 (duplicate)");
       if (o?.delivery_state !== "erp_created") return "Reconciling with the ERP…";
       if (dup.document.status !== "duplicate") throw new Error("Expected the re-forwarded email to be a duplicate.");
       if (erp.filter((e) => e.payload.order.po_number === "VIDEO-DEMO-005").length !== 1) throw new Error("Expected exactly one ERP order for VIDEO-DEMO-005.");
@@ -204,12 +205,13 @@ export const STEPS: Step[] = [
   {
     title: "What you saw, and what is simulated", view: "summary",
     say: "Forwarded PDFs were read, checked against exact business rules, held only where needed, approved with recorded reasons, and delivered automatically and exactly once. A correction became governed memory that an administrator controls.",
-    real: "Everything on screen is the live state of this prototype: orders, decisions, approvals, memory rules and ERP records.",
+    real: "Everything on screen is the live state of this run, held in this browser tab: orders, decisions, approvals, memory rules and ERP records.",
     simulated: "Email intake is a local import; the ERP is a local simulator; all data is fictional; sign-in is demo-only. Time saved is not measured here and is not claimed.",
   },
 ];
 
-export function GuidedDemo({ health, onSummary }: { health: Health | null; onSummary: () => void }) {
+export function GuidedDemo({ health }: { health: Health | null }) {
+  const agent = useAgent();
   const [i, setI] = useState(0);
   const [done, setDoneState] = useState<Set<number>>(new Set());
   const doneRef = useRef<Set<number>>(new Set());
@@ -224,32 +226,24 @@ export function GuidedDemo({ health, onSummary }: { health: Health | null; onSum
   const [problem, setProblem] = useState<DocDetail | null>(null);
   const [auto, setAuto] = useState(false);
   const [started, setStarted] = useState(false);
-  const [view, setView] = useState<DocDetail | null>(null);
   const docs = useRef<Record<string, number>>({});
   const step = STEPS[i];
 
   const ctx: Ctx = {
     docs: docs.current,
-    call: api,
-    detail: (name) => {
+    agent,
+    detail: async (name) => {
       const id = docs.current[name];
       if (id === undefined) throw new Error(`${name} has not arrived yet.`);
-      return api<DocDetail>(`/api/documents/${id}`);
+      const d = documentDetail(agent.latest(), id);
+      if (!d) throw new Error(`${name} is no longer in this run.`);
+      return d;
     },
   };
 
-  // Live view of the step's order, refreshed continuously so state changes are visible as they happen.
-  useEffect(() => {
-    let alive = true;
-    const tick = async () => {
-      const id = step.order ? docs.current[step.order] : undefined;
-      if (id === undefined) { setView(null); return; }
-      try { const d = await api<DocDetail>(`/api/documents/${id}`); if (alive) setView(d); } catch { /* shown via step error */ }
-    };
-    tick();
-    const t = setInterval(tick, 900);
-    return () => { alive = false; clearInterval(t); };
-  }, [i, step.order, done]);
+  // Live view of the step's order: it follows the run, so state changes show as they happen.
+  const viewId = step.order ? docs.current[step.order] : undefined;
+  const view = viewId === undefined ? null : documentDetail(agent.state, viewId);
 
   const perform = useCallback(async (idx: number) => {
     const s = STEPS[idx];
@@ -268,7 +262,6 @@ export function GuidedDemo({ health, onSummary }: { health: Health | null; onSum
         }
       }
       setDone((p) => new Set(p).add(idx));
-      onSummary();
       return true;
     } catch (e) {
       if (e instanceof ExtractionProblem) setProblem(e.d);
@@ -278,14 +271,13 @@ export function GuidedDemo({ health, onSummary }: { health: Health | null; onSum
     } finally {
       setBusy(false); setWaitMsg(null);
     }
-  }, [onSummary]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [agent]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function start(rehearsal: boolean) {
     docs.current = {};
     setDone(new Set()); setI(0); setStarted(true);
     const ok = await perform(0);
-    if (ok) await api("/api/demo/rehearsal-mode", { method: "PUT", role: "administrator", json: { value: rehearsal ? "on" : "off" } });
-    onSummary();
+    if (ok) await agent.run({ type: "setDemoSetting", role: "administrator", key: "rehearsal_mode", value: rehearsal ? "on" : "off" });
   }
 
   // First click performs the step and shows its real result; the next click moves on.
@@ -318,9 +310,14 @@ export function GuidedDemo({ health, onSummary }: { health: Health | null; onSum
 
   async function retryExtraction(rehearsal: boolean) {
     if (!problem) return;
-    if (rehearsal) await api("/api/demo/rehearsal-mode", { method: "PUT", role: "administrator", json: { value: "on" } });
-    await api(`/api/documents/${problem.document.id}/retry-extraction`, { method: "POST" });
-    setProblem(null); setError(null);
+    try {
+      if (rehearsal) await agent.run({ type: "setDemoSetting", role: "administrator", key: "rehearsal_mode", value: "on" });
+      setProblem(null); setError(null);
+      await agent.retryExtraction(problem.document.id);
+    } catch (e) {
+      setError((e as Error).message);
+      return;
+    }
     await perform(i);
   }
 
@@ -395,12 +392,7 @@ export function GuidedDemo({ health, onSummary }: { health: Health | null; onSum
 }
 
 function SummaryStage({ health }: { health: Health | null }) {
-  const [orders, setOrders] = useState<Order[]>([]);
-  useEffect(() => {
-    const t = setInterval(() => api<Order[]>("/api/orders").then(setOrders).catch(() => {}), 1000);
-    api<Order[]>("/api/orders").then(setOrders).catch(() => {});
-    return () => clearInterval(t);
-  }, []);
+  const orders = ordersList(useAgent().state);
   return (
     <div className="summary-stage">
       <div className={`mode-card ${health?.policy.mode}`}>

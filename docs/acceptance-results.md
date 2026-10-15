@@ -89,3 +89,11 @@ Observed: Google returned frequent 429/503; every extraction succeeded through t
 - Not run yet: pdf.js in a real browser (the UI is wired in slice 5); no live Gemini call was made
 - `scripts/verify.sh` -> VERIFY PASSED: 47 backend tests, 357 Vitest tests, typecheck, build (route /api/extract built), 3 Playwright tests
 
+## Vercel rebuild, slice 5 (2026-10-15)
+- `backend/.venv/bin/python scripts/read_models.py` -> recorded the FastAPI read endpoints after the 15-step guided demo (timestamps masked; two runs give identical files)
+- `cd frontend && npm test` -> 381 passed. Every selector gives exactly the FastAPI answer for documents, each document and its text, orders, memory rules, ERP orders (apart from Python's duplicate payload_json string), policy and summary. The guided demo performed through the server action, one action per call, gives the same run as the workflow replay; changing the reviewer's actor label fails it. Refusals come back as values (bad run or action 400, wrong role 403, missing reason 409); a payload claiming evidence that is not in the page text is stored as unverified
+- `cd frontend && npx playwright test` -> 5 passed, with one Next.js server and no Python backend. The three existing specs are unchanged, including the 15-step guided demo, whose screenshots in docs/screenshots/ are regenerated as browser evidence; pdf.js read the demo PDFs in Chromium. New browser-run.spec.ts: run survives a reload, a new tab starts empty, an interrupted extraction is marked for retry and the retry completes it
+- Client bundle check: `grep -rl "GEMINI\|generativelanguage\|x-goog-api-key" frontend/.next/static` -> nothing
+- Not run: the live Gemini rehearsal through the new screens (needs the key)
+- `scripts/verify.sh` -> VERIFY PASSED: 47 backend tests, 381 Vitest tests, typecheck, build, 5 Playwright tests
+
