@@ -49,6 +49,43 @@ export function MemoryView({ role }: { role: Role }) {
           {role === "reviewer" && r.state === "candidate" && <p className="muted small">Only an administrator can activate this rule.</p>}
         </article>
       ))}
+      <SessionAdditions />
+    </section>
+  );
+}
+
+/** D46: customers and products a reviewer added while processing real POs. Session only; reset clears them. */
+function SessionAdditions() {
+  const agent = useAgent();
+  const ov = agent.ready ? agent.state.referenceOverlay : undefined;
+  const base = agent.state.settings.referenceData?.reference_version ?? "REF-2026-10-v1";
+  const any = ov && ov.customers.length + ov.customerAliases.length + ov.shipTos.length + ov.products.length > 0;
+  return (
+    <section className="additions" aria-label="Added in this session">
+      <h3>Added in this session</h3>
+      <p className="muted">Customers and products a reviewer added from real purchase orders. They are used for validation
+        in this browser tab only (reference version {any ? `${base} + session additions` : base}); Reset demo removes them.
+        The reference data file is not changed.</p>
+      {!any && <p className="placeholder">Nothing added yet.</p>}
+      {ov && ov.customers.length > 0 && (
+        <table className="lines"><thead><tr><th>Customer</th><th>Name</th><th>Currency</th><th>Ship-to</th><th>Added by</th><th>From order</th></tr></thead>
+          <tbody>{ov.customers.map((c) => <tr key={c.customerId}><td>{c.customerId}</td><td>{c.name}</td><td>{c.currency}</td>
+            <td>{c.shipToIds.join(", ") || "none on file"}</td><td>{who(c.addedBy)}</td><td>#{c.sourceDocumentId}</td></tr>)}</tbody></table>
+      )}
+      {ov && ov.customerAliases.length > 0 && (
+        <table className="lines"><thead><tr><th>Printed as</th><th>Assigned to</th><th>Added by</th><th>From order</th></tr></thead>
+          <tbody>{ov.customerAliases.map((a, i) => <tr key={i}><td>{a.printed}</td><td>{a.customerId}</td><td>{who(a.addedBy)}</td><td>#{a.sourceDocumentId}</td></tr>)}</tbody></table>
+      )}
+      {ov && ov.shipTos.length > 0 && (
+        <table className="lines"><thead><tr><th>Ship-to</th><th>Customer</th><th>Added by</th><th>From order</th></tr></thead>
+          <tbody>{ov.shipTos.map((s, i) => <tr key={i}><td>{s.shipToId}</td><td>{s.customerId}</td><td>{who(s.addedBy)}</td><td>#{s.sourceDocumentId}</td></tr>)}</tbody></table>
+      )}
+      {ov && ov.products.length > 0 && (
+        <table className="lines"><thead><tr><th>Product</th><th>Identifier</th><th>Customer</th><th>Unit</th><th>Reference price</th><th>Minimum</th><th>Added by</th><th>From order</th></tr></thead>
+          <tbody>{ov.products.map((p) => <tr key={p.sku}><td>{p.sku}<div className="muted small">{p.description}</div></td>
+            <td>{p.gtin ? `GTIN ${p.gtin}` : `item code ${p.customerItemCode}`}</td><td>{p.customerId}</td><td>{p.unit}</td>
+            <td>{p.price} {p.currency}</td><td>{p.moq}</td><td>{who(p.addedBy)}</td><td>#{p.sourceDocumentId}</td></tr>)}</tbody></table>
+      )}
     </section>
   );
 }
@@ -139,6 +176,7 @@ export function Workspace({ role, health }: { role: Role; health: Health | null 
               <button onClick={() => wrap(() => agent.retryExtraction(detail.document.id))}>Retry extraction</button>
             ) : null}
             <OrderView d={detail} role={role} onAct={act}
+              onRun={(a) => wrap(() => agent.run(a))}
               onApprove={() => wrap(() => agent.run({ type: "approve", role, docId: detail.document.id }))}
               onRetry={() => wrap(() => agent.run({ type: "retryDelivery", role, docId: detail.document.id }))} />
           </>

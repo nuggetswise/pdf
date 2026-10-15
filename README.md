@@ -15,6 +15,9 @@ The app opens on "Inbox & review". Upload a PDF purchase order (or a forwarded .
 - "ERP records" shows what the simulator holds.
 - Supplier portal (simulated EDI): once an order is in the ERP, an order confirmation (EDIFACT ORDRSP) goes to a simulated retailer outbox by itself. On the order, "Create ASN" lets you enter what actually ships (it starts at the ordered quantity; more than ordered needs a reason); Submit sends a shipping notice (DESADV) to the retailer outbox and a shipment record to the ERP simulator. "Create invoice" then bills the shipped quantities at the order's prices; Submit sends an INVOIC and an ERP invoice record. Each message shows its own status (for example "ERP synced, EDI to retailer pending") with a safe retry. The "EDI" tab lists every message with the raw EDIFACT, what each line means, and a download. GLNs are fictional; nothing is sent to a real retailer.
 
+## Real purchase orders from new customers
+The bundled reference data only knows fictional demo customers and products, so a real PO first shows "Customer not recognised" and "Item not recognised". As a reviewer, click "Add as new customer" (or pick a customer and "Assign to existing customer"), then "Add to catalogue" on each line: the printed unit price becomes that customer's agreed price and the minimum order quantity starts at 1 (you can change it). The order then clears for approval, and later POs from that customer are checked against what you added. Additions last for this browser tab only, are listed on the Agent memory tab under "Added in this session" with who added them, and Reset demo removes them (DECISIONS.md D46).
+
 ## Check everything
 `scripts/verify.sh` runs the Python comparison tests, the TypeScript tests, the typecheck, the production build and the browser tests (which save screenshots to docs/screenshots/).
 

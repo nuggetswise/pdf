@@ -172,3 +172,8 @@ iframe { width: 100%; height: 640px; border: 1px solid var(--line); border-radiu
 .edi-body { display: grid; gap: 8px; margin-top: 8px; }
 .edi-body pre.raw { background: #f6f8fb; border-radius: 8px; padding: 10px; overflow-x: auto; font-size: 12px; margin: 0; white-space: pre; }
 .mapping td.mono { font-size: 12px; word-break: break-all; }
+.onboard { border-top: 1px dashed var(--line); margin-top: 10px; padding-top: 10px; display: grid; gap: 8px; cursor: default; }
+.onboard .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.onboard .row input, .onboard .row select { flex: 1 1 140px; min-width: 0; }
+.onboard .row input.short { flex: 0 0 72px; }
+.additions table { width: 100%; }
