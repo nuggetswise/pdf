@@ -13,7 +13,7 @@
 - Implement the documented acceptance checks; do not weaken them to manufacture success.
 - Keep this file concise. Add actual verified start/build/test/verify commands after setup.
 
-## Verified commands (Slices 1-2)
+## Verified commands (Slices 1-4)
 - Backend setup: `python3 -m venv backend/.venv && backend/.venv/bin/pip install -r backend/requirements.lock`
 - Backend tests: `cd backend && .venv/bin/python -m pytest -q`
 - Backend start: `backend/.venv/bin/uvicorn app.main:app --app-dir backend --port 8000`
@@ -23,6 +23,8 @@
 - End-to-end (deterministic, test adapter): `cd frontend && npx playwright test`
 - Regenerate fictional fixtures: `backend/.venv/bin/python scripts/generate_fixtures.py`
 - Regenerate the Python side of the TypeScript parity check: `backend/.venv/bin/python scripts/validation_parity.py`
+- Regenerate the demo inbox the Vitest workflow tests forward: `backend/.venv/bin/python scripts/demo_inbox.py`
+- Regenerate the edge-case intake PDFs (encrypted, text-free): `backend/.venv/bin/python scripts/intake_fixtures.py`
 - Export SQLite state as RunState JSON: `backend/.venv/bin/python scripts/export_run_state.py <sqlite> <out.json>`
 - Single verify command: `scripts/verify.sh` (backend tests, Vitest, typecheck, build, Playwright e2e incl. guided demo)
 
