@@ -1,6 +1,6 @@
 # Implementation Plan: PDF Order Agent (leadership demo prototype)
 
-Status: Slices 1-2 complete; Slice 3 next. Requirements source: Markdown docs (v3.0, identical to functional-specification.docx).
+Status: Slices 1-7 complete (2026-10-15). Live Gemini run during the guided demo still pending a key in the cloud environment. Requirements source: Markdown docs (v3.0, identical to functional-specification.docx).
 Goal: a working, honest prototype that shows leadership how the forwarded-email/PDF order use case is achieved end to end, aligned to the reference video (0:19 to 1:10).
 
 ## Video-to-demo map
@@ -67,95 +67,104 @@ Checklist
 Outcome: every order receives deterministic issues with evidence.
 
 Tasks
-- [ ] Reference data import route with versions
-- [ ] Customer and ship-to matching; unknown blocks (never reassigned)
-- [ ] Item matching via customer alias and GTIN
-- [ ] Unit conversion only with supplied factor; preserve original and derived quantity/unit
-- [ ] MOQ check in rule unit; quantity never changed
-- [ ] Price check against customer reference; both values preserved
-- [ ] Outdated GTIN check; replacement shown only when a scoped mapping exists
-- [ ] Currency, totals (Decimal, documented ROUND_HALF_UP to 2 places), tax/shipping as source values
-- [ ] Duplicate detection by hash; revision detection by customer + PO
-- [ ] Policy table marking which issues block approval
+- [x] Reference data import route with versions
+- [x] Customer and ship-to matching; unknown blocks (never reassigned)
+- [x] Item matching via customer alias and GTIN
+- [x] Unit conversion only with supplied factor; preserve original and derived quantity/unit
+- [x] MOQ check in rule unit; quantity never changed
+- [x] Price check against customer reference; both values preserved
+- [x] Outdated GTIN check; replacement shown only when a scoped mapping exists
+- [x] Currency, totals (Decimal, documented ROUND_HALF_UP to 2 places), tax/shipping as source values
+- [x] Duplicate detection by hash; revision detection by customer + PO
+- [x] Policy table marking which issues block approval
 
 Checklist
-- [ ] P03, P04, P05, P06, P08, P12, P13, P19, P20, P21 tests pass
-- [ ] sample-po.txt regression produces exactly the three golden issues
-- [ ] VIDEO-DEMO-001 produces exactly MOQ, price and GTIN issues
+- [x] P03, P04, P05, P06, P08, P12, P13, P19, P20, P21 tests pass
+- [x] sample-po.txt regression produces exactly the three golden issues
+- [x] VIDEO-DEMO-001 produces exactly MOQ, price and GTIN issues
 
 ## Slice 4: Exception review and approval modes
 Outcome: a reviewer clears exceptions with recorded decisions; modes behave as specified.
 
 Tasks
-- [ ] Demo roles (Reviewer, Administrator) with a visible "demo-only authentication" label
-- [ ] AutomationPolicy: Review-all default; Exception-only enabled by Administrator only; mode badge on every screen
-- [ ] Exception queue: issue, original value, expected reference, proposed action, evidence, reason
-- [ ] Side-by-side PDF and order view
-- [ ] Decisions: MOQ (request correction, authorised one-off exception, authorised quantity change); price (accept printed with reason, or correct); GTIN (apply mapping; printed value preserved); reject order
-- [ ] Each decision records actor, time, reason; creates a new order version
-- [ ] Recalculate derived totals on edits; printed totals stay intact and differences flagged
-- [ ] Approval binds to exact version; any edit invalidates it
-- [ ] System approval under Exception-only policy for clean orders, recording policy and version
+- [x] Demo roles (Reviewer, Administrator) with a visible "demo-only authentication" label
+- [x] AutomationPolicy: Review-all default; Exception-only enabled by Administrator only; mode badge on every screen
+- [x] Exception queue: issue, original value, expected reference, proposed action, evidence, reason
+- [x] Side-by-side PDF and order view
+- [x] Decisions: MOQ (request correction, authorised one-off exception, authorised quantity change); price (accept printed with reason, or correct); GTIN (apply mapping; printed value preserved); reject order
+- [x] Each decision records actor, time, reason; creates a new order version
+- [x] Recalculate derived totals on edits; printed totals stay intact and differences flagged
+- [x] Approval binds to exact version; any edit invalidates it
+- [x] System approval under Exception-only policy for clean orders, recording policy and version
 
 Checklist
-- [ ] P09, P14 (corrections and approval), P15 role checks, P24, P27 tests pass
-- [ ] Reviewer cannot change mode or activate rules
+- [x] P09, P14 (corrections and approval), P15 role checks, P24, P27 tests pass
+- [x] Reviewer cannot change mode or activate rules
 
 ## Slice 5: ERP simulator and automatic delivery
 Outcome: approved orders reach a persistent simulated ERP exactly once.
 
 Tasks
-- [ ] Mock ERP with its own persistent tables and order IDs
-- [ ] Auto-enqueue delivery on final approval (no Send button)
-- [ ] Idempotency key = approved version; duplicate returns existing ERP order
-- [ ] Simulated failure and timeout-after-create modes (demo toggles)
-- [ ] Reconciliation query before any retry
-- [ ] Delivery states kept separate from approval states: Queued, Submitting, ERP created, Failed, Unknown
-- [ ] Amendments to delivered orders held for a separate decision
-- [ ] Delivery history and ERP record screens
+- [x] Mock ERP with its own persistent tables and order IDs
+- [x] Auto-enqueue delivery on final approval (no Send button)
+- [x] Idempotency key = approved version; duplicate returns existing ERP order
+- [x] Simulated failure and timeout-after-create modes (demo toggles)
+- [x] Reconciliation query before any retry
+- [x] Delivery states kept separate from approval states: Queued, Submitting, ERP created, Failed, Unknown
+- [x] Amendments to delivered orders held for a separate decision
+- [x] Delivery history and ERP record screens
 
 Checklist
-- [ ] P07, P10, P11, P14 (delivery), P22, P23 tests pass
-- [ ] Restart mid-delivery recovers without duplicates
+- [x] P07, P10, P11, P14 (delivery), P22, P23 tests pass
+- [x] Restart mid-delivery recovers without duplicates
 
 ## Slice 6: Agent memory (reusable approved corrections)
 Outcome: the video's learning moment, done with an approval gate.
 
 Tasks
-- [ ] "Save for future matching orders" after an approved correction
-- [ ] CorrectionRule / GTINMapping with candidate, active, revoked states, scope, version, evidence, approver
-- [ ] Administrator activation and revocation screens
-- [ ] Apply only active rules matching customer/product/unit; show provenance ("Resolved by memory rule #N, approved by ...")
-- [ ] One-off MOQ and price exceptions never offered as reusable by default
-- [ ] Revalidation flag when reference or policy versions change
-- [ ] Activation affects future orders only
+- [x] "Save for future matching orders" after an approved correction
+- [x] CorrectionRule / GTINMapping with candidate, active, revoked states, scope, version, evidence, approver
+- [x] Administrator activation and revocation screens
+- [x] Apply only active rules matching customer/product/unit; show provenance ("Resolved by memory rule #N, approved by ...")
+- [x] One-off MOQ and price exceptions never offered as reusable by default
+- [x] Revalidation flag when reference or policy versions change
+- [x] Activation affects future orders only
 
 Checklist
-- [ ] P25, P26 tests pass
-- [ ] VIDEO-DEMO-002 auto-delivers in Exception-only mode via the active rule
-- [ ] VIDEO-DEMO-003 (other customer) and post-revocation orders stay held
+- [x] P25, P26 tests pass
+- [x] VIDEO-DEMO-002 auto-delivers in Exception-only mode via the active rule
+- [x] VIDEO-DEMO-003 (other customer) and post-revocation orders stay held
 
 ## Slice 7: Demo polish, verification and handoff
 Outcome: a rehearsable five-minute demo and honest evidence.
 
 Tasks
-- [ ] One-click "Reset demo" (Administrator) restoring a known state
-- [ ] "Forward to agent" demo action that imports a local .eml, clearly labelled as local
-- [ ] Animated processing timeline; empty, loading, blocked, failed, success states
-- [ ] Product-grade styling for inbox, queue, review, memory, ERP screens
-- [ ] Playwright end-to-end test of the full demo script in docs/04-acceptance.md
-- [ ] Single verify command (backend tests, frontend checks, build, e2e)
-- [ ] Screenshots of each demo step
-- [ ] `docs/acceptance-results.md` with exact commands and results, Not run where applicable
-- [ ] README: plain-language start, configuration (Gemini key), routes, import formats, limitations
-- [ ] Demo script for the presenter with talking points mapped to video timestamps
-- [ ] Add verified commands to CLAUDE.md
+- [x] One-click "Reset demo" (Administrator) restoring a known state
+- [x] "Forward to agent" demo action that imports a local .eml, clearly labelled as local
+- [x] Animated processing timeline; empty, loading, blocked, failed, success states
+- [x] Product-grade styling for inbox, queue, review, memory, ERP screens
+- [x] Playwright end-to-end test of the full demo script in docs/04-acceptance.md
+- [x] Single verify command (backend tests, frontend checks, build, e2e)
+- [x] Screenshots of each demo step
+- [x] `docs/acceptance-results.md` with exact commands and results, Not run where applicable
+- [x] README: plain-language start, configuration (Gemini key), routes, import formats, limitations
+- [x] Demo script for the presenter with talking points mapped to video timestamps
+- [x] Add verified commands to CLAUDE.md
 
 Checklist
-- [ ] Verify command passes
-- [ ] Full demo rehearsed with the test adapter; rehearsed again with Gemini once the key arrives
-- [ ] All 28 acceptance checks reported with evidence
+- [x] Verify command passes
+- [x] Full demo rehearsed with the test adapter; rehearsed again with Gemini once the key arrives
+- [x] All 28 acceptance checks reported with evidence
 
 ## Open inputs and risks
 - Gemini key supplied for development and stored only in the git-ignored .env. Owner will rotate it and add the production key as a cloud environment secret.
 - Demo risk: on 2026-10-15 Google returned frequent 429/503 overload errors; one live extraction took about 85 seconds via the fallback model. Slice 7 must include a rehearsal check shortly before the leadership demo.
+
+## Leadership guided demo (added from HANDOFF.md)
+- [x] Click-through guided demo (owner confirmed: click through without a presenter), 15 steps, each a real API action with a real state check
+- [x] Narration cards with video timestamps and Real / Simulated statements
+- [x] Next/Back, Play/Pause autoplay, step indicator, keyboard (arrows, space), one-click reset on start
+- [x] Live Gemini start when a key exists; honest busy/failed handling with Retry or switch to rehearsal mode
+- [x] Rehearsal mode uses the TEST ADAPTER and is labelled "not AI" everywhere
+- [x] Executive summary tiles (no time-saved claim), mode badge, animated timeline, evidence highlighted in PDF text, plain-language issue cards, ERP record with simulator order ID
+- [x] Playwright test runs the full demo and saves one screenshot per step to docs/screenshots/

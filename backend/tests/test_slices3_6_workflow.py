@@ -340,3 +340,21 @@ def test_reset_restores_known_state(make_client):
     assert client.get("/api/policy").json()["mode"] == "review_all"
     # Same email can be forwarded again after reset (not a duplicate)
     assert state(client, forward(client, "VIDEO-DEMO-001"))["document"]["status"] == "needs_review"
+
+
+def test_reference_import_is_versioned_admin_only_and_triggers_rule_revalidation(make_client):
+    client = make_client()
+    client.put("/api/policy", json={"mode": "exception_only"}, headers=ADMIN)
+    resolve_demo_001(client, forward(client, "VIDEO-DEMO-001"))
+    rule = client.get("/api/memory-rules").json()[0]
+    client.post(f"/api/memory-rules/{rule['id']}/state", json={"state": "active"}, headers=ADMIN)
+    ref = client.get("/api/reference-data").json()
+    assert client.post("/api/reference-data", json=ref, headers=ADMIN).status_code == 409  # same version
+    ref["reference_version"] = "REF-2026-11-v2"
+    assert client.post("/api/reference-data", json=ref, headers=REVIEWER).status_code == 403
+    assert client.post("/api/reference-data", json={"reference_version": "x"}, headers=ADMIN).status_code == 409
+    assert client.post("/api/reference-data", json=ref, headers=ADMIN).json()["reference_version"] == "REF-2026-11-v2"
+    # The rule was approved against v1, so it is not silently reused under v2: revalidation is required.
+    d = state(client, forward(client, "VIDEO-DEMO-002"))
+    assert [i["code"] for i in d["order"]["validation"]["issues"]] == ["rule_needs_revalidation"]
+    assert d["order"]["delivery_state"] == "not_started"

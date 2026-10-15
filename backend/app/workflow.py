@@ -110,6 +110,32 @@ def set_setting(db: Database, key: str, value: str | None) -> None:
                          (key, value, value))
 
 
+# ---------- reference data (versioned; imported by an administrator) ----------
+
+REQUIRED_REFERENCE_KEYS = {"reference_version", "policy_version", "customers", "products", "reference_prices"}
+
+
+def reference(db: Database) -> dict[str, Any]:
+    stored = get_setting(db, "reference_data")
+    return json.loads(stored) if stored else load_reference()
+
+
+def import_reference(db: Database, data: dict[str, Any], actor: str, role: str) -> dict[str, Any]:
+    """Replace reference data with a new version. Affects orders validated from now on, not ERP records."""
+    if role != "administrator":
+        raise Forbidden("Only an administrator can import reference data")
+    missing = REQUIRED_REFERENCE_KEYS - data.keys()
+    if missing:
+        raise Conflict(f"Reference data is missing: {', '.join(sorted(missing))}")
+    if data["reference_version"] == reference(db)["reference_version"]:
+        raise Conflict("Reference data must carry a new reference_version")
+    set_setting(db, "reference_data", json.dumps(data))
+    with db.connect() as conn:
+        db.audit(conn, "system", 0, "reference_data_imported", actor,
+                 {"reference_version": data["reference_version"], "policy_version": data["policy_version"]})
+    return {"reference_version": data["reference_version"], "policy_version": data["policy_version"]}
+
+
 # ---------- policy ----------
 
 def current_policy(db: Database) -> dict[str, Any]:
@@ -182,7 +208,7 @@ def evaluate(db: Database, doc_id: int, conn=None) -> dict[str, Any]:
         # Memory rules are applied at first validation; activation affects future orders, not this one.
         rules = (json.loads(existing["validation_json"]).get("rules_snapshot", []) if existing
                  else _active_rules(conn))
-        result = validate(payload, load_reference(), rules, _overrides(conn, doc_id), others)
+        result = validate(payload, reference(db), rules, _overrides(conn, doc_id), others)
         resolved = _resolved(conn, doc_id)
         for issue in result["issues"]:
             hit = resolved.get((issue["key"], issue["fingerprint"]))
@@ -324,7 +350,7 @@ def decide(db: Database, doc_id: int, issue_key: str, action: str, params: dict[
         stored: dict[str, Any] = {}
         if action == "map_item":
             sku = params.get("sku")
-            if sku not in {p["sku"] for p in load_reference()["products"]}:
+            if sku not in {p["sku"] for p in reference(db)["products"]}:
                 raise Conflict("Unknown SKU")
             stored = {"sku": sku}
         elif action == "apply_mapping":
@@ -394,7 +420,7 @@ def _hold_amendment(db: Database, conn, doc_id: int, actor: str, action: str, pa
 def _save_candidate(db: Database, conn, doc_id: int, decision_id: int, stored: dict, actor: str,
                     issue: dict) -> None:
     order = _order(conn, doc_id)
-    ref = load_reference()
+    ref = reference(db)
     cur = conn.execute(
         "INSERT INTO memory_rules (kind, customer_id, obsolete_identifier, replacement_identifier, replacement_sku,"
         " reference_version, state, source_document_id, source_decision_id, evidence, created_by, created_at)"

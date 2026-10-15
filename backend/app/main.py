@@ -242,6 +242,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(422, "state must be active or revoked")
         return guard(workflow.set_rule_state, db, rule_id, body.state, actor, role, body.reason)
 
+    @app.get("/api/reference-data")
+    def get_reference() -> dict:
+        return workflow.reference(db)
+
+    @app.post("/api/reference-data")
+    def post_reference(body: dict, x_demo_role: str | None = Header(None),
+                       x_demo_user: str | None = Header(None)) -> dict:
+        actor, role = who(x_demo_role, x_demo_user)
+        return guard(workflow.import_reference, db, body, actor, role)
+
     @app.get("/api/erp/orders")
     def erp_list() -> list[dict]:
         return workflow.erp_orders(db)
