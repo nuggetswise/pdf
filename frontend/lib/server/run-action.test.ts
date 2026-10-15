@@ -139,3 +139,24 @@ describe("extraction results are checked again against the run's page text", () 
       .toStrictEqual({ ok: false, status: 409, error: "Document is not being extracted" });
   });
 });
+
+describe("supplier portal actions (D45)", () => {
+  const lines = [{ lineIndex: 0, shippedQty: "4" }, { lineIndex: 1, shippedQty: "2" }, { lineIndex: 2, shippedQty: "1" }];
+  it("submits an ASN and its invoice through the server action", () => {
+    let s = must(applyAction(replayGuidedDemo(), { type: "submitAsn", role: "reviewer", docId: 1, lines }));
+    const asnId = s.portal!.asns[0].id;
+    s = must(applyAction(s, { type: "submitInvoice", role: "reviewer", asnId,
+      lines: [{ lineIndex: 0, quantity: "4" }, { lineIndex: 1, quantity: "2" }, { lineIndex: 2, quantity: "1" }] }));
+    expect(s.portal!.invoices[0].total).toBe("166.00");
+  });
+  it("refuses extra fields, a number instead of a decimal string, and an over-shipment without a reason", () => {
+    const run = replayGuidedDemo();
+    expect(applyAction(run, { type: "submitAsn", role: "reviewer", docId: 1, lines, sendNow: true }))
+      .toMatchObject({ ok: false, status: 400 });
+    expect(applyAction(run, { type: "submitAsn", role: "reviewer", docId: 1, lines: [{ lineIndex: 0, shippedQty: 4 }] }))
+      .toMatchObject({ ok: false, status: 400 });
+    expect(applyAction(run, { type: "submitAsn", role: "reviewer", docId: 1,
+      lines: [{ lineIndex: 0, shippedQty: "9" }, ...lines.slice(1)] })).toMatchObject({ ok: false, status: 409 });
+    expect(applyAction(run, { type: "submitAsn", role: "viewer", docId: 1, lines })).toMatchObject({ ok: false, status: 403 });
+  });
+});

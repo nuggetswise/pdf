@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useAgent } from "./run/RunProvider";
+import { OrderPortal } from "./Portal";
 import {
   ACTION_LABEL, DELIVERY_LABEL, DocDetail, IN_FLIGHT, Issue, PEOPLE, PROCESS_LABEL, REVIEW_LABEL, Role, STOPPED,
 } from "./api";
@@ -257,6 +258,7 @@ export function OrderView({ d, role, onAct, onApprove, onRetry, highlight }: {
                 )}
               </section>
             )}
+            {o.delivery_state === "erp_created" && <OrderPortal docId={d.document.id} role={role} />}
           </div>
           <SourcePanel d={d} focus={focus} />
         </div>

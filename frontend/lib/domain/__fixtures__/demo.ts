@@ -53,5 +53,9 @@ const ISO = /\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)/g;
 
 /** Replace every timestamp so two runs made at different times can be compared exactly. */
 export function maskTimes<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value), (_k, v) => (typeof v === "string" ? v.replace(ISO, "<time>") : v));
+  return JSON.parse(JSON.stringify(value), (_k, v) => (typeof v === "string" ? maskEdi(v.replace(ISO, "<time>")) : v));
 }
+
+/** EDIFACT bodies (D45) carry the action's date and time in their own format; mask those too. */
+const maskEdi = (v: string) =>
+  v.replace(/(UNB\+[^']*?\+)\d{6}:\d{4}/g, "$1<edi-time>").replace(/(DTM\+\d+:)\d{8}/g, "$1<edi-date>");

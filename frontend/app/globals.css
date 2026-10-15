@@ -154,3 +154,21 @@ iframe { width: 100%; height: 640px; border: 1px solid var(--line); border-radiu
 .dropzone span { display: block; }
 .dropzone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .samples { margin: 0 0 14px; } .samples .forward { margin-top: 6px; }
+
+/* Supplier portal and EDI tab (D45) */
+.portal { border: 2px solid var(--line); border-radius: 12px; padding: 16px; margin-top: 12px; display: grid; gap: 12px; }
+.portal h4 { margin: 0 0 6px; font-size: 16px; }
+.flowstate { margin: 4px 0; }
+.outlist { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; font-size: 14px; }
+.outmsg button { margin-top: 4px; }
+.portal-form { display: grid; gap: 8px; }
+.portal-form input { font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; max-width: 100%; }
+.portal-form input.qty { width: 6em; display: block; margin-bottom: 4px; }
+.edi-list { display: grid; gap: 12px; }
+.edi-card { border: 2px solid var(--line); border-radius: 12px; padding: 14px; }
+.edi-card.delivered { border-color: #8fd1ab; } .edi-card.pending, .edi-card.failed { border-color: #f0c674; }
+.edi-card header { display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap; }
+.edi-card h4 { margin: 0; font-size: 16px; }
+.edi-body { display: grid; gap: 8px; margin-top: 8px; }
+.edi-body pre.raw { background: #f6f8fb; border-radius: 8px; padding: 10px; overflow-x: auto; font-size: 12px; margin: 0; white-space: pre; }
+.mapping td.mono { font-size: 12px; word-break: break-all; }

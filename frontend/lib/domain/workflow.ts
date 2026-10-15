@@ -11,6 +11,7 @@ import {
   emptyRunState,
 } from "./run-state";
 import { type Overrides, type Reference, validate } from "./validation";
+import { confirmOrder } from "./portal";
 
 export const SYSTEM = "system:order-agent";
 const REVIEWER_ROLES = new Set(["reviewer", "administrator"]);
@@ -503,6 +504,7 @@ function deliver(r: Run, docId: number) {
   const existing = erpLookup(r, key); // reconcile before any (re)submission
   if (existing) {
     deliveryState(r, docId, attempt, "erp_created", "Reconciled: ERP already holds this order", { erpId: existing, key });
+    confirmOrder(r.s, r.now(), docId); // D45: simulated ORDRSP to the retailer, its own delivery state
     return;
   }
   deliveryState(r, docId, attempt, "submitting", null, { key });
@@ -518,6 +520,7 @@ function deliver(r: Run, docId: number) {
     throw exc;
   }
   deliveryState(r, docId, attempt, "erp_created", "ERP simulator acknowledged the order", { erpId, key });
+  confirmOrder(r.s, r.now(), docId); // D45: simulated ORDRSP to the retailer, its own delivery state
 }
 
 export function retryDelivery(state: RunState, docId: number, who: Who, clock: Clock = systemClock): RunState {

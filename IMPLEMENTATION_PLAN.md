@@ -220,3 +220,10 @@ Owner change after slice 5 (D44): real app instead of a guided demo
 - [x] A file that is not a PDF is refused with the reason shown
 
 Remaining rebuild slices: 6 Vercel deploy (merged to main deploys via Vercel's git integration; live check on production pending), 7 retire Python.
+
+## Supplier portal: ORDRSP, ASN, invoice (D45)
+- [x] Simulated EDIFACT ORDRSP on ERP delivery (own status, idempotency key, retry)
+- [x] ASN from a delivered order with editable shipped quantities; over-shipment needs a reason; DESADV + ERP shipment record
+- [x] Invoice from the ASN (ASN quantities, order prices, exact decimals); mismatch and second invoice refused; INVOIC + ERP invoice record
+- [x] Per-message pending/delivered/failed, reconciling retry, honest mixed-state text; administrator EDI outbox failure control
+- [x] EDI tab (raw message, field mapping, download); Vitest (UNT counts, escaping, ASN quantities on invoice); e2e/supplier-portal.spec.ts

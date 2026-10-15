@@ -3,10 +3,11 @@ import { useState } from "react";
 import { summary as summarise } from "../lib/domain/workflow";
 import { PEOPLE, Role } from "./api";
 import { ErpView, MemoryView, Workspace } from "./Panels";
+import { EdiView } from "./Portal";
 import { RunProvider, useAgent, useHealth } from "./run/RunProvider";
 
-type Tab = "work" | "memory" | "erp";
-const TABS: [Tab, string][] = [["work", "Inbox & review"], ["memory", "Agent memory"], ["erp", "ERP records"]];
+type Tab = "work" | "memory" | "erp" | "edi";
+const TABS: [Tab, string][] = [["work", "Inbox & review"], ["memory", "Agent memory"], ["erp", "ERP records"], ["edi", "EDI"]];
 
 export default function Page() {
   return <RunProvider><App /></RunProvider>;
@@ -32,7 +33,7 @@ function App() {
           {exceptionOnly ? "Exception-only mode" : "Review-all mode"}
         </span>
         <span className={`pill ${health?.rehearsal_mode || health?.extractor_mode === "test" ? "warn" : health?.extraction === "available" ? "ok" : "bad"}`}>{extraction}</span>
-        <span className="pill muted">ERP: local simulator</span>
+        <span className="pill muted">ERP and EDI: local simulators</span>
         <label className="role">Signed in as
           <select value={role} onChange={(e) => setRole(e.target.value as Role)} aria-label="Demo role">
             {(["reviewer", "administrator", "viewer"] as Role[]).map((r) => <option key={r} value={r}>{PEOPLE[r]}</option>)}
@@ -57,6 +58,7 @@ function App() {
         {tab === "work" && <Workspace role={role} health={health} />}
         {tab === "memory" && <MemoryView role={role} />}
         {tab === "erp" && <ErpView />}
+        {tab === "edi" && <EdiView role={role} />}
       </main>
     </>
   );
