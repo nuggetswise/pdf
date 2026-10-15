@@ -1,24 +1,20 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { api, DocDetail, DocSummary, ErpOrder, Health, Issue, PROCESS_LABEL, Role, Rule } from "./api";
+import { useState } from "react";
+import { documentDetail, documentsList, erpOrdersList, rulesList } from "../lib/domain/selectors";
+import { Health, Issue, PROCESS_LABEL, Role } from "./api";
 import { OrderView } from "./OrderView";
-
-function usePoll<T>(path: string, ms = 1200): [T | null, () => void] {
-  const [data, setData] = useState<T | null>(null);
-  const load = useCallback(() => { api<T>(path).then(setData).catch(() => {}); }, [path]);
-  useEffect(() => { load(); const t = setInterval(load, ms); return () => clearInterval(t); }, [load, ms]);
-  return [data, load];
-}
+import { DEMO_EMAILS, useAgent } from "./run/RunProvider";
 
 const who = (actor: string | null) => (actor ? actor.split(":")[1] ?? actor : "—");
 
 export function MemoryView({ role }: { role: Role }) {
-  const [rules, reload] = usePoll<Rule[]>("/api/memory-rules");
+  const agent = useAgent();
+  const rules = agent.ready ? rulesList(agent.state) : null;
   const [error, setError] = useState<string | null>(null);
   async function setState(id: number, state: "active" | "revoked") {
     try {
-      await api(`/api/memory-rules/${id}/state`, { method: "POST", role, json: { state, reason: state === "revoked" ? "Revoked from the memory screen" : null } });
-      setError(null); reload();
+      await agent.run({ type: "setRuleState", role, ruleId: id, state, reason: state === "revoked" ? "Revoked from the memory screen" : null });
+      setError(null);
     } catch (e) { setError((e as Error).message); }
   }
   return (
@@ -57,10 +53,11 @@ export function MemoryView({ role }: { role: Role }) {
 }
 
 export function ErpView() {
-  const [orders] = usePoll<ErpOrder[]>("/api/erp/orders");
+  const agent = useAgent();
+  const orders = agent.ready ? erpOrdersList(agent.state) : null;
   return (
     <section className="erp-list" aria-label="ERP simulator records">
-      <div className="eyebrow">ERP simulator (local, persistent, not a live ERP)</div>
+      <div className="eyebrow">ERP simulator (held in this browser tab, not a live ERP)</div>
       <h3>{orders?.length ?? 0} order{orders?.length === 1 ? "" : "s"} in the ERP</h3>
       {orders?.length === 0 && <p className="placeholder">Nothing delivered yet.</p>}
       <div className="erp-cards">
@@ -78,26 +75,21 @@ export function ErpView() {
   );
 }
 
-export function Workspace({ role, health, refreshHealth }: { role: Role; health: Health | null; refreshHealth: () => void }) {
-  const [docs] = usePoll<DocSummary[]>("/api/documents");
-  const [emails, setEmails] = useState<string[]>([]);
-  const [pick, setPick] = useState("");
+export function Workspace({ role, health }: { role: Role; health: Health | null }) {
+  const agent = useAgent();
+  const docs = agent.ready ? documentsList(agent.state) : null;
+  const emails: readonly string[] = DEMO_EMAILS;
+  const [pick, setPick] = useState<string>(DEMO_EMAILS[0]);
   const [selected, setSelected] = useState<number | null>(null);
-  const [detail, setDetail] = useState<DocDetail | null>(null);
+  const detail = selected === null ? null : documentDetail(agent.state, selected);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => { api<string[]>("/api/demo/emails").then((l) => { setEmails(l); setPick(l[0] ?? ""); }).catch(() => {}); }, []);
-  useEffect(() => {
-    if (selected === null) return;
-    const load = () => api<DocDetail>(`/api/documents/${selected}`).then(setDetail).catch(() => {});
-    load(); const t = setInterval(load, 1000); return () => clearInterval(t);
-  }, [selected]);
-
   async function wrap(f: () => Promise<unknown>) {
-    try { await f(); setError(null); refreshHealth(); } catch (e) { setError((e as Error).message); }
+    try { await f(); setError(null); } catch (e) { setError((e as Error).message); }
   }
   const act = async (issue: Issue, action: string, reason: string, params: Record<string, unknown>) =>
-    wrap(() => api(`/api/documents/${selected}/decisions`, { method: "POST", role, json: { issue_key: issue.key, action, reason: reason || null, params } }));
+    wrap(() => agent.run({ type: "decide", role, docId: selected!, issueKey: issue.key, action: action as never,
+      reason: reason || null, params }));
 
   return (
     <div className="workspace">
@@ -108,16 +100,16 @@ export function Workspace({ role, health, refreshHealth }: { role: Role; health:
             {emails.map((n) => <option key={n}>{n}</option>)}
           </select>
           <button className="primary" disabled={!pick} onClick={() => wrap(async () => {
-            const r = await api<{ document_ids: number[] }>(`/api/demo/forward/${encodeURIComponent(pick)}`, { method: "POST" });
-            setSelected(r.document_ids[0]);
+            const ids = await agent.forwardDemo(pick);
+            setSelected(ids[0]);
           })}>Forward to agent</button>
         </div>
         <p className="muted small">Imports a local fictional .eml. Nothing is sent over the internet.</p>
         <label className="muted small upload">Or import an .eml file{" "}
           <input type="file" accept=".eml,message/rfc822" onChange={(e) => {
             const f = e.target.files?.[0]; if (!f) return;
-            const body = new FormData(); body.append("file", f);
-            wrap(async () => { const r = await api<{ document_ids: number[] }>("/api/intake/eml", { method: "POST", body }); setSelected(r.document_ids[0]); });
+            e.target.value = "";
+            wrap(async () => { const ids = await agent.importEml(new Uint8Array(await f.arrayBuffer())); setSelected(ids[0]); });
           }} />
         </label>
         {docs?.length === 0 && <p className="placeholder">No forwarded emails yet.</p>}
@@ -127,18 +119,18 @@ export function Workspace({ role, health, refreshHealth }: { role: Role; health:
             <span className="meta"><span>{d.sender}</span><span className={`pill ${PROCESS_LABEL[d.status]?.[1] ?? "info"}`}>{PROCESS_LABEL[d.status]?.[0] ?? d.status}</span></span>
           </button>
         ))}
-        {role === "administrator" && health && <AdminSettings health={health} refresh={refreshHealth} onError={setError} />}
+        {role === "administrator" && health && <AdminSettings health={health} onError={setError} />}
       </aside>
       <section className="main">
         {error && <div className="alert bad" role="alert">{error}</div>}
         {!detail ? <div className="placeholder">Select an email to see how the agent handled it.</div> : (
           <>
             {detail.document.status === "extraction_failed" || detail.document.status === "extraction_unavailable" ? (
-              <button onClick={() => wrap(() => api(`/api/documents/${detail.document.id}/retry-extraction`, { method: "POST" }))}>Retry extraction</button>
+              <button onClick={() => wrap(() => agent.retryExtraction(detail.document.id))}>Retry extraction</button>
             ) : null}
             <OrderView d={detail} role={role} onAct={act}
-              onApprove={() => wrap(() => api(`/api/documents/${detail.document.id}/approve`, { method: "POST", role }))}
-              onRetry={() => wrap(() => api(`/api/documents/${detail.document.id}/retry-delivery`, { method: "POST", role }))} />
+              onApprove={() => wrap(() => agent.run({ type: "approve", role, docId: detail.document.id }))}
+              onRetry={() => wrap(() => agent.run({ type: "retryDelivery", role, docId: detail.document.id }))} />
           </>
         )}
       </section>
@@ -146,32 +138,35 @@ export function Workspace({ role, health, refreshHealth }: { role: Role; health:
   );
 }
 
-function AdminSettings({ health, refresh, onError }: { health: Health; refresh: () => void; onError: (e: string | null) => void }) {
-  async function put(path: string, json: unknown) {
-    try { await api(path, { method: "PUT", role: "administrator", json }); onError(null); refresh(); } catch (e) { onError((e as Error).message); }
+function AdminSettings({ health, onError }: { health: Health; onError: (e: string | null) => void }) {
+  const agent = useAgent();
+  async function go(f: () => Promise<unknown>) {
+    try { await f(); onError(null); } catch (e) { onError((e as Error).message); }
   }
+  const setting = (key: "rehearsal_mode" | "erp_failure_mode", value: string) =>
+    go(() => agent.run({ type: "setDemoSetting", role: "administrator", key, value }));
   return (
     <div className="admin">
       <h3>Administrator settings</h3>
       <label>Automation mode
-        <select value={health.policy.mode} onChange={(e) => put("/api/policy", { mode: e.target.value })}>
+        <select value={health.policy.mode} onChange={(e) => go(() => agent.run({ type: "setPolicy", role: "administrator", mode: e.target.value }))}>
           <option value="review_all">Review-all (default)</option>
           <option value="exception_only">Exception-only</option>
         </select>
       </label>
       <label>Rehearsal mode (TEST ADAPTER, not AI)
-        <select value={health.rehearsal_mode ? "on" : "off"} onChange={(e) => put("/api/demo/rehearsal-mode", { value: e.target.value })}>
+        <select value={health.rehearsal_mode ? "on" : "off"} onChange={(e) => setting("rehearsal_mode", e.target.value)}>
           <option value="off">Off</option><option value="on">On</option>
         </select>
       </label>
       <label>ERP simulator next call
-        <select value={health.erp_failure_mode} onChange={(e) => put("/api/demo/erp-failure-mode", { value: e.target.value })}>
+        <select value={health.erp_failure_mode} onChange={(e) => setting("erp_failure_mode", e.target.value)}>
           <option value="none">Succeeds</option><option value="fail_next">Fails</option><option value="timeout_next">Times out after creating</option>
         </select>
       </label>
       <button className="ghost danger" onClick={async () => {
-        if (!confirm("Reset the demo? All prototype data is cleared.")) return;
-        try { await api("/api/demo/reset", { method: "POST", role: "administrator" }); refresh(); } catch (e) { onError((e as Error).message); }
+        if (!confirm("Reset the demo? The run in this browser tab is cleared.")) return;
+        await go(() => agent.resetDemo());
       }}>Reset demo</button>
     </div>
   );

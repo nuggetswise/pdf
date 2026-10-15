@@ -1,24 +1,25 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { api, Health, PEOPLE, Role, Summary } from "./api";
+import { useState } from "react";
+import { summary as summarise } from "../lib/domain/workflow";
+import { PEOPLE, Role } from "./api";
 import { GuidedDemo } from "./GuidedDemo";
 import { ErpView, MemoryView, Workspace } from "./Panels";
+import { RunProvider, useAgent, useHealth } from "./run/RunProvider";
 
 type Tab = "demo" | "work" | "memory" | "erp";
 const TABS: [Tab, string][] = [["demo", "Guided demo"], ["work", "Inbox & review"], ["memory", "Agent memory"], ["erp", "ERP records"]];
 
-export default function App() {
+export default function Page() {
+  return <RunProvider><App /></RunProvider>;
+}
+
+function App() {
   const [tab, setTab] = useState<Tab>("demo");
   const [role, setRole] = useState<Role>("reviewer");
-  const [health, setHealth] = useState<Health | null>(null);
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(() => {
-    api<Health>("/api/health").then((h) => { setHealth(h); setError(null); }).catch((e: Error) => setError(`Backend not reachable: ${e.message}`));
-    api<Summary>("/api/summary").then(setSummary).catch(() => {});
-  }, []);
-  useEffect(() => { refresh(); const t = setInterval(refresh, 1500); return () => clearInterval(t); }, [refresh]);
+  const agent = useAgent();
+  const health = useHealth();
+  const summary = agent.ready ? summarise(agent.state) : null;
+  const error = agent.serverError;
 
   const exceptionOnly = health?.policy.mode === "exception_only";
   const extraction = !health ? "…" : health.rehearsal_mode || health.extractor_mode === "test"
@@ -41,6 +42,7 @@ export default function App() {
         </label>
       </header>
       {error && <div className="alert bad" role="alert">{error}</div>}
+      {agent.storageWarning && <div className="alert warn" role="status">{agent.storageWarning}</div>}
       <div className="kpis" aria-label="Executive summary">
         <Kpi n={summary?.orders_received} label="Orders received" />
         <Kpi n={summary?.delivered_to_erp} label="Delivered to ERP" tone="ok" />
@@ -54,8 +56,8 @@ export default function App() {
       </nav>
       <main>
         {/* Keep the demo mounted so switching tabs does not lose its progress. */}
-        <div hidden={tab !== "demo"}><GuidedDemo health={health} onSummary={refresh} /></div>
-        {tab === "work" && <Workspace role={role} health={health} refreshHealth={refresh} />}
+        <div hidden={tab !== "demo"}><GuidedDemo health={health} /></div>
+        {tab === "work" && <Workspace role={role} health={health} />}
         {tab === "memory" && <MemoryView role={role} />}
         {tab === "erp" && <ErpView />}
       </main>

@@ -175,7 +175,7 @@ describe("the Gemini key stays on the server", () => {
   });
 
   it("every server module starts with the server-only guard", () => {
-    for (const rel of ["config.ts", "extract/gemini.ts", "extract/run.ts"]) {
+    for (const rel of ["config.ts", "extract/gemini.ts", "extract/run.ts", "run-action.ts"]) {
       expect(readFileSync(join(__dirname, rel), "utf8")).toMatch(/^(\/\/[^\n]*\n)*import "server-only";/);
     }
   });

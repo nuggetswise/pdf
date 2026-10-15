@@ -202,6 +202,16 @@ Rebuild slice 4: browser intake and the extraction route
 - [x] app/api/extract/route.ts: POST page text -> evidence-checked version or the failure to show; GET -> extraction availability
 - [x] Page text from pdf.js matches pypdf for every fixture (identical apart from pypdf's trailing newline) and gives identical extraction and evidence results
 - [x] Recorded 429 then 200, fallback model, timeouts, logs without content or key, health without key, and a guard that only lib/server/ mentions GEMINI_API_KEY
-- [ ] Not exercised until slice 5: the browser loader for pdf.js (lib/intake/pdfjs-browser.ts) and its worker URL in a real browser
+- [x] The browser loader for pdf.js (lib/intake/pdfjs-browser.ts) and its worker URL, exercised in Chromium by the slice 5 browser tests
 
-Remaining rebuild slices: 5 UI switch-over (Playwright parity gate), 6 Vercel deploy, 7 retire Python.
+Rebuild slice 5: UI switch-over (parity gate)
+- [x] lib/domain/selectors.ts: the screens' read models over RunState; after the guided demo each gives exactly what the matching FastAPI endpoint returned (scripts/read_models.py records those, verify.sh checks the file is current)
+- [x] lib/server/run-action.ts and app/actions/run.ts: one server action takes the run and one checked action, runs the workflow function and returns the next run or the refusal as a value; extraction results are re-checked against the run's page text
+- [x] app/run/RunProvider.tsx: run held in sessionStorage, actions sent one at a time, demo emails and .eml imports read in the browser, extraction via /api/extract, original PDF kept in memory for the "Original PDF" tab
+- [x] Screens rewired (page, Panels, OrderView, GuidedDemo); all polling and every FastAPI call removed; narration says the run and ERP simulator are held in this browser tab
+- [x] next.config.mjs: /api rewrite removed; server action body limit 4 MB. Playwright starts one Next.js server, no Python
+- [x] Parity gate: the three existing Playwright specs pass unchanged, including the 15-step guided demo and its screenshots
+- [x] New browser test: the run survives a reload, a new tab starts empty, an extraction cut off by a reload is marked for retry and the retry finishes it
+- [ ] No live Gemini run through the new screens yet (needs the key; playwright.live.config.ts now starts Next.js only)
+
+Remaining rebuild slices: 6 Vercel deploy, 7 retire Python.

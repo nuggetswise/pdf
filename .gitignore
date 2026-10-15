@@ -11,3 +11,5 @@ test-results/
 playwright-report/
 .next-e2e/
 .next-live/
+.env.local
+.env*.local
