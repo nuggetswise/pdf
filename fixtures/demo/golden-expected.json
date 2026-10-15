@@ -2,7 +2,11 @@
   "fictional": true,
   "notice": "FICTIONAL TEST DATA. Expected outcomes for the video-aligned demo.",
   "VIDEO-DEMO-001": {
-    "currency": "CAD", "subtotal": "190.00", "tax": "0.00", "shipping": "0.00", "total": "190.00",
+    "currency": "CAD",
+    "subtotal": "190.00",
+    "tax": "0.00",
+    "shipping": "0.00",
+    "total": "190.00",
     "issues": [
       "line A MOQ: 5 CASE below minimum 10 CASE",
       "line B price mismatch: printed 26.00 vs reference 24.00",
@@ -13,18 +17,52 @@
       "authorised acceptance of printed price 26.00 for line B; reference 24.00 preserved",
       "approve scoped identifier mapping OLD-DEMO-003 -> NEW-DEMO-003 for DEMO-CUST-01"
     ],
-    "reusable_rules_created": ["identifier mapping OLD-DEMO-003 -> NEW-DEMO-003, scope DEMO-CUST-01, candidate until administrator activates"],
+    "reusable_rules_created": [
+      "identifier mapping OLD-DEMO-003 -> NEW-DEMO-003, scope DEMO-CUST-01, candidate until administrator activates"
+    ],
     "final_total": "190.00"
   },
   "VIDEO-DEMO-002": {
-    "currency": "CAD", "subtotal": "306.00", "tax": "0.00", "shipping": "0.00", "total": "306.00",
+    "currency": "CAD",
+    "subtotal": "306.00",
+    "tax": "0.00",
+    "shipping": "0.00",
+    "total": "306.00",
     "issues_with_active_mapping": [],
-    "issues_without_active_mapping": ["line C outdated identifier OLD-DEMO-003"],
+    "issues_without_active_mapping": [
+      "line C outdated identifier OLD-DEMO-003"
+    ],
     "expected_outcome_exception_only": "auto-delivered to ERP; line C shows memory rule provenance"
   },
   "VIDEO-DEMO-003": {
-    "currency": "CAD", "subtotal": "54.00", "tax": "0.00", "shipping": "0.00", "total": "54.00",
-    "issues": ["line C outdated identifier OLD-DEMO-003"],
+    "currency": "CAD",
+    "subtotal": "54.00",
+    "tax": "0.00",
+    "shipping": "0.00",
+    "total": "54.00",
+    "issues": [
+      "line C outdated identifier OLD-DEMO-003"
+    ],
     "expected_outcome": "held for review; DEMO-CUST-01 mapping does not apply to DEMO-CUST-02"
+  },
+  "VIDEO-DEMO-004": {
+    "currency": "CAD",
+    "subtotal": "36.00",
+    "tax": "0.00",
+    "shipping": "0.00",
+    "total": "36.00",
+    "issues_after_revocation": [
+      "line C outdated identifier OLD-DEMO-003"
+    ],
+    "expected_outcome": "held for review after the memory rule is revoked"
+  },
+  "VIDEO-DEMO-005": {
+    "currency": "CAD",
+    "subtotal": "360.00",
+    "tax": "0.00",
+    "shipping": "0.00",
+    "total": "360.00",
+    "issues": [],
+    "expected_outcome_review_all": "held until a human approves; then auto-delivered once"
   }
 }

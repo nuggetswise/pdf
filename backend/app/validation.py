@@ -80,6 +80,11 @@ def qty(value: Decimal) -> str:
     return format(value.normalize(), "f") if value == value.to_integral() else str(value)
 
 
+def _person(actor: str | None) -> str:
+    role, _, name = (actor or "unknown").partition(":")
+    return f"{name} ({role})" if name else role
+
+
 def _v(field: Any) -> str | None:
     return field.get("value") if isinstance(field, dict) else field
 
@@ -196,12 +201,12 @@ def validate(payload: dict[str, Any], ref: dict[str, Any], active_rules: list[di
                                       "activated_at": rule.get("activated_at"),
                                       "text": f"Resolved by memory rule #{rule['id']} ({gtin} -> "
                                               f"{rule['replacement_identifier']}), activated by "
-                                              f"{rule.get('activated_by')}"}
-            elif key in overrides:
-                product = products.get(overrides[key]["replacement_sku"])
-                out["resolved_by"] = {"type": "review_decision", "text": overrides[key]["text"]}
+                                              f"{_person(rule.get('activated_by'))}"}
             else:
                 proposal = proposals.get(gtin)
+                if key in overrides:  # issue stays listed so the card shows who resolved it
+                    product = products.get(overrides[key]["replacement_sku"])
+                    out["resolved_by"] = {"type": "review_decision", "text": overrides[key]["text"]}
                 code = "rule_needs_revalidation" if rule else "outdated_identifier"
                 msg = (f"Line {label}: {gtin} is a retired identifier. "
                        + (f"Supplier notice proposes {proposal['replacement_identifier']}; it needs a reviewer "
@@ -220,11 +225,10 @@ def validate(payload: dict[str, Any], ref: dict[str, Any], active_rules: list[di
             if mkey in overrides:
                 product = products.get(overrides[mkey]["sku"])
                 out["resolved_by"] = {"type": "review_decision", "text": overrides[mkey]["text"]}
-            else:
-                issues.append(_issue("unknown_item", f"Line {label}: '{alias or gtin or 'no identifier'}' does not "
-                                     f"match any product for {cust_id or 'this customer'}.", line=idx,
-                                     printed=alias or gtin, evidence=evidence, page=page, ref_version=rv,
-                                     extra={"candidate_skus": [p["sku"] for p in ref["products"]]}))
+            issues.append(_issue("unknown_item", f"Line {label}: '{alias or gtin or 'no identifier'}' does not "
+                                 f"match any product for {cust_id or 'this customer'}.", line=idx,
+                                 printed=alias or gtin, evidence=evidence, page=page, ref_version=rv,
+                                 extra={"candidate_skus": [p["sku"] for p in ref["products"]]}))
         if product is None:
             lines_out.append(out)
             if amount is not None:

@@ -12,6 +12,7 @@ from fastapi.responses import FileResponse
 
 from .config import ROOT, Settings, load_settings
 from .db import Database, row
+from .extraction import read_pdf_pages
 from .intake import Attachment, IntakeRejected, parse_eml, store_intake
 from . import workflow
 from .pipeline import process_document, reset_for_retry, resume_pending
@@ -162,6 +163,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if doc is None:
             raise HTTPException(404, "Document not found")
         return FileResponse(Path(doc["stored_path"]), media_type="application/pdf")
+
+    @app.get("/api/documents/{doc_id}/text")
+    def get_text(doc_id: int) -> dict:
+        """Native PDF text per page, used to highlight extraction evidence in the review screen."""
+        with db.connect() as conn:
+            doc = conn.execute("SELECT stored_path FROM source_documents WHERE id = ?", (doc_id,)).fetchone()
+        if doc is None:
+            raise HTTPException(404, "Document not found")
+        return {"pages": read_pdf_pages(Path(doc["stored_path"]).read_bytes())}
 
     @app.get("/api/audit")
     def audit(entity_type: str | None = None, entity_id: int | None = None) -> list[dict]:

@@ -143,12 +143,12 @@ def _overrides(conn, doc_id: int) -> dict[str, Any]:
     for d in conn.execute("SELECT * FROM decisions WHERE document_id = ? ORDER BY id", (doc_id,)):
         p = json.loads(d["params_json"])
         if d["action"] == "map_item":
-            out[d["issue_key"]] = {"sku": p["sku"], "text": f"Mapped to {p['sku']} by {d['actor']} (decision "
+            out[d["issue_key"]] = {"sku": p["sku"], "text": f"Mapped to {p['sku']} by {d['actor'].partition(':')[2]} (decision "
                                                             f"#{d['id']})"}
         elif d["action"] == "apply_mapping":
             out[d["issue_key"]] = {"replacement_sku": p["replacement_sku"],
                                    "text": f"Mapping {p['obsolete_identifier']} -> {p['replacement_identifier']} "
-                                           f"approved by {d['actor']} for this order (decision #{d['id']})"}
+                                           f"approved by {d['actor'].partition(':')[2]} for this order (decision #{d['id']})"}
         elif d["action"] in LINE_EDIT_ACTIONS:
             edit = out.setdefault(f"edit:{p['line_index']}", {})
             edit["quantity" if d["action"] == "change_quantity" else "unit_price"] = p["value"]

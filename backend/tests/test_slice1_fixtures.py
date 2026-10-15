@@ -75,7 +75,7 @@ def test_proposed_mapping_is_not_active():
 
 def test_generated_pdfs_have_native_text_and_fictional_label():
     pdfs = sorted(GEN.glob("*.pdf"))
-    assert len(pdfs) == 4
+    assert len(pdfs) == 6
     for pdf in pdfs:
         reader = PdfReader(str(pdf))
         assert not reader.is_encrypted
