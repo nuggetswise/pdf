@@ -9,3 +9,4 @@ node_modules/
 frontend/out/
 test-results/
 playwright-report/
+.next-e2e/
