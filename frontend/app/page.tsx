@@ -2,19 +2,18 @@
 import { useState } from "react";
 import { summary as summarise } from "../lib/domain/workflow";
 import { PEOPLE, Role } from "./api";
-import { GuidedDemo } from "./GuidedDemo";
 import { ErpView, MemoryView, Workspace } from "./Panels";
 import { RunProvider, useAgent, useHealth } from "./run/RunProvider";
 
-type Tab = "demo" | "work" | "memory" | "erp";
-const TABS: [Tab, string][] = [["demo", "Guided demo"], ["work", "Inbox & review"], ["memory", "Agent memory"], ["erp", "ERP records"]];
+type Tab = "work" | "memory" | "erp";
+const TABS: [Tab, string][] = [["work", "Inbox & review"], ["memory", "Agent memory"], ["erp", "ERP records"]];
 
 export default function Page() {
   return <RunProvider><App /></RunProvider>;
 }
 
 function App() {
-  const [tab, setTab] = useState<Tab>("demo");
+  const [tab, setTab] = useState<Tab>("work");
   const [role, setRole] = useState<Role>("reviewer");
   const agent = useAgent();
   const health = useHealth();
@@ -55,8 +54,6 @@ function App() {
         {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}
       </nav>
       <main>
-        {/* Keep the demo mounted so switching tabs does not lose its progress. */}
-        <div hidden={tab !== "demo"}><GuidedDemo health={health} /></div>
         {tab === "work" && <Workspace role={role} health={health} />}
         {tab === "memory" && <MemoryView role={role} />}
         {tab === "erp" && <ErpView />}

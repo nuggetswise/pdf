@@ -214,4 +214,9 @@ Rebuild slice 5: UI switch-over (parity gate)
 - [x] New browser test: the run survives a reload, a new tab starts empty, an extraction cut off by a reload is marked for retry and the retry finishes it
 - [ ] No live Gemini run through the new screens yet (needs the key; playwright.live.config.ts now starts Next.js only)
 
-Remaining rebuild slices: 6 Vercel deploy, 7 retire Python.
+Owner change after slice 5 (D44): real app instead of a guided demo
+- [x] Upload box for a PDF purchase order or .eml (click or drop); samples one click away; app opens on the inbox
+- [x] Guided demo tab, narration and its spec removed; e2e/app-flow.spec.ts clicks the same story through the real screens
+- [x] A file that is not a PDF is refused with the reason shown
+
+Remaining rebuild slices: 6 Vercel deploy (merged to main deploys via Vercel's git integration; live check on production pending), 7 retire Python.

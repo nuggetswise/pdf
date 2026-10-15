@@ -23,7 +23,7 @@ test("the run is kept for the tab's session and nowhere else", async ({ page, co
   const other = await context.newPage();
   await other.goto("/");
   await other.getByRole("tab", { name: "Inbox & review" }).click();
-  await expect(other.getByText("No forwarded emails yet")).toBeVisible();
+  await expect(other.getByText("No orders yet")).toBeVisible();
 });
 
 test("an extraction cut off by a reload is marked for retry, and retry finishes it", async ({ page }) => {

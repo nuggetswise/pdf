@@ -147,3 +147,10 @@ iframe { width: 100%; height: 640px; border: 1px solid var(--line); border-radiu
 .mail .from { display: block; font-weight: 600; } .mail .meta { display: flex; justify-content: space-between; gap: 6px; font-size: 12px; color: var(--muted); margin-top: 4px; }
 .admin { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 12px; display: grid; gap: 10px; }
 .admin h3 { margin: 0; font-size: 15px; } .admin label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+
+.dropzone { display: block; position: relative; margin: 8px 0 14px; padding: 18px 14px; text-align: center; border: 2px dashed var(--line); border-radius: 12px; cursor: pointer; background: var(--panel); }
+.dropzone:hover, .dropzone:focus-within { border-color: #2f5bea; }
+.dropzone b { display: block; margin-bottom: 4px; }
+.dropzone span { display: block; }
+.dropzone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.samples { margin: 0 0 14px; } .samples .forward { margin-top: 6px; }

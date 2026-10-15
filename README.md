@@ -9,12 +9,10 @@ Status: the prototype's 7 slices are done; the Vercel rebuild has reached slice 
 
 The Python prototype in `backend/` is kept only for comparison tests until it is retired (rebuild slice 7); the app does not use it.
 
-## Run the guided demo
-Open http://localhost:3000. The "Guided demo" tab walks through the full story in 15 steps. Click the blue button once to perform a step (it waits for the real result), and again to move on. Play runs it by itself; arrow keys and space also work. Starting resets the run in this tab.
-- "Start demo with live AI extraction" needs a Gemini key (below). Gemini can take over a minute when busy; the demo says so and offers Retry or rehearsal mode.
-- "Start in rehearsal mode" uses a fixture parser called the TEST ADAPTER. It is labelled "not AI" everywhere.
-
-Other tabs: "Inbox & review" (forward emails and decide issues yourself; switch role top right), "Agent memory" (activate or revoke learned rules as Administrator), "ERP records" (what the simulator holds).
+## Use it
+The app opens on "Inbox & review". Upload a PDF purchase order (or a forwarded .eml with the PDF attached) by clicking or dropping it on the upload box. The agent reads it, matches the customer and products, checks MOQ, agreed price and retired product codes, and holds only what needs a person. Decide each held issue with a reason; when nothing is left, the order goes to the ERP simulator by itself, with no Send button. Sample fictional orders are one click away under the upload box.
+- Switch role top right. As Administrator you can turn on Exception-only mode (clean orders go straight through), activate or revoke learned rules under "Agent memory", switch rehearsal mode (TEST ADAPTER, labelled "not AI") and make the ERP simulator fail or time out to see the safe retry.
+- "ERP records" shows what the simulator holds.
 
 ## Check everything
 `scripts/verify.sh` runs the Python comparison tests, the TypeScript tests, the typecheck, the production build and the browser tests (which save screenshots to docs/screenshots/).

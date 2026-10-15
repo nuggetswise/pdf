@@ -97,3 +97,7 @@ Observed: Google returned frequent 429/503; every extraction succeeded through t
 - Not run: the live Gemini rehearsal through the new screens (needs the key)
 - `scripts/verify.sh` -> VERIFY PASSED: 47 backend tests, 381 Vitest tests, typecheck, build, 5 Playwright tests
 
+
+## Real app instead of guided demo (2026-10-15, D44)
+- `scripts/verify.sh` -> VERIFY PASSED: 47 backend tests, 381 Vitest tests, typecheck, build, 6 Playwright tests. e2e/app-flow.spec.ts uploads the fictional PDFs through the upload box and clicks the full story through the real screens; screenshots in docs/screenshots/app-*.png. A non-PDF upload is refused with "Attachment is not a PDF"
+- Not run: live Gemini upload (e2e-live/app-live.spec.ts needs the key) and the production site (not reachable from this environment)
