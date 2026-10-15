@@ -47,3 +47,4 @@
 - No second mandatory Send click after approval. No live Outlook dependency.
 - Learning means approved scoped rule reuse, not autonomous model retraining.
 - Read docs/07-demo-scenario.md for the video-aligned fictional demonstration.
+- New session? Read HANDOFF.md first.
