@@ -76,3 +76,9 @@ Observed: Google returned frequent 429/503; every extraction succeeded through t
 - `backend/.venv/bin/python scripts/validation_parity.py` -> wrote 41 decimal, 44 normalise and 148 validate cases from the Python prototype (every fixture PDF, the regression sample, 33 edge-case orders, 4 raw model-style results; all 17 issue codes appear)
 - `cd frontend && npm test` -> 249 passed; every parity case matches Python byte for byte. Mutation check: changing one issue title failed 23 cases, and switching half-even rounding to half-up failed 5
 - `cd frontend && npm run typecheck` -> passed
+
+## Vercel rebuild, slice 3 (2026-10-15)
+- `backend/.venv/bin/python scripts/demo_inbox.py` -> wrote the six fictional demo emails as intake keeps them (envelope fields, PDF hash, size, page count, native page text)
+- `cd frontend && npm test` -> 308 passed. The guided-demo replay through workflow.ts matches the Python run in all 13 RunState sections, timestamps masked; changing one revoke reason fails it. 38 of the 47 pytest cases are rewritten in Vitest (all 20 workflow cases); 7 wait for slice 4 and 2 repository checks for slice 7 (IMPLEMENTATION_PLAN.md). The new double-retry test retries one delivery twice (lost answer, then reconcile) and ends with exactly one ERP record and one idempotency key; a third retry is refused
+- `scripts/verify.sh` -> VERIFY PASSED: 47 backend tests, 308 Vitest tests, typecheck, build, 3 Playwright tests
+

@@ -8,13 +8,19 @@ cd "$(dirname "$0")/.."
 echo "== 1/5 Backend tests =="
 (cd backend && .venv/bin/python -m pytest -q)
 
-echo "== 2/5 Frontend unit tests (Vitest, incl. Python parity) =="
+echo "== 2/5 Frontend unit tests (Vitest, incl. Python parity and guided-demo replay) =="
 # The parity file must still match what the Python prototype produces today.
 parity_tmp="$(mktemp)"
 backend/.venv/bin/python scripts/validation_parity.py "$parity_tmp"
 cmp -s "$parity_tmp" frontend/lib/domain/__fixtures__/validation-parity.json \
   || { echo "validation-parity.json is stale: run backend/.venv/bin/python scripts/validation_parity.py"; exit 1; }
 rm -f "$parity_tmp"
+# So must the demo inbox the workflow tests forward (rebuild slice 3).
+inbox_tmp="$(mktemp)"
+backend/.venv/bin/python scripts/demo_inbox.py "$inbox_tmp" >/dev/null
+cmp -s "$inbox_tmp" frontend/lib/domain/__fixtures__/demo-inbox.json \
+  || { echo "demo-inbox.json is stale: run backend/.venv/bin/python scripts/demo_inbox.py"; exit 1; }
+rm -f "$inbox_tmp"
 (cd frontend && npm run -s test)
 
 echo "== 3/5 Frontend typecheck =="

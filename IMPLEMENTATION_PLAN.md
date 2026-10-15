@@ -187,4 +187,12 @@ Rebuild slice 2: pure domain port with Python parity
 - [x] Vitest compares TypeScript output with Python byte for byte; verify.sh fails if the Python side is stale
 - [x] Guard test: no Number(), parseFloat, toFixed or Math.round in lib/domain
 
-Remaining rebuild slices: 3 workflow port, 4 browser intake and Gemini route, 5 UI switch-over (Playwright parity gate), 6 Vercel deploy, 7 retire Python.
+Rebuild slice 3: workflow port as pure functions on RunState
+- [x] workflow.ts: intake and extraction state changes, decide, approve, settle, versions, memory rules, ERP simulator, deliver, retry delivery, reload recovery, policy, reference import, demo settings, reset
+- [x] extract/fixture.ts: the labelled TEST ADAPTER (pulled forward from slice 4 so the workflow can be tested end to end)
+- [x] Guided-demo replay: the 15 steps run through workflow.ts give exactly the run Python recorded (full-demo-run.json), timestamps aside
+- [x] 38 of the 47 pytest cases rewritten in Vitest (all 20 workflow cases), plus the double-retry test: one delivery retried twice gives exactly one ERP record
+- [ ] Carried to slice 4: unsafe inputs, encrypted PDF, filename sanitising, unknown demo names, no content or key in logs, Gemini fallback, health without key (they test browser intake and the server route, which do not exist yet)
+- [ ] Carried to slice 7: fixture generator reproducible, no secrets in tracked files (repository checks; pytest keeps running them until Python is retired)
+
+Remaining rebuild slices: 4 browser intake and Gemini route, 5 UI switch-over (Playwright parity gate), 6 Vercel deploy, 7 retire Python.
