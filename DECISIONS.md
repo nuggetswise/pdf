@@ -17,3 +17,11 @@ D06 Unit conversion converts unit price with quantity (24 EA at 2.00 = 2 CASE at
 D07 Rounding: Decimal, ROUND_HALF_UP, 2 places for money.
 
 D08 Folder layout: docs/ and fixtures/ to match CLAUDE.md references.
+
+D09 Demo order lines are identified by fictional identifiers (DEMO-GTIN-A01, DEMO-GTIN-B02, OLD-DEMO-003) mapped to DEMO-SKU-A/B/C in reference-data.v1.json. The proposed OLD-DEMO-003 -> NEW-DEMO-003 mapping is stored as "proposed" and cannot be used until a reviewer approves it.
+
+D10 Generated PDFs print each table row as one pipe-separated text run so native text extraction keeps rows intact, matching sample-po.txt. The generator is deterministic (fixed timestamps, fixed MIME boundaries) and a test checks it.
+
+D11 UI framework pinned to Next.js 16.3.8 / React 19.3.1 after npm audit flagged the 15.x line; audit reports 0 production vulnerabilities. Backend dependencies pinned in backend/requirements.lock. Python 3.13 (what the environment provides).
+
+D12 The UI calls the backend through a same-origin /api rewrite, so no backend URL or secret is placed in the browser bundle.

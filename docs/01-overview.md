@@ -1,5 +1,7 @@
 # PDF Order Agent: exception-first working app
 
+Version 3.0 (matches docs/functional-specification.docx).
+
 ## Outcome and primary flow
 Forwarded email with PDF order -> automatic extraction and matching -> business-rule validation -> clean order automatically submitted to ERP; exceptions held for review -> approve correction -> automatic ERP submission -> approved reusable correction applied to a later matching order.
 

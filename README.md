@@ -1,7 +1,19 @@
-# PDF Retail Order Processing: build package
+# PDF Order Agent (prototype)
 
-This is a requirements package, not an installed app. Open this folder in Claude Code and use START_HERE.md. No coding decisions are required from the owner. Credentials may still be required for real LLM extraction.
+A local prototype showing how a forwarded email with a PDF purchase order can be read, checked against business rules, reviewed only where needed, and delivered to a simulated ERP. All data is fictional. Nothing connects to a real mailbox, marketplace or ERP.
 
-Files: CLAUDE.md; docs/01-overview.md through docs/06-sources.md; fixtures/; functional-specification.docx. Markdown is the agent-readable source; DOCX has identical requirement content. Do not ask Claude to parse Word when the Markdown is present.
+Status: Slice 1 of 7 done (folder layout, fictional demo data, app skeleton). See IMPLEMENTATION_PLAN.md and DECISIONS.md.
 
-Use one project folder at a time. Do not merge the two CLAUDE.md files. The mock integrations are deliberately local. This package has not been executed in Claude Code.
+## Start it (two terminal windows)
+1. Backend: `python3 -m venv backend/.venv && backend/.venv/bin/pip install -r backend/requirements.lock`, then `backend/.venv/bin/uvicorn app.main:app --app-dir backend --port 8000`
+2. Screen: `cd frontend && npm ci && npm run dev`, then open http://localhost:3000
+
+## Configuration
+Copy `.env.example` to `.env`. `GEMINI_API_KEY` and `GEMINI_MODEL` enable real PDF reading. Without them the app says extraction is unavailable; it never pretends.
+
+## Folders
+- `docs/` requirements (Markdown is the source; the .docx has the same content)
+- `fixtures/regression/` the original sample order and expected results
+- `fixtures/demo/` the video-aligned demo orders, expected results and generated fictional PDFs/emails
+- `fixtures/reference-data.v1.json` fictional customers, products, prices, MOQ rules and identifiers
+- `backend/` FastAPI service and tests; `frontend/` Next.js screens; `scripts/` fixture generator

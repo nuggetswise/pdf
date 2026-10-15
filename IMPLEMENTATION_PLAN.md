@@ -1,6 +1,6 @@
 # Implementation Plan: PDF Order Agent (leadership demo prototype)
 
-Status: planning complete, no code yet. Requirements source: Markdown docs (v3.0, identical to functional-specification.docx).
+Status: Slice 1 complete; Slice 2 next. Requirements source: Markdown docs (v3.0, identical to functional-specification.docx).
 Goal: a working, honest prototype that shows leadership how the forwarded-email/PDF order use case is achieved end to end, aligned to the reference video (0:19 to 1:10).
 
 ## Video-to-demo map
@@ -16,7 +16,7 @@ Goal: a working, honest prototype that shows leadership how the forwarded-email/
 | (beyond video) Delivery | Approval of the last exception delivers to the ERP simulator with no Send click; clean orders auto-deliver in Exception-only mode | P22, P23, P24 |
 
 ## Stack (reversible, see DECISIONS.md)
-Python 3.12 + FastAPI + Pydantic backend, SQLite file storage, Next.js + TypeScript UI, pytest and Playwright for tests. Extraction through a provider-neutral interface with a Gemini adapter (key supplied later) and a labelled test adapter used only by automated tests.
+Python 3.13 + FastAPI + Pydantic backend, SQLite file storage, Next.js + TypeScript UI, pytest and Playwright for tests. Extraction through a provider-neutral interface with a Gemini adapter (key supplied later) and a labelled test adapter used only by automated tests.
 
 ---
 
@@ -24,23 +24,23 @@ Python 3.12 + FastAPI + Pydantic backend, SQLite file storage, Next.js + TypeScr
 Outcome: correct folder layout, complete fictional demo data, and an app that starts.
 
 Tasks
-- [ ] Move docs into `docs/` and data files into `fixtures/` so CLAUDE.md paths resolve
-- [ ] Add a version line (v3.0) to `docs/01-overview.md`
-- [ ] Create `fixtures/reference-data.v1.json`: customers DEMO-CUST-01 and DEMO-CUST-02 (second fictional customer), ship-tos, currency, products, aliases, unit conversions, reference prices, MOQ rule (product A, 10 CASE), obsolete identifier OLD-DEMO-003, all versioned
-- [ ] Keep `master-data.json` + `sample-po.txt` + `golden-expected.json` unchanged as the regression set
-- [ ] Give video demo line A reference price 24.00 so VIDEO-DEMO-001 yields exactly three exceptions
-- [ ] Add ship-to and dates to VIDEO-DEMO-002 so it can be clean
-- [ ] Add VIDEO-DEMO-003 for DEMO-CUST-02 using OLD-DEMO-003 (nonmatching-customer case)
-- [ ] Script that generates fictional PDFs and .eml envelopes, "FICTIONAL TEST DATA" on every page
-- [ ] Golden expected files for each demo order (decimal strings)
-- [ ] Backend and frontend skeletons, `.env.example` (blank), `.gitignore` excluding `.env`, databases and uploads
-- [ ] Record every fixture change in DECISIONS.md
+- [x] Move docs into `docs/` and data files into `fixtures/` so CLAUDE.md paths resolve
+- [x] Add a version line (v3.0) to `docs/01-overview.md`
+- [x] Create `fixtures/reference-data.v1.json`: customers DEMO-CUST-01 and DEMO-CUST-02 (second fictional customer), ship-tos, currency, products, aliases, unit conversions, reference prices, MOQ rule (product A, 10 CASE), obsolete identifier OLD-DEMO-003, all versioned
+- [x] Keep `master-data.json` + `sample-po.txt` + `golden-expected.json` unchanged as the regression set
+- [x] Give video demo line A reference price 24.00 so VIDEO-DEMO-001 yields exactly three exceptions
+- [x] Add ship-to and dates to VIDEO-DEMO-002 so it can be clean
+- [x] Add VIDEO-DEMO-003 for DEMO-CUST-02 using OLD-DEMO-003 (nonmatching-customer case)
+- [x] Script that generates fictional PDFs and .eml envelopes, "FICTIONAL TEST DATA" on every page
+- [x] Golden expected files for each demo order (decimal strings)
+- [x] Backend and frontend skeletons, `.env.example` (blank), `.gitignore` excluding `.env`, databases and uploads
+- [x] Record every fixture change in DECISIONS.md
 
 Checklist (done when)
-- [ ] Backend health endpoint and UI shell start locally
-- [ ] Generated PDFs open and contain native text
-- [ ] Fixture totals verified with Decimal in a test
-- [ ] No secret or real customer data in any committed file
+- [x] Backend health endpoint and UI shell start locally
+- [x] Generated PDFs open and contain native text
+- [x] Fixture totals verified with Decimal in a test
+- [x] No secret or real customer data in any committed file
 
 ## Slice 2: Email intake and automatic extraction
 Outcome: dropping an email into the inbox starts processing with no further clicks.
