@@ -11,6 +11,7 @@ from app.extraction import FixtureTestExtractor, normalise
 
 ROOT = Path(__file__).resolve().parents[2]
 GEN = ROOT / "fixtures" / "demo" / "generated"
+PROCESSED = {"needs_review", "ready_for_approval", "approved"}
 
 
 def eml_upload(name: str):
@@ -34,8 +35,9 @@ def test_p18_eml_intake_persists_envelope_and_starts_processing(make_client):
     assert env["raw_sha256"]
     assert len(detail["document"]["sha256"]) == 64
     events = [t["event"] for t in detail["timeline"]]
-    assert events == ["received", "extracting", "extracted"]  # no manual Extract step
-    assert detail["document"]["status"] == "extracted"
+    # No manual Extract step: processing continues straight into matching and validation (Slice 3).
+    assert events[:6] == ["received", "extracting", "extracted", "matching", "validating", "needs_review"]
+    assert detail["document"]["status"] == "needs_review"
 
 
 def test_p01_typed_fields_with_traceable_evidence(make_client):
@@ -180,7 +182,7 @@ def test_p15_restart_preserves_records(make_client, tmp_path):
     doc_id = client.post("/api/demo/forward/VIDEO-DEMO-002").json()["document_ids"][0]
     restarted = make_client(data_dir=tmp_path)
     detail = restarted.get(f"/api/documents/{doc_id}").json()
-    assert detail["document"]["status"] == "extracted"
+    assert detail["document"]["status"] in PROCESSED
     assert header(detail)["total"] == "306.00"
 
 
@@ -195,12 +197,12 @@ def test_restart_resumes_unprocessed_documents(make_client, tmp_path):
     env, atts = parse_eml((GEN / "VIDEO-DEMO-002.eml").read_bytes(), settings.max_upload_bytes)
     doc_id = store_intake(db, tmp_path, env, atts, "eml_import", None, settings.max_upload_bytes, "t")[0]
     with make_client(data_dir=tmp_path) as client:  # lifespan runs resume_pending
-        assert client.get(f"/api/documents/{doc_id}").json()["document"]["status"] == "extracted"
+        assert client.get(f"/api/documents/{doc_id}").json()["document"]["status"] in PROCESSED
 
 
 def test_p16_logs_contain_no_document_content_or_key(make_client, caplog):
     caplog.set_level(logging.INFO)
-    client = make_client(GEMINI_API_KEY="AIzaFAKEKEYFORTESTONLY0000000000000000")
+    client = make_client(GEMINI_API_KEY="AIza" + "FAKEKEYFORTESTONLY0000000000000000")
     client.post("/api/demo/forward/VIDEO-DEMO-001")
     assert "AIzaFAKEKEY" not in caplog.text
     # Application logs carry ids and statuses only. (The HTTP access log shows the demo
@@ -221,15 +223,15 @@ def test_failed_extraction_can_be_retried(make_client, monkeypatch):
             from app.extraction import GeminiBusy
             raise GeminiBusy("busy")
 
-    monkeypatch.setattr(pipeline, "get_extractor", lambda settings: Busy())
+    monkeypatch.setattr(pipeline, "get_extractor", lambda settings, db=None: Busy())
     client = make_client()
     doc_id = client.post("/api/demo/forward/VIDEO-DEMO-001").json()["document_ids"][0]
     doc = client.get(f"/api/documents/{doc_id}").json()["document"]
     assert doc["status"] == "extraction_failed" and "busy" in doc["status_detail"]
-    monkeypatch.setattr(pipeline, "get_extractor", lambda settings: FixtureTestExtractor())
+    monkeypatch.setattr(pipeline, "get_extractor", lambda settings, db=None: FixtureTestExtractor())
     assert client.post(f"/api/documents/{doc_id}/retry-extraction").status_code == 202
     detail = client.get(f"/api/documents/{doc_id}").json()
-    assert detail["document"]["status"] == "extracted"
+    assert detail["document"]["status"] in PROCESSED
     assert "extraction_retry_requested" in [t["event"] for t in detail["timeline"]]
     assert client.post(f"/api/documents/{doc_id}/retry-extraction").status_code == 409
 
