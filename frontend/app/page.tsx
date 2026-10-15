@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { api, Health, PEOPLE, Role, Summary } from "./api";
+import { api, every, Health, PEOPLE, Role, Summary } from "./api";
 import { GuidedDemo } from "./GuidedDemo";
 import { ErpView, MemoryView, Workspace } from "./Panels";
 
@@ -18,7 +18,7 @@ export default function App() {
     api<Health>("/api/health").then((h) => { setHealth(h); setError(null); }).catch((e: Error) => setError(`Backend not reachable: ${e.message}`));
     api<Summary>("/api/summary").then(setSummary).catch(() => {});
   }, []);
-  useEffect(() => { refresh(); const t = setInterval(refresh, 1500); return () => clearInterval(t); }, [refresh]);
+  useEffect(() => { refresh(); return every(refresh, 1500); }, [refresh]);
 
   const exceptionOnly = health?.policy.mode === "exception_only";
   const extraction = !health ? "…" : health.rehearsal_mode || health.extractor_mode === "test"

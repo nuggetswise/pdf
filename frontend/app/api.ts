@@ -118,3 +118,11 @@ export const PROCESS_LABEL: Record<string, [string, string]> = {
 };
 export const IN_FLIGHT = new Set(["received", "extracting", "extracted", "matching", "validating"]);
 export const STOPPED = new Set(["extraction_unavailable", "extraction_failed", "unsupported", "duplicate"]);
+
+/** Poll helper: skips ticks while the browser tab is hidden, and slows down on hosted builds
+ * (set NEXT_PUBLIC_POLL_FACTOR=2 on the frontend project to halve request volume). Not a secret. */
+const POLL_FACTOR = Math.max(1, Number(process.env.NEXT_PUBLIC_POLL_FACTOR || 1));
+export function every(fn: () => void, ms: number): () => void {
+  const t = setInterval(() => { if (typeof document === "undefined" || !document.hidden) fn(); }, ms * POLL_FACTOR);
+  return () => clearInterval(t);
+}

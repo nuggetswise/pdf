@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, DocDetail, ErpOrder, Health, Order, Role, Rule } from "./api";
+import { api, every, DocDetail, ErpOrder, Health, Order, Role, Rule } from "./api";
 import { OrderView } from "./OrderView";
 import { MemoryView, ErpView } from "./Panels";
 
@@ -247,8 +247,8 @@ export function GuidedDemo({ health, onSummary }: { health: Health | null; onSum
       try { const d = await api<DocDetail>(`/api/documents/${id}`); if (alive) setView(d); } catch { /* shown via step error */ }
     };
     tick();
-    const t = setInterval(tick, 900);
-    return () => { alive = false; clearInterval(t); };
+    const stop = every(tick, 900);
+    return () => { alive = false; stop(); };
   }, [i, step.order, done]);
 
   const perform = useCallback(async (idx: number) => {
@@ -397,9 +397,9 @@ export function GuidedDemo({ health, onSummary }: { health: Health | null; onSum
 function SummaryStage({ health }: { health: Health | null }) {
   const [orders, setOrders] = useState<Order[]>([]);
   useEffect(() => {
-    const t = setInterval(() => api<Order[]>("/api/orders").then(setOrders).catch(() => {}), 1000);
+    const stop = every(() => api<Order[]>("/api/orders").then(setOrders).catch(() => {}), 1000);
     api<Order[]>("/api/orders").then(setOrders).catch(() => {});
-    return () => clearInterval(t);
+    return stop;
   }, []);
   return (
     <div className="summary-stage">

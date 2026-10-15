@@ -10,9 +10,9 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
-from .config import ROOT
+from .config import BACKEND_DIR
 
-REFERENCE_FILE = ROOT / "fixtures" / "reference-data.v1.json"
+REFERENCE_FILE = BACKEND_DIR / "runtime_data" / "reference-data.v1.json"
 CENT = Decimal("0.01")
 
 # Policy table: every issue code blocks approval until a recorded decision resolves it.

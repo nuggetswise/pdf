@@ -129,14 +129,20 @@ class GeminiBusy(RuntimeError):
 class GeminiExtractor:
     is_ai = True
 
-    def __init__(self, api_key: str, model: str, timeout: float = 45.0, fallback_model: str | None = None):
+    def __init__(self, api_key: str, model: str, timeout: float = 45.0, fallback_model: str | None = None,
+                 attempts: int = 4, budget_seconds: float | None = None):
         self._api_key = api_key
+        self._attempts = max(1, attempts)
+        self._budget = budget_seconds
+        self._deadline: float | None = None
         self.model = model
         self.fallback_model = fallback_model
         self.name = f"gemini:{model}"
         self._timeout = timeout
 
     def extract(self, pages: list[str]) -> dict[str, Any]:
+        # One time budget covers the primary and the fallback model together (hosted functions have a hard limit).
+        self._deadline = time.monotonic() + self._budget if self._budget else None
         try:
             return self._extract_with(self.model, pages)
         except GeminiBusy:
@@ -157,16 +163,23 @@ class GeminiExtractor:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
         # Key goes in a header, never in the URL, so it cannot appear in access logs.
         # Extraction is read-only, so retrying on overload (429/503) is safe.
-        for attempt in range(4):
+        last = self._attempts - 1
+        for attempt in range(self._attempts):
+            timeout = self._timeout
+            if self._deadline is not None:
+                remaining = self._deadline - time.monotonic()
+                if remaining < 3:
+                    raise GeminiBusy("Gemini time budget used")
+                timeout = min(timeout, remaining)
             try:
                 resp = httpx.post(url, json=body, headers={"x-goog-api-key": self._api_key},
-                                  timeout=self._timeout)
+                                  timeout=timeout)
             except httpx.TimeoutException as exc:
-                if attempt == 3:
+                if attempt == last:
                     raise GeminiBusy("Gemini timed out") from exc
                 log.info("gemini timeout retry=%s", attempt + 1)
                 continue
-            if resp.status_code not in (429, 500, 503) or attempt == 3:
+            if resp.status_code not in (429, 500, 503) or attempt == last:
                 break
             log.info("gemini busy status=%s retry=%s", resp.status_code, attempt + 1)
             time.sleep(2 ** (attempt + 1))

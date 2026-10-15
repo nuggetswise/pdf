@@ -21,6 +21,9 @@
 - Frontend start: `cd frontend && npm run dev` (open http://localhost:3000)
 - End-to-end (deterministic, test adapter): `cd frontend && npx playwright test`
 - Regenerate fictional fixtures: `backend/.venv/bin/python scripts/generate_fixtures.py`
+- Backend tests on Postgres too: `ORDER_AGENT_TEST_POSTGRES=postgresql://user@host:5432/postgres scripts/verify.sh` (each test gets a throwaway database)
+- Refresh the backend's run-time data copy after changing fixtures: `python3 scripts/sync_runtime_data.py` (verify.sh does it)
+- Hosting on Vercel (two projects, Neon Postgres): see docs/hosting-vercel.md
 - Single verify command: `scripts/verify.sh` (backend tests, typecheck, build, Playwright e2e incl. guided demo)
 
 ## Invariants

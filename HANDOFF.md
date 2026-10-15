@@ -12,6 +12,10 @@ Video moments to mirror (owner-supplied): 0:19-0:31 automated extraction and ent
 ## Update (2026-10-15, second session)
 Branch `claude/gifted-faraday-o6apzv`. PR #1 was merged with only Slice 1; Slice 2 and this file were brought over from `claude/funny-maxwell-20w31v`. Slices 3-7 and the click-through guided demo (owner confirmed: click through without a presenter) are done. `scripts/verify.sh` passes: 47 backend tests, typecheck, build, 3 Playwright tests including the full 15-step demo with screenshots in docs/screenshots/. Not yet done: a live-Gemini rehearsal of the demo (needs GEMINI_API_KEY as an environment secret) and an owner walkthrough on a projector.
 
+## Update (2026-10-15, third session): Vercel hosting
+Owner requires Vercel. Branch `claude/vercel-hosting`. The existing Vercel project `pdf` (team nuggetswises-projects, https://pdf-six-self.vercel.app) deploys only the frontend; the backend was not deployed. Done in code: Postgres support next to SQLite, files in the database, inline processing when hosted, atomic document claim, sweep endpoint, Gemini time budget, lazy DB init, backend/index.py + requirements.txt + vercel.json, visibility-aware polling, backend/runtime_data copy of fixtures (D29-D36, docs/hosting-vercel.md). 56 backend tests pass on SQLite and on Postgres 16; Playwright guided demo passes on both.
+Not done and needs the owner: create Vercel Project 2 (Root Directory `backend`), add Neon, set GEMINI_* env vars on Project 2 only, set ORDER_AGENT_BACKEND_URL on the frontend project and redeploy (docs/hosting-vercel.md). The Vercel connector in earlier sessions could not see the owner's team, so nothing was deployed or verified on Vercel itself.
+
 ## Original state at first handoff (2026-10-15)
 Branch `claude/funny-maxwell-20w31v`, draft PR https://github.com/nuggetswise/pdf/pull/1.
 

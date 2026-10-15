@@ -66,3 +66,13 @@ Honest gaps: P24 has no dedicated backend unit test (covered end to end only). L
 Command: `cd frontend && npx playwright test -c playwright.live.config.ts` (key read from the git-ignored .env; not part of verify.sh)
 Result: 1 passed. All 15 guided-demo steps reached their expected real states with AI extraction. Screenshots: docs/screenshots/live/.
 Observed: Google returned frequent 429/503; every extraction succeeded through the retry and fallback path (gemini-3.8-flash), typically 20-60 s per order. The demo showed "waiting" status honestly during these delays.
+
+## Vercel hosting readiness (2026-10-15, branch claude/vercel-hosting)
+Commands and results:
+- `scripts/verify.sh` (SQLite): 56 backend tests passed, typecheck, production build, 3 Playwright tests (including the 15-step guided demo in rehearsal mode) passed.
+- `ORDER_AGENT_TEST_POSTGRES=postgresql://postgres@localhost:54329/postgres scripts/verify.sh` against a local Postgres 16: the same 56 backend tests passed on Postgres.
+- Playwright run with `DATABASE_URL=<local Postgres> ORDER_AGENT_INLINE_PROCESSING=1 NEXT_PUBLIC_POLL_FACTOR=2 npx playwright test`: 3 passed; rows confirmed in Postgres (source_documents, stored_files).
+- Hosted-style smoke test (VERCEL=1, Postgres, TestClient on backend/index.py): /api/health reported database postgres, processing inline; forwarding VIDEO-DEMO-001 processed inside the request.
+New tests (backend/tests/test_hosting.py): runtime data in step with fixtures, files stored in the database not on disk, reset clears files and restarts ids, health reports engine and mode, inline processing, single claim of a document, sweep disabled/needs token/finishes a stuck document, Gemini time budget.
+Not run: deployment to Vercel (no access to the owner's team from the build environment); live Gemini from a hosted function; Neon itself (local Postgres 16 used); load or concurrency testing; behaviour of vercel.json routing and 300 s function duration on Vercel; the proxy between the two projects for requests longer than about 100 s.
+

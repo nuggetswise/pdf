@@ -46,7 +46,7 @@ D21 Resolving the final exception counts as the reviewer's approval of that vers
 
 D22 Demo roles are a request header chosen in the UI (Reviewer, Administrator, Viewer), labelled "demo-only sign-in". Only Administrator may change the mode, activate or revoke memory, change simulator toggles, import reference data or reset. Not real security.
 
-D23 ERP simulator lives in the same SQLite file but in its own tables (erp_sim_orders) with its own IDs (SIM-ERP-100001...). Idempotency key = first 16 characters of the document hash + approved version. Before every submission, and on every retry or restart, the agent first looks the key up in the ERP (reconciliation). Toggles "fail next" and "time out after creating" simulate outages.
+D23 ERP simulator lives in the same database (SQLite locally, Postgres when hosted) but in its own tables (erp_sim_orders) with its own IDs (SIM-ERP-100001...). Idempotency key = first 16 characters of the document hash + approved version. Before every submission, and on every retry or restart, the agent first looks the key up in the ERP (reconciliation). Toggles "fail next" and "time out after creating" simulate outages.
 
 D24 Agent memory holds identifier mappings only (candidate, active, revoked), scoped to one customer and the reference version it was approved against. A rule is applied when an order is first validated; activation never changes orders already processed. If reference data gets a new version, the rule is not reused until revalidated. Price and MOQ exceptions are never offered as reusable.
 
@@ -57,3 +57,20 @@ D26 Guided demo: owner confirmed "click through without a presenter". Each step'
 D27 The review screen shows the PDF's own text with the extraction evidence highlighted, next to a tab with the original PDF. This works in every browser, including headless test browsers (D18), and makes evidence easy to see on a projector.
 
 D28 Reference data can be replaced by an administrator via POST /api/reference-data; it must carry a new reference_version. It is stored in the database; reset returns to fixtures/reference-data.v1.json.
+
+D29 Hosting on Vercel (owner requirement). Two Vercel projects from one repository: `frontend` (Next.js, existing project) and `backend` (FastAPI as a Python function). The frontend forwards /api to the backend through the existing ORDER_AGENT_BACKEND_URL rewrite. Chosen over one project because Vercel cannot include the Python code from outside the frontend's Root Directory reliably, and it keeps the Gemini key off the frontend. Reversible: delete Project 2 and run locally as before.
+
+D30 One storage layer, two engines. db.py now serves SQLite (default, local and tests) or Postgres when DATABASE_URL is set (Neon on Vercel). Application SQL is unchanged (`?` placeholders); the wrapper translates for Postgres, returns new ids (RETURNING), and keeps the Row access style. The one SQLite-only query (json_extract in memory-rule use counts) was replaced by filtering in Python. The same 56 backend tests pass on both engines (set ORDER_AGENT_TEST_POSTGRES).
+
+D31 Uploaded PDF and .eml bytes are stored in the database (table stored_files, keyed by content hash), written in the same transaction as their rows. No local files, so serverless works and an upload can no longer leave an orphan file. source_documents.stored_path now holds `db:<sha>`; old local databases still read their legacy file path. Reset also clears stored files.
+
+D32 Hosted processing is inline: the intake request finishes extraction, validation and delivery before it responds, because a serverless function may be frozen after replying. The local app keeps after-the-response processing. Gemini on Vercel defaults to 25 s per call, 3 tries per model and a 100 s total budget shared by primary and fallback; the function limit is set to 300 s. A slow Gemini shows as "extraction failed (busy)" with Retry, as before.
+
+D33 Startup recovery does not exist on serverless, so recovery is an explicit endpoint, POST /api/internal/sweep, disabled unless CRON_SECRET (or ORDER_AGENT_SWEEP_TOKEN) is set. Documents are now claimed atomically (UPDATE ... WHERE status = 'received') so two workers cannot process one document; only a resume may take over a document already 'extracting'.
+
+D34 The database is created lazily on the first query, not when the app is imported, so a missing or slow database cannot break cold start. Table creation and the default-policy seed take a Postgres advisory lock so simultaneous cold starts do not race. ERP simulator numbers now come from the highest existing number under an advisory lock instead of a row count (the count could repeat under concurrency).
+
+D35 The backend is self-contained for deployment: reference data and demo emails it reads at run time are copied to backend/runtime_data/ by scripts/sync_runtime_data.py (verify.sh runs it; a test fails if they drift). Source of truth stays in fixtures/.
+
+D36 Screens poll less when hosted: ticks are skipped while the browser tab is hidden, and NEXT_PUBLIC_POLL_FACTOR (a non-secret number, recommended 2 on Vercel) slows every poll.
+

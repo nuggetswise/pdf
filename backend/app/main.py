@@ -4,13 +4,13 @@ from __future__ import annotations
 import json
 import logging
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import BackgroundTasks, FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import Response
 from pydantic import BaseModel
-from fastapi.responses import FileResponse
 
-from .config import ROOT, Settings, load_settings
+from .config import BACKEND_DIR, Settings, load_settings
 from .db import Database, row
 from .extraction import read_pdf_pages
 from .intake import Attachment, IntakeRejected, parse_eml, store_intake
@@ -18,7 +18,7 @@ from . import workflow
 from .pipeline import process_document, reset_for_retry, resume_pending
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
-DEMO_EMAILS = ROOT / "fixtures" / "demo" / "generated"
+DEMO_EMAILS = BACKEND_DIR / "runtime_data" / "demo"
 INTAKE_ACTOR = "intake:local-demo-inbox"
 
 
@@ -41,21 +41,33 @@ class ToggleIn(BaseModel):
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or load_settings()
-    db = Database(settings.data_dir / "order_agent.sqlite3")
-    workflow.init(db)
+    db = Database(settings.database_target)
+    workflow.init(db)  # registers tables; they are created on the first query, never at import time
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        resume_pending(db, settings)
+        if not settings.inline_processing:  # hosted functions have no restart; they use POST /api/internal/sweep
+            resume_pending(db, settings)
         yield
 
     app = FastAPI(title="PDF Order Agent (prototype)", lifespan=lifespan)
     app.state.db = db
     app.state.settings = settings
 
+    def run_inline(doc_id: int) -> None:
+        try:
+            process_document(db, settings, doc_id)
+        except Exception as exc:  # the document stays 'extracting'; the sweep or a retry can finish it
+            log.error("inline processing failed document=%s error=%s", doc_id, type(exc).__name__)
+
     def schedule(tasks: BackgroundTasks, doc_ids: list[int]) -> None:
+        """Local: after the response (BackgroundTasks). Hosted: inside the request, because a serverless function
+        may be frozen once it has responded. The UI polls state either way."""
         for doc_id in doc_ids:
-            tasks.add_task(process_document, db, settings, doc_id)
+            if settings.inline_processing:
+                run_inline(doc_id)
+            else:
+                tasks.add_task(process_document, db, settings, doc_id)
 
     async def read_limited(upload: UploadFile, limit: int) -> bytes:
         data = await upload.read(limit + 1)
@@ -64,14 +76,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return data
 
     def intake(tasks: BackgroundTasks, envelope: dict, attachments: list[Attachment], mode: str,
-               raw: bytes | None) -> dict:
+               raw: bytes | None) -> dict:  # blocking; async handlers call it through the threadpool
         try:
-            doc_ids = store_intake(db, settings.data_dir, envelope, attachments, mode, raw,
-                                   settings.max_upload_bytes, INTAKE_ACTOR)
+            doc_ids = store_intake(db, envelope, attachments, mode, raw, settings.max_upload_bytes, INTAKE_ACTOR)
         except IntakeRejected as exc:
             raise HTTPException(422, str(exc)) from exc
         schedule(tasks, doc_ids)
-        return {"document_ids": doc_ids, "processing": "started automatically"}
+        return {"document_ids": doc_ids, "processing": "completed inline" if settings.inline_processing else "started automatically"}
 
     @app.get("/api/health")
     def health() -> dict:
@@ -81,6 +92,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "extractor_mode": settings.extractor_mode,
             "model": settings.gemini_model if settings.extractor_mode == "gemini" else None,
             "erp": "local simulator",
+            "database": "postgres" if db.postgres else "sqlite",
+            "processing": "inline" if settings.inline_processing else "background",
             "rehearsal_mode": workflow.get_setting(db, "rehearsal_mode") == "on",
             "erp_failure_mode": workflow.get_setting(db, "erp_failure_mode", "none"),
             "policy": workflow.current_policy(db),
@@ -93,7 +106,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             envelope, attachments = parse_eml(raw, settings.max_upload_bytes)
         except IntakeRejected as exc:
             raise HTTPException(422, str(exc)) from exc
-        return intake(tasks, envelope, attachments, "eml_import", raw)
+        return await run_in_threadpool(intake, tasks, envelope, attachments, "eml_import", raw)
 
     @app.post("/api/intake/demo-envelope", status_code=202)
     async def intake_demo_envelope(tasks: BackgroundTasks, sender: str = Form(...), subject: str = Form(""),
@@ -101,7 +114,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         data = await read_limited(file, settings.max_upload_bytes)
         envelope = {"message_id": None, "sender": sender[:200], "received_at": None,
                     "subject_metadata": subject[:300] or None}
-        return intake(tasks, envelope, [Attachment(file.filename, data)], "demo_envelope_upload", None)
+        return await run_in_threadpool(intake, tasks, envelope, [Attachment(file.filename, data)],
+                                       "demo_envelope_upload", None)
 
     @app.get("/api/demo/emails")
     def list_demo_emails() -> list[str]:
@@ -156,22 +170,33 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         schedule(tasks, [doc_id])
         return {"document_ids": [doc_id], "processing": "restarted"}
 
-    @app.get("/api/documents/{doc_id}/pdf")
-    def get_pdf(doc_id: int) -> FileResponse:
+    def _document_bytes(doc_id: int) -> bytes:
         with db.connect() as conn:
-            doc = conn.execute("SELECT stored_path FROM source_documents WHERE id = ?", (doc_id,)).fetchone()
-        if doc is None:
-            raise HTTPException(404, "Document not found")
-        return FileResponse(Path(doc["stored_path"]), media_type="application/pdf")
+            doc = conn.execute("SELECT sha256, stored_path FROM source_documents WHERE id = ?", (doc_id,)).fetchone()
+            if doc is None:
+                raise HTTPException(404, "Document not found")
+            try:
+                return db.document_bytes(conn, doc)
+            except FileNotFoundError as exc:
+                raise HTTPException(404, "Stored document content is missing") from exc
+
+    @app.get("/api/documents/{doc_id}/pdf")
+    def get_pdf(doc_id: int) -> Response:
+        return Response(_document_bytes(doc_id), media_type="application/pdf")
 
     @app.get("/api/documents/{doc_id}/text")
     def get_text(doc_id: int) -> dict:
         """Native PDF text per page, used to highlight extraction evidence in the review screen."""
-        with db.connect() as conn:
-            doc = conn.execute("SELECT stored_path FROM source_documents WHERE id = ?", (doc_id,)).fetchone()
-        if doc is None:
-            raise HTTPException(404, "Document not found")
-        return {"pages": read_pdf_pages(Path(doc["stored_path"]).read_bytes())}
+        return {"pages": read_pdf_pages(_document_bytes(doc_id))}
+
+    @app.post("/api/internal/sweep")
+    def sweep(authorization: str | None = Header(None)) -> dict:
+        """Finish documents or deliveries left half-done (for example by a function timeout). Hosted cron or an
+        operator calls this; it is disabled unless CRON_SECRET (or ORDER_AGENT_SWEEP_TOKEN) is configured."""
+        if not settings.sweep_token or authorization != f"Bearer {settings.sweep_token}":
+            raise HTTPException(403, "Sweep is not enabled or the token is wrong")
+        resume_pending(db, settings)
+        return {"swept": True}
 
     @app.get("/api/audit")
     def audit(entity_type: str | None = None, entity_id: int | None = None) -> list[dict]:
@@ -285,7 +310,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/api/demo/reset")
     def reset(x_demo_role: str | None = Header(None), x_demo_user: str | None = Header(None)) -> dict:
         actor, role = who(x_demo_role, x_demo_user)
-        guard(workflow.reset_demo, db, settings.data_dir, actor, role)
+        guard(workflow.reset_demo, db, actor, role)
         return {"reset": True}
 
     return app

@@ -1,12 +1,12 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { api, DocDetail, DocSummary, ErpOrder, Health, Issue, PROCESS_LABEL, Role, Rule } from "./api";
+import { api, every, DocDetail, DocSummary, ErpOrder, Health, Issue, PROCESS_LABEL, Role, Rule } from "./api";
 import { OrderView } from "./OrderView";
 
 function usePoll<T>(path: string, ms = 1200): [T | null, () => void] {
   const [data, setData] = useState<T | null>(null);
   const load = useCallback(() => { api<T>(path).then(setData).catch(() => {}); }, [path]);
-  useEffect(() => { load(); const t = setInterval(load, ms); return () => clearInterval(t); }, [load, ms]);
+  useEffect(() => { load(); return every(load, ms); }, [load, ms]);
   return [data, load];
 }
 
@@ -90,7 +90,7 @@ export function Workspace({ role, health, refreshHealth }: { role: Role; health:
   useEffect(() => {
     if (selected === null) return;
     const load = () => api<DocDetail>(`/api/documents/${selected}`).then(setDetail).catch(() => {});
-    load(); const t = setInterval(load, 1000); return () => clearInterval(t);
+    load(); return every(load, 1000);
   }, [selected]);
 
   async function wrap(f: () => Promise<unknown>) {

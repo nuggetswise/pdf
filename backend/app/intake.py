@@ -87,33 +87,30 @@ def safe_display_name(name: str | None) -> str | None:
     return cleaned[:120] or None
 
 
-def store_intake(db: Database, data_dir: Path, envelope: dict, attachments: list[Attachment],
-                 intake_mode: str, raw: bytes | None, max_bytes: int, actor: str) -> list[int]:
-    """Validate every attachment first, then persist atomically. Returns all new document ids, duplicates included."""
+def store_intake(db: Database, envelope: dict, attachments: list[Attachment], intake_mode: str,
+                 raw: bytes | None, max_bytes: int, actor: str) -> list[int]:
+    """Validate every attachment first, then persist atomically. Returns all new document ids, duplicates included.
+
+    PDF and .eml bytes are stored in the database under their content hash, in the same transaction as the rows
+    that describe them. The uploaded filename is display-only."""
     checked = [(att, _check_pdf(att.data, max_bytes)) for att in attachments]
-    files_dir = data_dir / "files"
-    files_dir.mkdir(parents=True, exist_ok=True)
-    raw_sha = raw_path = None
-    if raw is not None:
-        raw_sha = hashlib.sha256(raw).hexdigest()
-        raw_path = files_dir / f"{raw_sha}.eml"
-        raw_path.write_bytes(raw)
+    raw_sha = hashlib.sha256(raw).hexdigest() if raw is not None else None
     doc_ids: list[int] = []
     with db.connect() as conn:
+        if raw is not None:
+            db.put_file(conn, raw_sha, "eml", raw)
         cur = conn.execute(
             "INSERT INTO email_envelopes (message_id, sender, received_at, subject_metadata, intake_mode,"
             " raw_sha256, raw_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (envelope.get("message_id"), envelope.get("sender"), envelope.get("received_at") or now(),
-             envelope.get("subject_metadata"), intake_mode, raw_sha, str(raw_path) if raw_path else None, now()),
+             envelope.get("subject_metadata"), intake_mode, raw_sha, f"db:{raw_sha}" if raw_sha else None, now()),
         )
         envelope_id = cur.lastrowid
         db.audit(conn, "envelope", envelope_id, "received", actor,
                  {"intake_mode": intake_mode, "attachments": len(checked)})
         for att, pages in checked:
             sha = hashlib.sha256(att.data).hexdigest()
-            path = files_dir / f"{sha}.pdf"
-            if not path.exists():
-                path.write_bytes(att.data)
+            db.put_file(conn, sha, "pdf", att.data)
             original = conn.execute(
                 "SELECT id FROM source_documents WHERE sha256 = ? AND duplicate_of IS NULL ORDER BY id LIMIT 1",
                 (sha,),
@@ -125,7 +122,7 @@ def store_intake(db: Database, data_dir: Path, envelope: dict, attachments: list
                 "INSERT INTO source_documents (envelope_id, original_filename, sha256, size_bytes, stored_path,"
                 " page_count, status, status_detail, duplicate_of, created_at, updated_at)"
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (envelope_id, safe_display_name(att.filename), sha, len(att.data), str(path), pages,
+                (envelope_id, safe_display_name(att.filename), sha, len(att.data), f"db:{sha}", pages,
                  status, detail, original["id"] if original else None, ts, ts),
             )
             doc_id = cur.lastrowid

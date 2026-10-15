@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 import logging
-from pathlib import Path
 
 from .config import Settings
 from .db import Database, now
@@ -21,7 +20,8 @@ def get_extractor(settings: Settings, db: Database | None = None) -> Extractor |
         return FixtureTestExtractor()
     if settings.gemini_api_key and settings.gemini_model:
         return GeminiExtractor(settings.gemini_api_key, settings.gemini_model,
-                               fallback_model=settings.gemini_fallback_model)
+                               timeout=settings.gemini_timeout, fallback_model=settings.gemini_fallback_model,
+                               attempts=settings.gemini_attempts, budget_seconds=settings.gemini_budget_seconds)
     return None
 
 
@@ -33,13 +33,27 @@ def _set_status(db: Database, doc_id: int, status: str, detail: str | None = Non
         db.audit(conn, "document", doc_id, status, SYSTEM, audit_detail or ({"detail": detail} if detail else {}))
 
 
-def process_document(db: Database, settings: Settings, doc_id: int) -> None:
+def _claim(db: Database, doc_id: int, resume: bool) -> bool:
+    """Atomically take a document for processing, so two workers can never both process it.
+    A document already 'extracting' is only taken over when resuming after a restart or timeout."""
+    states = ("received", "extracting") if resume else ("received",)
+    marks = ", ".join("?" for _ in states)
+    with db.connect() as conn:
+        cur = conn.execute(f"UPDATE source_documents SET status = 'extracting', status_detail = NULL, updated_at = ?"
+                           f" WHERE id = ? AND status IN ({marks})", (now(), doc_id, *states))
+        if not cur.rowcount:
+            return False
+        db.audit(conn, "document", doc_id, "extracting", SYSTEM, {})
+    return True
+
+
+def process_document(db: Database, settings: Settings, doc_id: int, resume: bool = False) -> None:
+    if not _claim(db, doc_id, resume):
+        return
     with db.connect() as conn:
         doc = conn.execute("SELECT * FROM source_documents WHERE id = ?", (doc_id,)).fetchone()
-    if doc is None or doc["status"] not in ("received", "extracting"):
-        return
-    _set_status(db, doc_id, "extracting")
-    pages = read_pdf_pages(Path(doc["stored_path"]).read_bytes())
+        content = db.document_bytes(conn, doc)
+    pages = read_pdf_pages(content)
     if not any(p.strip() for p in pages):
         _set_status(db, doc_id, "unsupported",
                     "No native text found (scanned or image-only PDF). No OCR adapter is configured.")
@@ -89,7 +103,7 @@ def resume_pending(db: Database, settings: Settings) -> None:
         ids = [r["id"] for r in conn.execute(
             "SELECT id FROM source_documents WHERE status IN ('received', 'extracting') ORDER BY id")]
     for doc_id in ids:
-        process_document(db, settings, doc_id)
+        process_document(db, settings, doc_id, resume=True)
     with db.connect() as conn:
         stalled = [r["id"] for r in conn.execute(
             "SELECT d.id FROM source_documents d LEFT JOIN orders o ON o.document_id = d.id"

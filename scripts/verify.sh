@@ -5,8 +5,13 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-echo "== 1/4 Backend tests =="
-(cd backend && .venv/bin/python -m pytest -q)
+python3 scripts/sync_runtime_data.py
+echo "== 1/4 Backend tests (SQLite) =="
+(cd backend && env -u ORDER_AGENT_TEST_POSTGRES .venv/bin/python -m pytest -q)
+if [ -n "${ORDER_AGENT_TEST_POSTGRES:-}" ]; then
+  echo "== 1b/4 Backend tests again on Postgres (ORDER_AGENT_TEST_POSTGRES is set) =="
+  (cd backend && .venv/bin/python -m pytest -q)
+fi
 
 echo "== 2/4 Frontend typecheck =="
 (cd frontend && npm run -s typecheck)

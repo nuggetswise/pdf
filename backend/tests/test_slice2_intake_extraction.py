@@ -187,17 +187,14 @@ def test_p15_restart_preserves_records(make_client, tmp_path):
 
 
 def test_restart_resumes_unprocessed_documents(make_client, tmp_path):
-    from app.config import load_settings
-    from app.db import Database
     from app.intake import parse_eml, store_intake
-    import os
-    os.environ["ORDER_AGENT_DATA_DIR"] = str(tmp_path)
-    settings = load_settings()
-    db = Database(tmp_path / "order_agent.sqlite3")
+    first = make_client(data_dir=tmp_path)  # not started, so no startup recovery yet
+    db, settings = first.app.state.db, first.app.state.settings
     env, atts = parse_eml((GEN / "VIDEO-DEMO-002.eml").read_bytes(), settings.max_upload_bytes)
-    doc_id = store_intake(db, tmp_path, env, atts, "eml_import", None, settings.max_upload_bytes, "t")[0]
+    doc_id = store_intake(db, env, atts, "eml_import", None, settings.max_upload_bytes, "t")[0]
     with make_client(data_dir=tmp_path) as client:  # lifespan runs resume_pending
         assert client.get(f"/api/documents/{doc_id}").json()["document"]["status"] in PROCESSED
+
 
 
 def test_p16_logs_contain_no_document_content_or_key(make_client, caplog):

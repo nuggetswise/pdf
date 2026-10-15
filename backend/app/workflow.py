@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import logging
-import shutil
 from typing import Any
 
 from .db import Database, now
@@ -86,8 +85,14 @@ class Conflict(Exception):
 
 
 def init(db: Database) -> None:
+    """Register tables and the default policy. Runs lazily on the first query (see Database.connect)."""
+    db.add_schema(SCHEMA)
+    db.on_ready(lambda: _seed(db))
+
+
+def _seed(db: Database) -> None:
     with db.connect() as conn:
-        conn.executescript(SCHEMA)
+        conn.advisory_lock(727275)  # two cold starts must not both seed the default policy
         if conn.execute("SELECT COUNT(*) FROM automation_policy").fetchone()[0] == 0:
             conn.execute("INSERT INTO automation_policy (mode, set_by, effective_at) VALUES ('review_all', ?, ?)",
                          (SYSTEM, now()))
@@ -436,10 +441,14 @@ def _save_candidate(db: Database, conn, doc_id: int, decision_id: int, stored: d
 def list_rules(db: Database) -> list[dict[str, Any]]:
     with db.connect() as conn:
         rules = [dict(r) for r in conn.execute("SELECT * FROM memory_rules ORDER BY id")]
-        for r in rules:
-            r["uses"] = [dict(a) for a in conn.execute(
-                "SELECT entity_id AS document_id, created_at FROM audit_events WHERE event = 'memory_rule_applied'"
-                " AND json_extract(detail_json, '$.rule_id') = ?", (r["id"],))]
+        applied = [dict(a) for a in conn.execute(
+            "SELECT entity_id AS document_id, created_at, detail_json FROM audit_events"
+            " WHERE event = 'memory_rule_applied' ORDER BY id")]
+    for a in applied:  # filtered in Python so the query is the same on SQLite and Postgres
+        a["rule_id"] = json.loads(a.pop("detail_json") or "{}").get("rule_id")
+    for r in rules:
+        r["uses"] = [{"document_id": a["document_id"], "created_at": a["created_at"]}
+                     for a in applied if a["rule_id"] == r["id"]]
     return rules
 
 
@@ -485,8 +494,10 @@ def erp_submit(db: Database, key: str, payload: dict[str, Any]) -> str:
         if existing:
             erp_id = existing["erp_order_id"]
         else:
-            n = conn.execute("SELECT COUNT(*) FROM erp_sim_orders").fetchone()[0]
-            erp_id = f"SIM-ERP-{100001 + n}"
+            conn.advisory_lock(727276)  # concurrent submissions must not be given the same ERP number
+            last = conn.execute("SELECT MAX(CAST(SUBSTR(erp_order_id, 9) AS INTEGER)) FROM erp_sim_orders"
+                                ).fetchone()[0]
+            erp_id = f"SIM-ERP-{(last or 100000) + 1}"
             conn.execute("INSERT INTO erp_sim_orders (erp_order_id, idempotency_key, payload_json, created_at)"
                          " VALUES (?, ?, ?, ?)", (erp_id, key, json.dumps(payload), now()))
     if mode == "timeout_next":
@@ -625,18 +636,16 @@ def summary(db: Database) -> dict[str, Any]:
     }
 
 
-def reset_demo(db: Database, data_dir, actor: str, role: str) -> None:
+def reset_demo(db: Database, actor: str, role: str) -> None:
     if role != "administrator":
         raise Forbidden("Only an administrator can reset the demo")
     with db.connect() as conn:
-        for table in ("erp_sim_orders", "delivery_attempts", "approvals", "decisions", "memory_rules", "orders",
-                      "order_versions", "audit_events", "source_documents", "email_envelopes", "automation_policy",
-                      "settings"):
-            conn.execute(f"DELETE FROM {table}")  # fixed table names, no user input
+        conn.clear_tables(["erp_sim_orders", "delivery_attempts", "approvals", "decisions", "memory_rules",
+                           "orders", "order_versions", "audit_events", "source_documents", "email_envelopes",
+                           "stored_files", "automation_policy", "settings"])
         conn.execute("INSERT INTO automation_policy (mode, set_by, effective_at) VALUES ('review_all', ?, ?)",
                      (actor, now()))
         db.audit(conn, "system", 0, "demo_reset", actor, {})
-    shutil.rmtree(data_dir / "files", ignore_errors=True)
 
 
 __all__ = ["POLICY"]

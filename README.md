@@ -18,6 +18,9 @@ Other tabs: "Inbox & review" (forward emails and decide issues yourself; switch 
 ## Check everything
 `scripts/verify.sh` runs backend tests, the typecheck, the production build and the browser tests (which save screenshots to docs/screenshots/).
 
+## Host it on Vercel
+See docs/hosting-vercel.md. In short: the screens and the Python service are two Vercel projects from this repository, the service uses Neon Postgres, and the Gemini key lives only on the service project. Locally nothing changes: SQLite is still the default.
+
 ## Configuration
 Copy `.env.example` to `.env`. `GEMINI_API_KEY`, `GEMINI_MODEL` and optional `GEMINI_FALLBACK_MODEL` enable real PDF reading. Without them the app says extraction is unavailable; it never pretends.
 
@@ -26,7 +29,7 @@ Copy `.env.example` to `.env`. `GEMINI_API_KEY`, `GEMINI_MODEL` and optional `GE
 - `fixtures/regression/` the original sample order and expected results
 - `fixtures/demo/` the video-aligned demo orders, expected results and generated fictional PDFs/emails
 - `fixtures/reference-data.v1.json` fictional customers, products, prices, MOQ rules and identifiers
-- `backend/` FastAPI service and tests; `frontend/` Next.js screens; `scripts/` fixture generator
+- `backend/` FastAPI service and tests (`backend/runtime_data/` is a copy of the fixtures the service reads, kept in step by `scripts/sync_runtime_data.py`); `frontend/` Next.js screens; `scripts/` fixture generator
 
 ## Local API
 - `POST /api/intake/eml` import a forwarded .eml with a PDF attachment
