@@ -1,0 +1,42 @@
+{
+  "fictional": true,
+  "po_number": "DEMO-PO-001",
+  "currency": "CAD",
+  "subtotal": "378.00",
+  "tax": "0.00",
+  "shipping": "0.00",
+  "total": "378.00",
+  "issues": [
+    "line 1 price mismatch: printed 24.00 vs reference 23.00",
+    "line 2 conversion: 24 EA to 2 CASE using supplied factor 12; case price 24.00",
+    "line 3 unknown customer alias NF-NEW"
+  ],
+  "operator_resolutions": [
+    "authorise printed price 24.00 with reason; preserve original",
+    "confirm supplied conversion",
+    "map NF-NEW to NEW-CASE with authorised decision"
+  ],
+  "resolved_lines": [
+    {
+      "sku": "OAT-CASE",
+      "quantity": "10",
+      "unit": "CASE",
+      "unit_price": "24.00",
+      "amount": "240.00"
+    },
+    {
+      "sku": "JUICE-CASE",
+      "quantity": "2",
+      "unit": "CASE",
+      "unit_price": "24.00",
+      "amount": "48.00"
+    },
+    {
+      "sku": "NEW-CASE",
+      "quantity": "5",
+      "unit": "CASE",
+      "unit_price": "18.00",
+      "amount": "90.00"
+    }
+  ]
+}

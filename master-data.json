@@ -1,0 +1,26 @@
+{
+  "fictional": true,
+  "customer_id": "DEMO-CUST-01",
+  "ship_to_id": "DEMO-DC-01",
+  "products": [
+    {
+      "sku": "OAT-CASE",
+      "customer_alias": "NF-OAT",
+      "unit": "CASE",
+      "reference_price": "23.00"
+    },
+    {
+      "sku": "JUICE-CASE",
+      "customer_alias": "NF-JUICE",
+      "unit": "CASE",
+      "units_per_case": 12,
+      "reference_price": "24.00"
+    },
+    {
+      "sku": "NEW-CASE",
+      "customer_alias": null,
+      "unit": "CASE",
+      "reference_price": "18.00"
+    }
+  ]
+}
