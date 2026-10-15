@@ -445,6 +445,26 @@ export const Portal = z.strictObject({
 export const emptyPortal = (): z.infer<typeof Portal> =>
   ({ asns: [], invoices: [], outbound: [], received: [], ediFailureMode: "none" });
 
+// ---------- session onboarding (D46): customers and products a reviewer added during this run ----------
+
+const addedMeta = { addedBy: z.string(), addedAt: isoTime, sourceDocumentId: id };
+export const ReferenceOverlay = z.strictObject({
+  customers: z.array(z.strictObject({
+    customerId: z.string(), name: z.string(), currency: z.string().regex(/^[A-Z]{3}$/),
+    /** Ship-to IDs on file; empty when the PO printed none (ship-to is then not checked for this customer). */
+    shipToIds: z.array(z.string()), printedAs: maybe(text), ...addedMeta,
+  })),
+  /** A printed customer name or ID that a reviewer assigned to a customer already on file. */
+  customerAliases: z.array(z.strictObject({ printed: text, customerId: z.string(), ...addedMeta })),
+  shipTos: z.array(z.strictObject({ customerId: z.string(), shipToId: text, ...addedMeta })),
+  products: z.array(z.strictObject({
+    sku: z.string(), gtin: maybe(text), customerItemCode: maybe(text), customerId: z.string(), description: text,
+    unit: text, price: decimalString, currency: z.string(), moq: decimalString, ...addedMeta,
+  })),
+});
+export const emptyOverlay = (): z.infer<typeof ReferenceOverlay> =>
+  ({ customers: [], customerAliases: [], shipTos: [], products: [] });
+
 export const RUN_STATE_SCHEMA_VERSION = "run-state-v1";
 
 export const RunState = z.strictObject({
@@ -463,6 +483,8 @@ export const RunState = z.strictObject({
   settings: Settings,
   /** Added by D45. Optional so runs saved before it (and the Python exports) load unchanged. */
   portal: Portal.optional(),
+  /** Added by D46. Optional for the same reason; absent means no session additions. */
+  referenceOverlay: ReferenceOverlay.optional(),
 });
 
 export type RunState = z.infer<typeof RunState>;
@@ -484,6 +506,7 @@ export type OutboundMessage = z.infer<typeof OutboundMessage>;
 export type ExtractionPayload = z.infer<typeof ExtractionPayload>;
 export type ValidationResult = z.infer<typeof ValidationResult>;
 export type ReferenceData = z.infer<typeof ReferenceData>;
+export type ReferenceOverlay = z.infer<typeof ReferenceOverlay>;
 
 /** A fresh run, as after "Reset demo": Review-all policy, bundled reference data, nothing received. */
 export function emptyRunState(now: string = new Date().toISOString()): RunState {

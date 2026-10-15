@@ -2,6 +2,11 @@
 import { useEffect, useState } from "react";
 import { useAgent } from "./run/RunProvider";
 import { OrderPortal } from "./Portal";
+import type { Action } from "../lib/server/run-action";
+import bundledReferenceJson from "../lib/domain/reference-data.v1.json";
+import { mergeReference } from "../lib/domain/onboarding";
+import type { Reference } from "../lib/domain/validation";
+const bundledReference = bundledReferenceJson as unknown as Reference;
 import {
   ACTION_LABEL, DELIVERY_LABEL, DocDetail, IN_FLIGHT, Issue, PEOPLE, PROCESS_LABEL, REVIEW_LABEL, Role, STOPPED,
 } from "./api";
@@ -96,8 +101,72 @@ function OriginalPdf({ docId }: { docId: number }) {
 }
 
 type Act = (issue: Issue, action: string, reason: string, params: Record<string, unknown>) => Promise<void>;
+type RunFn = (action: Action) => Promise<void>;
+type Line = NonNullable<DocDetail["order"]>["validation"]["order"]["lines"][number];
 
-function IssueCard({ issue, onAct, role, focused, onFocus }: { issue: Issue; onAct?: Act; role: Role; focused: boolean; onFocus: () => void }) {
+/** D46: add the customer or product this real PO uses, for this session. Never automatic. */
+function Onboard({ issue, docId, role, onRun, line, currency }: { issue: Issue; docId: number; role: Role; onRun: RunFn;
+  line?: Line; currency: string | null }) {
+  const agent = useAgent();
+  const r = role as "reviewer" | "administrator";
+  const printed = typeof issue.printed_value === "string" ? issue.printed_value : "";
+  const [name, setName] = useState(printed);
+  const [cur, setCur] = useState(currency ?? "");
+  const customers = mergeReference((agent.state.settings.referenceData as unknown as Reference | null) ?? bundledReference, agent.state.referenceOverlay).customers;
+  const [pick, setPick] = useState(customers[0]?.customer_id ?? "");
+  const ident = line?.printed_gtin || line?.customer_item_code || "";
+  const [sku, setSku] = useState(ident);
+  const [desc, setDesc] = useState(line?.description ?? "");
+  const [moq, setMoq] = useState("1");
+  const [busy, setBusy] = useState(false);
+  const go = async (a: Action) => { setBusy(true); try { await onRun(a); } finally { setBusy(false); } };
+  if (issue.code === "unknown_customer") {
+    return (
+      <div className="onboard" aria-label="Add or assign customer">
+        <p className="muted small">Added for this session only, recorded in the audit trail with your name.</p>
+        <div className="row">
+          <input aria-label="New customer name" value={name} onChange={(e) => setName(e.target.value)} />
+          <input aria-label="Customer currency" className="short" value={cur} maxLength={3} onChange={(e) => setCur(e.target.value)} />
+          <button className="primary" disabled={busy} onClick={() => go({ type: "addCustomer", role: r, docId, name,
+            ...(cur.trim() ? { currency: cur.trim() } : {}) })}>Add as new customer</button>
+        </div>
+        <div className="row">
+          <select aria-label="Existing customer" value={pick} onChange={(e) => setPick(e.target.value)}>
+            {customers.map((c) => <option key={c.customer_id} value={c.customer_id}>{c.name} ({c.customer_id})</option>)}
+          </select>
+          <button disabled={busy || !pick || !printed} onClick={() => go({ type: "assignCustomer", role: r, docId, customerId: pick })}>
+            Assign to existing customer</button>
+        </div>
+      </div>
+    );
+  }
+  if (issue.code === "unknown_ship_to" && printed) {
+    return (
+      <div className="onboard">
+        <button className="primary" disabled={busy} onClick={() => go({ type: "addShipTo", role: r, docId })}>
+          Add ship-to {printed} for this customer</button>
+      </div>
+    );
+  }
+  if (issue.code === "unknown_item" && line && ident) {
+    return (
+      <div className="onboard" aria-label="Add to catalogue">
+        <p className="muted small">Reference price will be the printed {line.printed_unit_price ?? "?"} {currency ?? ""} per {line.original_unit ?? "?"}. Added for this session only.</p>
+        <div className="row">
+          <input aria-label="New product SKU" value={sku} onChange={(e) => setSku(e.target.value)} />
+          <input aria-label="New product description" value={desc} onChange={(e) => setDesc(e.target.value)} />
+          <input aria-label="Minimum order quantity" className="short" value={moq} onChange={(e) => setMoq(e.target.value)} />
+          <button className="primary" disabled={busy} onClick={() => go({ type: "addProduct", role: r, docId,
+            issueKey: issue.key, sku, description: desc, moq })}>Add to catalogue</button>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
+function IssueCard({ issue, onAct, role, focused, onFocus, onRun, docId, line, currency }: { issue: Issue; onAct?: Act;
+  role: Role; focused: boolean; onFocus: () => void; onRun?: RunFn; docId: number; line?: Line; currency: string | null }) {
   const [reason, setReason] = useState("");
   const [value, setValue] = useState("");
   const [sku, setSku] = useState(issue.candidate_skus?.[0] ?? "");
@@ -135,6 +204,11 @@ function IssueCard({ issue, onAct, role, focused, onFocus }: { issue: Issue; onA
           ? <>{issue.resolution.actor.split(":")[1]} ({issue.resolution.role}): {ACTION_LABEL[issue.resolution.action] ?? issue.resolution.action}{issue.resolution.reason && <> — “{issue.resolution.reason}”</>}</>
           : "Not yet decided"}</dd></div>
       </dl>
+      {canAct && onRun && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Onboard issue={issue} docId={docId} role={role} onRun={onRun} line={line} currency={currency} />
+        </div>
+      )}
       {canAct && (
         <div className="decide" onClick={(e) => e.stopPropagation()}>
           {issue.actions.some((a) => a === "change_quantity" || a === "correct_price") && (
@@ -162,8 +236,8 @@ function IssueCard({ issue, onAct, role, focused, onFocus }: { issue: Issue; onA
   );
 }
 
-export function OrderView({ d, role, onAct, onApprove, onRetry, highlight }: {
-  d: DocDetail; role: Role; onAct?: Act; onApprove?: () => void; onRetry?: () => void; highlight?: string;
+export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight }: {
+  d: DocDetail; role: Role; onAct?: Act; onRun?: RunFn; onApprove?: () => void; onRetry?: () => void; highlight?: string;
 }) {
   const [focus, setFocus] = useState<Issue | null>(null);
   const o = d.order;
@@ -202,7 +276,9 @@ export function OrderView({ d, role, onAct, onApprove, onRetry, highlight }: {
               <section aria-label="Issues">
                 <h4 className="section">{issues.filter((i) => i.status === "open").length} of {issues.length} issues need a decision</h4>
                 {issues.map((i) => (
-                  <IssueCard key={i.key} issue={i} role={role} onAct={onAct} focused={focus?.key === i.key} onFocus={() => setFocus(i)} />
+                  <IssueCard key={i.key} issue={i} role={role} onAct={onAct} focused={focus?.key === i.key} onFocus={() => setFocus(i)}
+                    onRun={onRun} docId={d.document.id} currency={v?.currency ?? null}
+                    line={i.line_index === null ? undefined : v?.lines[i.line_index]} />
                 ))}
               </section>
             ) : (

@@ -227,3 +227,6 @@ Remaining rebuild slices: 6 Vercel deploy (merged to main deploys via Vercel's g
 - [x] Invoice from the ASN (ASN quantities, order prices, exact decimals); mismatch and second invoice refused; INVOIC + ERP invoice record
 - [x] Per-message pending/delivered/failed, reconciling retry, honest mixed-state text; administrator EDI outbox failure control
 - [x] EDI tab (raw message, field mapping, download); Vitest (UNT counts, escaping, ASN quantities on invoice); e2e/supplier-portal.spec.ts
+
+## Session onboarding for real POs (D46)
+Done: Add as new customer, Assign to existing customer, Add ship-to and Add to catalogue as reviewer actions; additions in optional RunState.referenceOverlay merged for validation ("REF-2026-10-v1 + session additions"), audited, shown on Agent memory as "Added in this session"; current order re-validated. Tests: lib/domain/onboarding.test.ts, e2e/onboarding.spec.ts with fictional fixtures/onboarding (scripts/onboarding_fixtures.py). Not done: saving additions beyond the tab, editing or removing an addition.

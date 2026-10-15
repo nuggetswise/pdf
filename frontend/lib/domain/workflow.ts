@@ -3,12 +3,13 @@
 //
 // Separate states are kept separate: processing (documents[].status) -> review (orders[].reviewState) ->
 // approval (approvals[]) -> delivery (orders[].deliveryState, deliveries[]) -> ERP acknowledgement (erpOrders[]).
-import { dec } from "./money";
+import { dec, money, qty } from "./money";
+import { mergeReference } from "./onboarding";
 import bundledReference from "./reference-data.v1.json";
 import {
   type Approval, type AuditEvent, type Decision, type DeliveryAttempt, type MemoryRule, type Order,
   type OrderVersion, type PolicyChange, ReferenceData, type RunState, type SourceDocument, type ValidationResult,
-  emptyRunState,
+  emptyOverlay, emptyRunState,
 } from "./run-state";
 import { type Overrides, type Reference, validate } from "./validation";
 import { confirmOrder } from "./portal";
@@ -55,7 +56,10 @@ class Run {
     this.audit("document", docId, status, SYSTEM, detail);
   }
   policy(): PolicyChange { return this.s.policyHistory[this.s.policyHistory.length - 1]; }
-  reference(): Reference { return (this.s.settings.referenceData ?? bundledReference) as unknown as Reference; }
+  /** The reference file in use, without this session's additions. */
+  baseReference(): Reference { return (this.s.settings.referenceData ?? bundledReference) as unknown as Reference; }
+  /** What validation uses: the reference file plus this session's additions (D46). */
+  reference(): Reference { return mergeReference(this.baseReference(), this.s.referenceOverlay); }
   latestVersion(docId: number): OrderVersion {
     return this.s.versions.filter((v) => v.documentId === docId).sort((a, b) => b.version - a.version)[0];
   }
@@ -276,7 +280,10 @@ function settle(r: Run, docId: number) {
     }
   } else {
     const policy = r.policy();
-    if (policy.mode === "exception_only" && r.decisionsFor(docId).length === 0) {
+    // D46: an order a reviewer onboarded a customer or product for waits for an explicit approval.
+    const onboarded = r.s.audit.some((a) => a.entityType === "document" && a.entityId === docId
+      && a.event.startsWith("reference_"));
+    if (policy.mode === "exception_only" && r.decisionsFor(docId).length === 0 && !onboarded) {
       approveVersion(r, docId, version, "system", `policy:exception_only#${policy.id}`, policy);
       deliverNow = true;
     } else if (order.reviewState !== "ready") {
@@ -414,6 +421,146 @@ function holdAmendment(r: Run, docId: number, actor: string, action: string, par
     detail: "Order already delivered to ERP; the ERP record is not overwritten. A separate decision is required." });
 }
 
+// ---------- session onboarding (D46): add a customer or product from a real PO ----------
+
+export interface CustomerInput { name?: string; currency?: string }
+export interface ProductInput { sku?: string; description?: string; moq?: string }
+
+/** The open issue an onboarding action answers, on an order that has not gone to the ERP yet. */
+function openIssueFor(r: Run, docId: number, issueKey: string, code: string): Issue {
+  const order = r.order(docId);
+  if (!order) throw new Conflict("Order has not been validated");
+  if (order.deliveryState !== "not_started" && order.deliveryState !== "failed") {
+    throw new Conflict("Order was already delivered; reference data cannot be changed for it");
+  }
+  if (["rejected", "awaiting_customer", "amendment_held"].includes(order.reviewState)) {
+    throw new Conflict("This order is not waiting for review");
+  }
+  const found = order.validation.issues.find((i) => i.key === issueKey && i.status === "open");
+  if (!found || found.code !== code) throw new Conflict("No open issue of that kind");
+  return found;
+}
+
+function overlay(r: Run) {
+  r.s.referenceOverlay = r.s.referenceOverlay ?? emptyOverlay();
+  return r.s.referenceOverlay;
+}
+
+/** Validate this order again against the reference plus the additions, then move it on. */
+function revalidate(r: Run, docId: number) {
+  const result = evaluate(r, docId);
+  r.order(docId)!.customerId = result.order.customer_id; // the customer may now be known
+  settle(r, docId);
+}
+
+const header = (r: Run, docId: number, key: "customer_id" | "customer_name" | "ship_to_id" | "currency") => {
+  const value = r.latestVersion(docId).payload.header[key].value;
+  return value && value.trim() ? value.trim() : null;
+};
+
+export function addCustomer(state: RunState, docId: number, input: CustomerInput, who: Who,
+  clock: Clock = systemClock): RunState {
+  requireReviewer(who.role);
+  return act(state, clock, (r) => {
+    openIssueFor(r, docId, "unknown_customer:H", "unknown_customer");
+    const printedId = header(r, docId, "customer_id");
+    const printedName = header(r, docId, "customer_name");
+    const name = input.name?.trim() || printedName || printedId;
+    if (!name) throw new Conflict("Enter a name for the new customer");
+    const currency = (input.currency?.trim() || header(r, docId, "currency") || "").toUpperCase();
+    if (!/^[A-Z]{3}$/.test(currency)) throw new Conflict("Enter the customer's currency as a three-letter code, e.g. CAD");
+    const ref = r.reference();
+    const ov = overlay(r);
+    let customerId = printedId;
+    if (customerId === null) {
+      let n = ov.customers.length + 1;
+      while (ref.customers.some((c) => c.customer_id === `SESSION-CUST-${String(n).padStart(2, "0")}`)) n++;
+      customerId = `SESSION-CUST-${String(n).padStart(2, "0")}`;
+    }
+    if (ref.customers.some((c) => c.customer_id === customerId)) throw new Conflict("That customer ID is already on file");
+    const shipTo = header(r, docId, "ship_to_id");
+    const meta = { addedBy: who.actor, addedAt: r.now(), sourceDocumentId: docId };
+    ov.customers.push({ customerId, name, currency, shipToIds: shipTo ? [shipTo] : [],
+      printedAs: printedId ?? printedName, ...meta });
+    // An edited name must still match what this customer prints on later orders.
+    if (!printedId && printedName && printedName.toLowerCase() !== name.toLowerCase()) {
+      ov.customerAliases.push({ printed: printedName, customerId, ...meta });
+    }
+    r.audit("document", docId, "reference_customer_added", who.actor, { customer_id: customerId, name, currency,
+      ship_to_id: shipTo, printed: printedId ?? printedName, scope: "this session" });
+    revalidate(r, docId);
+  });
+}
+
+export function assignCustomer(state: RunState, docId: number, customerId: string, who: Who,
+  clock: Clock = systemClock): RunState {
+  requireReviewer(who.role);
+  return act(state, clock, (r) => {
+    const issue = openIssueFor(r, docId, "unknown_customer:H", "unknown_customer");
+    const printed = typeof issue.printed_value === "string" ? issue.printed_value : null;
+    if (!printed) throw new Conflict("The PO prints no customer name or ID to assign");
+    const customer = r.reference().customers.find((c) => c.customer_id === customerId);
+    if (!customer) throw new Conflict("Unknown customer");
+    overlay(r).customerAliases.push({ printed, customerId, addedBy: who.actor, addedAt: r.now(), sourceDocumentId: docId });
+    r.audit("document", docId, "reference_customer_assigned", who.actor, { printed, customer_id: customerId,
+      scope: "this session" });
+    revalidate(r, docId);
+  });
+}
+
+export function addShipTo(state: RunState, docId: number, who: Who, clock: Clock = systemClock): RunState {
+  requireReviewer(who.role);
+  return act(state, clock, (r) => {
+    openIssueFor(r, docId, "unknown_ship_to:H", "unknown_ship_to");
+    const customerId = r.order(docId)!.customerId;
+    const shipTo = header(r, docId, "ship_to_id");
+    if (!customerId || !shipTo) throw new Conflict("The PO prints no ship-to ID to add");
+    overlay(r).shipTos.push({ customerId, shipToId: shipTo, addedBy: who.actor, addedAt: r.now(), sourceDocumentId: docId });
+    r.audit("document", docId, "reference_ship_to_added", who.actor, { customer_id: customerId, ship_to_id: shipTo,
+      scope: "this session" });
+    revalidate(r, docId);
+  });
+}
+
+/** Add the product printed on one line, with the printed unit price as this customer's reference price. */
+export function addProduct(state: RunState, docId: number, issueKey: string, input: ProductInput, who: Who,
+  clock: Clock = systemClock): RunState {
+  requireReviewer(who.role);
+  return act(state, clock, (r) => {
+    const issue = openIssueFor(r, docId, issueKey, "unknown_item");
+    const order = r.order(docId)!;
+    const customerId = order.customerId;
+    if (!customerId) throw new Conflict("Add or assign the customer first; prices and minimums are per customer");
+    const line = order.validation.order.lines[issue.line_index ?? -1];
+    if (!line) throw new Conflict("Unknown line");
+    const gtin = line.printed_gtin?.trim() || null;
+    const itemCode = line.customer_item_code?.trim() || null;
+    const identifier = gtin ?? itemCode;
+    if (!identifier) throw new Conflict("The line prints no GTIN or item code to add");
+    const unit = line.original_unit?.trim();
+    if (!unit) throw new Conflict("The line prints no unit");
+    const price = dec(line.printed_unit_price);
+    if (price === null || !dec("0")!.lt(price)) throw new Conflict("The line's unit price is missing or unreadable");
+    const currency = order.validation.order.currency;
+    if (!currency) throw new Conflict("The order has no currency");
+    const moq = dec(input.moq?.trim() || "1");
+    if (moq === null || !dec("0")!.lt(moq)) throw new Conflict("Minimum order quantity must be a positive number");
+    const sku = input.sku?.trim() || identifier;
+    const ref = r.reference();
+    if (ref.products.some((p) => p.sku === sku)) {
+      throw new Conflict(`Product ${sku} is already in the catalogue; map the line to it instead`);
+    }
+    const description = input.description?.trim() || line.description?.trim() || identifier;
+    const added = { sku, gtin, customerItemCode: gtin ? null : itemCode, customerId, description, unit,
+      price: money(price), currency, moq: qty(moq), addedBy: who.actor, addedAt: r.now(), sourceDocumentId: docId };
+    overlay(r).products.push(added);
+    r.audit("document", docId, "reference_product_added", who.actor, { sku, gtin, customer_item_code: added.customerItemCode,
+      customer_id: customerId, unit, price: added.price, currency, moq: added.moq, line_index: issue.line_index,
+      scope: "this session" });
+    revalidate(r, docId);
+  });
+}
+
 // ---------- agent memory ----------
 
 function saveCandidate(r: Run, docId: number, decisionId: number, stored: Decision["params"], actor: string,
@@ -424,7 +571,7 @@ function saveCandidate(r: Run, docId: number, decisionId: number, stored: Decisi
   r.s.memoryRules.push({
     id, kind: "identifier_mapping", customerId: order.customerId, obsoleteIdentifier: stored.obsolete_identifier!,
     replacementIdentifier: stored.replacement_identifier!, replacementSku: stored.replacement_sku!,
-    referenceVersion: r.reference().reference_version, state: "candidate", sourceDocumentId: docId,
+    referenceVersion: r.baseReference().reference_version, state: "candidate", sourceDocumentId: docId,
     sourceDecisionId: decisionId, evidence: issue.evidence ?? null, createdBy: actor, createdAt: r.now(),
     activatedBy: null, activatedAt: null, revokedBy: null, revokedAt: null, revokeReason: null,
   });
@@ -570,7 +717,7 @@ export function importReference(state: RunState, data: unknown, who: Who, clock:
   const parsed = ReferenceData.safeParse(obj);
   if (!parsed.success) throw new Conflict("Reference data is not in the expected format");
   return act(state, clock, (r) => {
-    if (parsed.data.reference_version === r.reference().reference_version) {
+    if (parsed.data.reference_version === r.baseReference().reference_version) {
       throw new Conflict("Reference data must carry a new reference_version");
     }
     r.s.settings.referenceData = parsed.data;

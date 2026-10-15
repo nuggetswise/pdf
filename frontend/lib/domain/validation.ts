@@ -57,7 +57,13 @@ type Obj = Record<string, unknown>;
 export interface Reference extends Obj {
   reference_version: string;
   policy_version: string;
-  customers: Array<{ customer_id: string; name: string; currency: string; ship_tos: Array<{ ship_to_id: string }> }>;
+  customers: Array<{ customer_id: string; name: string; currency: string; ship_tos: Array<{ ship_to_id: string }>;
+    /** Session-added customer whose PO printed no ship-to (D46): ship-to is not checked until one is added. */
+    ship_to_not_on_file?: boolean }>;
+  /** Set when session additions are merged in (D46): memory rules stay tied to the base version. */
+  base_reference_version?: string;
+  /** Printed customer name or ID that a reviewer assigned to an existing customer (D46). */
+  customer_name_aliases?: Array<{ printed: string; customer_id: string }>;
   products: Array<{ sku: string; description: string; gtin?: string | null; unit: string }>;
   obsolete_identifiers?: Array<{ identifier: string }>;
   proposed_identifier_mappings?: Array<{ obsolete_identifier: string; replacement_identifier: string; replacement_sku: string } & Obj>;
@@ -147,6 +153,11 @@ export function validate(payload: Payload, ref: Reference, activeRules: RuleInpu
   if (customer === null && !customerId && customerName) {
     customer = ref.customers.find((c) => c.name.toLowerCase() === customerName.toLowerCase()) ?? null;
   }
+  const printedCustomer = customerId || customerName;
+  if (customer === null && printedCustomer && ref.customer_name_aliases?.length) {
+    const hit = ref.customer_name_aliases.find((a) => a.printed.toLowerCase() === printedCustomer.toLowerCase());
+    customer = hit ? ref.customers.find((c) => c.customer_id === hit.customer_id) ?? null : null;
+  }
   if (customer === null) {
     issues.push(issue("unknown_customer",
       `Customer '${customerId || customerName || "missing"}' is not in reference data. ` +
@@ -156,7 +167,8 @@ export function validate(payload: Payload, ref: Reference, activeRules: RuleInpu
   const custId = customer ? customer.customer_id : null;
 
   const shipTo = v(header.ship_to_id);
-  if (customer && !customer.ship_tos.some((st) => st.ship_to_id === shipTo)) {
+  const shipToChecked = !(customer?.ship_to_not_on_file && customer.ship_tos.length === 0);
+  if (customer && shipToChecked && !customer.ship_tos.some((st) => st.ship_to_id === shipTo)) {
     issues.push(issue("unknown_ship_to", `Ship-to '${s(shipTo)}' is not on file for ${s(custId)}.`,
       { printed: shipTo, reference: customer.ship_tos.map((st) => st.ship_to_id), refVersion: rv }));
   }
@@ -218,7 +230,7 @@ export function validate(payload: Payload, ref: Reference, activeRules: RuleInpu
     }
     if (product === null && gtin && obsolete.has(gtin)) {
       const rule = rules.find((r) => r.obsolete_identifier === gtin && r.customer_id === custId && r.state === "active");
-      if (rule && rule.reference_version === rv) {
+      if (rule && rule.reference_version === (ref.base_reference_version ?? rv)) {
         product = products.get(rule.replacement_sku) ?? null;
         out.resolved_by = {
           type: "memory_rule", rule_id: rule.id, approved_by: rule.activated_by ?? null,

@@ -7,7 +7,7 @@ import { MAX_PAGES } from "../intake/pdf";
 import { normalise } from "../domain/normalise";
 import { DecisionAction, ExtractionPayload, IntakeMode, RunState } from "../domain/run-state";
 import {
-  Conflict, Forbidden, type Who, approve, decide, failExtraction, receive, recordExtraction, recoverDeliveries,
+  Conflict, Forbidden, type Who, addCustomer, addProduct, addShipTo, approve, assignCustomer, decide, failExtraction, receive, recordExtraction, recoverDeliveries,
   resetDemo, retryDelivery, retryExtraction, setDemoSetting, setPolicy, setRuleState, startExtraction,
 } from "../domain/workflow";
 import { retryOutbound, setEdiFailureMode, submitAsn, submitInvoice } from "../domain/portal";
@@ -53,6 +53,14 @@ export const Action = z.discriminatedUnion("type", [
       value: z.string().max(100).optional(), note: shortText.optional() }).optional(),
   }),
   z.strictObject({ type: z.literal("approve"), role: Role, docId }),
+  // Session onboarding (D46). Values the PO printed are read from the run, not from the action.
+  z.strictObject({ type: z.literal("addCustomer"), role: Role, docId, name: z.string().max(200).optional(),
+    currency: z.string().regex(/^[A-Za-z]{3}$/).optional() }),
+  z.strictObject({ type: z.literal("assignCustomer"), role: Role, docId, customerId: z.string().min(1).max(100) }),
+  z.strictObject({ type: z.literal("addShipTo"), role: Role, docId }),
+  z.strictObject({ type: z.literal("addProduct"), role: Role, docId, issueKey: z.string().min(1).max(200),
+    sku: z.string().max(100).optional(), description: z.string().max(300).optional(),
+    moq: z.string().max(40).optional() }),
   z.strictObject({ type: z.literal("retryDelivery"), role: Role, docId }),
   z.strictObject({ type: z.literal("setRuleState"), role: Role, ruleId: docId, state: z.enum(["active", "revoked"]),
     reason: shortText.nullable().optional() }),
@@ -101,6 +109,15 @@ function apply(s: RunState, a: Action): { state: RunState; documentIds?: number[
         params: a.params ?? {} }, who(a.role)) };
     case "approve":
       return { state: approve(s, a.docId, who(a.role)) };
+    case "addCustomer":
+      return { state: addCustomer(s, a.docId, { name: a.name, currency: a.currency }, who(a.role)) };
+    case "assignCustomer":
+      return { state: assignCustomer(s, a.docId, a.customerId, who(a.role)) };
+    case "addShipTo":
+      return { state: addShipTo(s, a.docId, who(a.role)) };
+    case "addProduct":
+      return { state: addProduct(s, a.docId, a.issueKey, { sku: a.sku, description: a.description, moq: a.moq },
+        who(a.role)) };
     case "retryDelivery":
       return { state: retryDelivery(s, a.docId, who(a.role)) };
     case "setRuleState":
