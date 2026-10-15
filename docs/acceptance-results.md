@@ -61,3 +61,8 @@ Single verify command: `scripts/verify.sh` -> VERIFY PASSED
 | P28 subject is metadata only | Pass | test_p28_subject_is_metadata_only |
 
 Honest gaps: P24 has no dedicated backend unit test (covered end to end only). Live Gemini was not exercised in this run. Demo sign-in is not real authentication.
+
+## Live Gemini rehearsal (2026-10-15)
+Command: `cd frontend && npx playwright test -c playwright.live.config.ts` (key read from the git-ignored .env; not part of verify.sh)
+Result: 1 passed. All 15 guided-demo steps reached their expected real states with AI extraction. Screenshots: docs/screenshots/live/.
+Observed: Google returned frequent 429/503; every extraction succeeded through the retry and fallback path (gemini-3.8-flash), typically 20-60 s per order. The demo showed "waiting" status honestly during these delays.
