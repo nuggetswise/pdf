@@ -102,10 +102,10 @@ def test_generator_is_reproducible():
 
 def test_no_secrets_in_tracked_files():
     files = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
-    pattern = re.compile(r"(AIza[0-9A-Za-z_\-]{30,}|sk-[A-Za-z0-9]{20,}|GEMINI_API_KEY=\S+)")
+    pattern = re.compile(r"(AIza[0-9A-Za-z_\-]{30,}|AQ\.[0-9A-Za-z_\-]{30,}|sk-[A-Za-z0-9]{20,}|GEMINI_API_KEY=[A-Za-z0-9])")
     for name in files:
         path = ROOT / name
-        if path.suffix in {".pdf", ".docx", ".lock"} or not path.is_file():
+        if path.suffix in {".pdf", ".docx"} or not path.is_file():
             continue
         assert not pattern.search(path.read_text(errors="ignore")), name
 

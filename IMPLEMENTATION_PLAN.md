@@ -1,6 +1,6 @@
 # Implementation Plan: PDF Order Agent (leadership demo prototype)
 
-Status: Slice 1 complete; Slice 2 next. Requirements source: Markdown docs (v3.0, identical to functional-specification.docx).
+Status: Slices 1-2 complete; Slice 3 next. Requirements source: Markdown docs (v3.0, identical to functional-specification.docx).
 Goal: a working, honest prototype that shows leadership how the forwarded-email/PDF order use case is achieved end to end, aligned to the reference video (0:19 to 1:10).
 
 ## Video-to-demo map
@@ -46,22 +46,22 @@ Checklist (done when)
 Outcome: dropping an email into the inbox starts processing with no further clicks.
 
 Tasks
-- [ ] Data model: EmailEnvelope, SourceDocument (SHA-256 hash), ExtractedOrderVersion, OrderLine, AuditEvent
-- [ ] Intake routes: import .eml; demo envelope + uploaded PDF (secondary path)
-- [ ] Input safety: size limit, PDF type check by content, encrypted/unreadable rejection, safe filenames
-- [ ] Subject stored as metadata only, never used for fields
-- [ ] Background job runs automatically after intake
-- [ ] Native PDF text extraction with page references
-- [ ] Extractor interface; Gemini adapter (model name configurable, server-side key); labelled test adapter for fixtures
-- [ ] No key: status "Extraction unavailable", never simulated as real
-- [ ] Scans/no text: explicit "Unsupported, no OCR adapter configured" state
-- [ ] Typed output with per-field evidence; unknown fields null
-- [ ] Prompt hardening: document text treated as data, schema-constrained output
-- [ ] Redacted logging
+- [x] Data model: EmailEnvelope, SourceDocument (SHA-256 hash), ExtractedOrderVersion, OrderLine, AuditEvent
+- [x] Intake routes: import .eml; demo envelope + uploaded PDF (secondary path)
+- [x] Input safety: size limit, PDF type check by content, encrypted/unreadable rejection, safe filenames
+- [x] Subject stored as metadata only, never used for fields
+- [x] Background job runs automatically after intake
+- [x] Native PDF text extraction with page references
+- [x] Extractor interface; Gemini adapter (model name configurable, server-side key); labelled test adapter for fixtures
+- [x] No key: status "Extraction unavailable", never simulated as real
+- [x] Scans/no text: explicit "Unsupported, no OCR adapter configured" state
+- [x] Typed output with per-field evidence; unknown fields null
+- [x] Prompt hardening: document text treated as data, schema-constrained output
+- [x] Redacted logging
 
 Checklist
-- [ ] P01, P02, P16, P17, P18, P28 tests pass
-- [ ] Restart keeps envelopes and documents (part of P15)
+- [x] P01, P02, P16, P17, P18, P28 tests pass
+- [x] Restart keeps envelopes and documents (part of P15)
 
 ## Slice 3: Matching and business rule validation
 Outcome: every order receives deterministic issues with evidence.
@@ -156,5 +156,6 @@ Checklist
 - [ ] Full demo rehearsed with the test adapter; rehearsed again with Gemini once the key arrives
 - [ ] All 28 acceptance checks reported with evidence
 
-## Open inputs
-- Gemini API key (owner to supply later as an environment variable). Until then extraction shows as unavailable outside automated tests.
+## Open inputs and risks
+- Gemini key supplied for development and stored only in the git-ignored .env. Owner will rotate it and add the production key as a cloud environment secret.
+- Demo risk: on 2026-10-15 Google returned frequent 429/503 overload errors; one live extraction took about 85 seconds via the fallback model. Slice 7 must include a rehearsal check shortly before the leadership demo.
