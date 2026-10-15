@@ -168,3 +168,15 @@ Checklist
 - [x] Rehearsal mode uses the TEST ADAPTER and is labelled "not AI" everywhere
 - [x] Executive summary tiles (no time-saved claim), mode badge, animated timeline, evidence highlighted in PDF text, plain-language issue cards, ERP record with simulator order ID
 - [x] Playwright test runs the full demo and saves one screenshot per step to docs/screenshots/
+
+## Vercel rebuild (plan: https://claude.ai/code/artifact/612c2257-983e-4bf9-8830-cfcda7975be0)
+One Next.js app on Vercel, run state held in the browser tab, stateless server. FastAPI keeps serving the demo until rebuild slice 5.
+
+Rebuild slice 1: scaffold and RunState schema
+- [x] Add decimal.js, zod, postal-mime, pdfjs-dist and Vitest to frontend/ (exact versions)
+- [x] Define RunState in frontend/lib/domain/run-state.ts, one array per SQLite table
+- [x] Export the SQLite state of a full guided-demo run (scripts/export_run_state.py) and commit it as a test fixture
+- [x] Vitest: the export parses unchanged; JSON-number money, malformed decimals, unknown fields and unknown states are rejected
+- [x] Vitest added to scripts/verify.sh
+
+Remaining rebuild slices: 2 pure domain port with Python parity, 3 workflow port, 4 browser intake and Gemini route, 5 UI switch-over (Playwright parity gate), 6 Vercel deploy, 7 retire Python.

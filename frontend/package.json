@@ -7,18 +7,24 @@
     "build": "next build",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "e2e": "playwright test"
   },
   "dependencies": {
+    "decimal.js": "10.6.0",
     "next": "16.3.8",
+    "pdfjs-dist": "6.3.289",
+    "postal-mime": "4.0.2",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@playwright/test": "1.56.0",
-    "@types/node": "22.10.7",
+    "@types/node": "22.19.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "typescript": "5.7.3"
+    "typescript": "5.7.3",
+    "vitest": "4.1.11"
   }
 }

@@ -57,3 +57,9 @@ D26 Guided demo: owner confirmed "click through without a presenter". Each step'
 D27 The review screen shows the PDF's own text with the extraction evidence highlighted, next to a tab with the original PDF. This works in every browser, including headless test browsers (D18), and makes evidence easy to see on a projector.
 
 D28 Reference data can be replaced by an administrator via POST /api/reference-data; it must carry a new reference_version. It is stored in the database; reset returns to fixtures/reference-data.v1.json.
+
+D29 Vercel rebuild, RunState naming: the run's own records use camelCase; payloads the Python code produces (extraction payload, validation result including its rules snapshot, ERP order payload, reference data) keep their snake_case keys so rebuild slice 2 can compare outputs byte for byte. Records are strict (an unknown field is an error); imported reference data allows extra keys.
+
+D30 RunState holds page text, never PDF bytes or server file paths. Money and quantities are strings; computed values must match a decimal pattern, and printed values stay as untrusted text. Role moves into RunState.settings (still demo-only, D22).
+
+D31 Vitest 4.1.11 instead of 5.x: npm 10 cannot add Vitest 5 to this project (an npm resolver crash), and the lockfile was written with npm 11. `npm ci` on npm 10 installs it fine. @types/node moved from 22.10.7 to 22.19.1 because Vitest's Vite needs at least 22.12. Reverse: bump the versions in frontend/package.json.
