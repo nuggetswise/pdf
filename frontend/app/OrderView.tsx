@@ -1,0 +1,255 @@
+"use client";
+import { useEffect, useState } from "react";
+import {
+  ACTION_LABEL, api, DELIVERY_LABEL, DocDetail, IN_FLIGHT, Issue, PEOPLE, PROCESS_LABEL, REVIEW_LABEL, Role, STOPPED,
+} from "./api";
+
+const STAGES = ["Received", "Reading PDF", "Matching", "Business rules", "Review", "Approved", "Sending to ERP", "In ERP"];
+
+function stage(d: DocDetail): { at: number; stopped: boolean; waiting: boolean } {
+  const s = d.document.status;
+  const o = d.order;
+  if (STOPPED.has(s)) return { at: s === "duplicate" ? 0 : 1, stopped: true, waiting: false };
+  if (s === "received") return { at: 0, stopped: false, waiting: false };
+  if (s === "extracting" || s === "extracted") return { at: 1, stopped: false, waiting: false };
+  if (s === "matching") return { at: 2, stopped: false, waiting: false };
+  if (!o || s === "validating") return { at: 3, stopped: false, waiting: false };
+  if (o.delivery_state === "erp_created") return { at: 8, stopped: false, waiting: false };
+  if (["queued", "submitting"].includes(o.delivery_state)) return { at: 6, stopped: false, waiting: false };
+  if (["failed", "unknown"].includes(o.delivery_state)) return { at: 6, stopped: true, waiting: false };
+  if (o.review_state === "approved") return { at: 5, stopped: false, waiting: false };
+  if (o.review_state === "rejected") return { at: 4, stopped: true, waiting: false };
+  return { at: 4, stopped: false, waiting: true };
+}
+
+export function Pill({ map, value, prefix }: { map: Record<string, [string, string]>; value: string; prefix: string }) {
+  const [label, tone] = map[value] ?? [value, "info"];
+  return <span className={`pill ${tone}`}><small>{prefix}</small>{label}</span>;
+}
+
+export function Timeline({ d }: { d: DocDetail }) {
+  const { at, stopped, waiting } = stage(d);
+  return (
+    <ol className="stages" aria-label="Processing timeline">
+      {STAGES.map((s, i) => {
+        const cls = i < at ? "done" : i === at ? (stopped ? "stop" : waiting ? "wait" : "now") : "";
+        return <li key={s} className={cls} aria-current={i === at ? "step" : undefined}>{s}</li>;
+      })}
+    </ol>
+  );
+}
+
+function highlightTerms(d: DocDetail, focus: Issue | null): string[] {
+  if (focus?.evidence) return [focus.evidence];
+  const v = d.latest_version?.payload;
+  if (!v) return [];
+  return v.lines.map((l) => l.description?.evidence ?? l.quantity?.evidence).filter(Boolean) as string[];
+}
+
+export function SourcePanel({ d, focus }: { d: DocDetail; focus: Issue | null }) {
+  const [pages, setPages] = useState<string[] | null>(null);
+  const [view, setView] = useState<"evidence" | "pdf">("evidence");
+  useEffect(() => {
+    api<{ pages: string[] }>(`/api/documents/${d.document.id}/text`).then((r) => setPages(r.pages)).catch(() => setPages([]));
+  }, [d.document.id]);
+  const terms = highlightTerms(d, focus);
+  const norm = (t: string) => t.replace(/\s+/g, " ").trim();
+  return (
+    <div className="source">
+      <div className="seg" role="tablist" aria-label="Source view">
+        <button role="tab" aria-selected={view === "evidence"} onClick={() => setView("evidence")}>Evidence in PDF text</button>
+        <button role="tab" aria-selected={view === "pdf"} onClick={() => setView("pdf")}>Original PDF</button>
+      </div>
+      {view === "pdf" ? (
+        <iframe title="Source PDF" src={`/api/documents/${d.document.id}/pdf`} />
+      ) : (
+        <div className="paper" aria-label="PDF text with highlighted evidence">
+          {pages === null && <p className="muted">Loading document text...</p>}
+          {pages?.map((p, pi) => (
+            <div key={pi}>
+              <div className="pageno">Page {pi + 1}</div>
+              {p.split("\n").map((ln, i) => {
+                const hit = terms.some((t) => norm(t) && norm(ln).includes(norm(t)) || (norm(t).includes(norm(ln)) && norm(ln).length > 8));
+                const focused = focus?.evidence && norm(ln).includes(norm(focus.evidence));
+                return <div key={i} className={`pl ${hit ? "hl" : ""} ${focused ? "focus" : ""}`}>{ln || " "}</div>;
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+type Act = (issue: Issue, action: string, reason: string, params: Record<string, unknown>) => Promise<void>;
+
+function IssueCard({ issue, onAct, role, focused, onFocus }: { issue: Issue; onAct?: Act; role: Role; focused: boolean; onFocus: () => void }) {
+  const [reason, setReason] = useState("");
+  const [value, setValue] = useState("");
+  const [sku, setSku] = useState(issue.candidate_skus?.[0] ?? "");
+  const [save, setSave] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const resolved = issue.status === "resolved";
+  const canAct = onAct && !resolved && role !== "viewer";
+  async function run(action: string) {
+    if (!onAct) return;
+    setBusy(true);
+    try {
+      const params: Record<string, unknown> = {};
+      if (action === "apply_mapping") params.save_for_future = save;
+      if (action === "map_item") params.sku = sku;
+      if (action === "change_quantity" || action === "correct_price") params.value = value;
+      await onAct(issue, action, reason, params);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <article className={`issue ${resolved ? "resolved" : "open"} ${focused ? "focused" : ""}`} onClick={onFocus}
+      aria-label={`${issue.title}, ${resolved ? "resolved" : "open"}`}>
+      <header>
+        <span className={`dot ${resolved ? "ok" : "warn"}`} aria-hidden />
+        <h4>{issue.title}</h4>
+        <span className={`pill ${resolved ? "ok" : "warn"}`}>{resolved ? "Resolved" : "Held"}</span>
+      </header>
+      <p>{issue.message}</p>
+      <dl>
+        <div><dt>Printed on PO</dt><dd>{issue.printed_value ?? "—"}</dd></div>
+        <div><dt>Reference</dt><dd>{issue.reference_value ?? "—"}{issue.reference_version && <small> ({issue.reference_version})</small>}</dd></div>
+        <div><dt>Proposed action</dt><dd>{issue.proposed_action ?? "Reviewer decides"}</dd></div>
+        <div><dt>Who decided</dt><dd>{issue.resolution
+          ? <>{issue.resolution.actor.split(":")[1]} ({issue.resolution.role}): {ACTION_LABEL[issue.resolution.action] ?? issue.resolution.action}{issue.resolution.reason && <> — “{issue.resolution.reason}”</>}</>
+          : "Not yet decided"}</dd></div>
+      </dl>
+      {canAct && (
+        <div className="decide" onClick={(e) => e.stopPropagation()}>
+          {issue.actions.some((a) => a === "change_quantity" || a === "correct_price") && (
+            <input aria-label="New value" placeholder="New value" value={value} onChange={(e) => setValue(e.target.value)} />
+          )}
+          {issue.actions.includes("map_item") && (
+            <select aria-label="Product" value={sku} onChange={(e) => setSku(e.target.value)}>
+              {issue.candidate_skus?.map((s) => <option key={s}>{s}</option>)}
+            </select>
+          )}
+          {issue.actions.includes("apply_mapping") && (
+            <label className="check"><input type="checkbox" checked={save} onChange={(e) => setSave(e.target.checked)} /> Save for future matching orders (needs administrator activation)</label>
+          )}
+          <input aria-label="Reason" placeholder="Reason (recorded in the audit trail)" value={reason} onChange={(e) => setReason(e.target.value)} />
+          <div className="btns">
+            {issue.actions.map((a) => (
+              <button key={a} disabled={busy} className={a === "reject_order" ? "ghost danger" : "primary"} onClick={() => run(a)}>
+                {ACTION_LABEL[a] ?? a}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </article>
+  );
+}
+
+export function OrderView({ d, role, onAct, onApprove, onRetry, highlight }: {
+  d: DocDetail; role: Role; onAct?: Act; onApprove?: () => void; onRetry?: () => void; highlight?: string;
+}) {
+  const [focus, setFocus] = useState<Issue | null>(null);
+  const o = d.order;
+  const v = o?.validation.order;
+  const issues = o?.validation.issues ?? [];
+  const isAi = d.latest_version?.payload.extractor.is_ai;
+  const lastDelivery = o?.deliveries.at(-1);
+  return (
+    <div className={`order ${highlight ?? ""}`}>
+      <div className="order-head">
+        <div>
+          <div className="eyebrow">Purchase order from {d.envelope.sender ?? "unknown sender"}</div>
+          <h3>{v?.po_number ?? d.latest_version?.payload.header.po_number?.value ?? `Document #${d.document.id}`}
+            {v?.customer_name && <span className="sub"> · {v.customer_name} ({v.customer_id ?? "unknown"})</span>}</h3>
+        </div>
+        <div className="pills">
+          <Pill map={PROCESS_LABEL} value={d.document.status} prefix="Processing" />
+          {o && <Pill map={REVIEW_LABEL} value={o.review_state} prefix="Approval" />}
+          {o && <Pill map={DELIVERY_LABEL} value={o.delivery_state} prefix="ERP delivery" />}
+        </div>
+      </div>
+      <Timeline d={d} />
+      {d.latest_version && (
+        <p className={`extractor ${isAi ? "ai" : "test"}`}>
+          {isAi ? `Read by AI: ${d.latest_version.payload.extractor.name}. Every value is checked against the PDF text.`
+            : `${d.latest_version.payload.extractor.name}. Rehearsal only; this is not AI extraction.`}
+        </p>
+      )}
+      {d.document.status_detail && <div className={`alert ${d.document.status === "duplicate" ? "warn" : "bad"}`}>{d.document.status_detail}</div>}
+      {IN_FLIGHT.has(d.document.status) && <div className="alert info pulse">The agent is working on this order…</div>}
+
+      {o && (
+        <div className="review-grid">
+          <div>
+            {issues.length > 0 ? (
+              <section aria-label="Issues">
+                <h4 className="section">{issues.filter((i) => i.status === "open").length} of {issues.length} issues need a decision</h4>
+                {issues.map((i) => (
+                  <IssueCard key={i.key} issue={i} role={role} onAct={onAct} focused={focus?.key === i.key} onFocus={() => setFocus(i)} />
+                ))}
+              </section>
+            ) : (
+              <div className="allclear">All business rules passed. No issues.</div>
+            )}
+            {o.review_state === "ready" && (
+              <div className="approve">
+                <p>Review-all mode: this clean order waits for a person. Approving it sends it to the ERP automatically.</p>
+                {onApprove && role !== "viewer" && <button className="primary big" onClick={onApprove}>Approve order</button>}
+              </div>
+            )}
+            <h4 className="section">Order lines</h4>
+            <div className="scroll">
+              <table className="lines">
+                <thead><tr><th>Line</th><th>Item</th><th>Qty</th><th>Price</th><th>Amount</th><th>Status</th></tr></thead>
+                <tbody>
+                  {v?.lines.map((l) => {
+                    const open = issues.some((i) => i.line_index === l.line_index && i.status === "open");
+                    return (
+                      <tr key={l.line_index}>
+                        <td>{l.source_line_id}</td>
+                        <td>{l.description}<div className="muted small">{l.sku ?? "unmatched"} · printed {l.printed_gtin ?? l.customer_item_code}{l.gtin && l.gtin !== l.printed_gtin ? ` → ${l.gtin}` : ""}</div></td>
+                        <td>{l.quantity ?? l.original_quantity} {l.unit ?? l.original_unit}{l.original_unit && l.unit && l.original_unit !== l.unit && <div className="muted small">printed {l.original_quantity} {l.original_unit}</div>}</td>
+                        <td>{l.unit_price ?? l.printed_unit_price}</td>
+                        <td>{l.line_amount ?? l.printed_line_amount}</td>
+                        <td>{l.resolved_by?.type === "memory_rule"
+                          ? <span className="pill memory" title={l.resolved_by.text}>Fixed by memory</span>
+                          : open ? <span className="pill warn">Held</span> : <span className="pill ok">OK</span>}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {v?.lines.filter((l) => l.resolved_by).map((l) => (
+              <p key={l.line_index} className={`provenance ${l.resolved_by!.type}`}>Line {l.source_line_id}: {l.resolved_by!.text}</p>
+            ))}
+            <div className="totals">
+              <span>Printed total <b>{v?.totals.printed_total ?? "—"} {v?.currency}</b></span>
+              <span>Calculated <b>{v?.totals.computed_total}</b></span>
+              <span className="muted small">Decimal arithmetic, {v?.totals.rounding}</span>
+            </div>
+            {(o.erp_order_id || lastDelivery) && (
+              <section className={`erp ${o.delivery_state}`} aria-label="ERP record">
+                <div className="eyebrow">ERP simulator (local, not a live ERP)</div>
+                {o.erp_order_id ? <h3>ERP order {o.erp_order_id}</h3> : <h3>{DELIVERY_LABEL[o.delivery_state]?.[0]}</h3>}
+                <p className="muted small">Approved version {o.approvals.at(-1)?.version} by {o.approvals.at(-1)?.kind === "system" ? `system policy (${o.approvals.at(-1)?.policy_mode.replace("_", "-")})` : o.approvals.at(-1)?.actor.split(":")[1]}. Idempotency key {lastDelivery?.idempotency_key}.</p>
+                <ul className="attempts">
+                  {o.deliveries.map((a) => <li key={a.id}><span className={`pill ${DELIVERY_LABEL[a.state]?.[1]}`}>{DELIVERY_LABEL[a.state]?.[0]}</span> attempt {a.id}: {a.detail}</li>)}
+                </ul>
+                {["failed", "unknown"].includes(o.delivery_state) && onRetry && role !== "viewer" && (
+                  <button className="primary" onClick={onRetry}>Check ERP and retry safely</button>
+                )}
+              </section>
+            )}
+          </div>
+          <SourcePanel d={d} focus={focus} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+export { PEOPLE };

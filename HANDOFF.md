@@ -9,7 +9,10 @@ Purpose: a working prototype to show leadership how the forwarded-email/PDF orde
 
 Video moments to mirror (owner-supplied): 0:19-0:31 automated extraction and entry; 0:34-0:38 business rule validation; 0:36-0:44 MOQ check; 0:45-0:53 price verification; 0:54-1:04 outdated GTIN; 1:05-1:10 learning from corrections. Our learning is approved, scoped rule reuse with an administrator gate (DECISIONS.md D03), not autonomous retraining. Present it as "agent memory with provenance".
 
-## State at handoff (2026-10-15)
+## Update (2026-10-15, second session)
+Branch `claude/gifted-faraday-o6apzv`. PR #1 was merged with only Slice 1; Slice 2 and this file were brought over from `claude/funny-maxwell-20w31v`. Slices 3-7 and the click-through guided demo (owner confirmed: click through without a presenter) are done. `scripts/verify.sh` passes: 47 backend tests, typecheck, build, 3 Playwright tests including the full 15-step demo with screenshots in docs/screenshots/. Not yet done: a live-Gemini rehearsal of the demo (needs GEMINI_API_KEY as an environment secret) and an owner walkthrough on a projector.
+
+## Original state at first handoff (2026-10-15)
 Branch `claude/funny-maxwell-20w31v`, draft PR https://github.com/nuggetswise/pdf/pull/1.
 
 Done:

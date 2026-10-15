@@ -21,7 +21,7 @@
 - Frontend start: `cd frontend && npm run dev` (open http://localhost:3000)
 - End-to-end (deterministic, test adapter): `cd frontend && npx playwright test`
 - Regenerate fictional fixtures: `backend/.venv/bin/python scripts/generate_fixtures.py`
-- Single verify command: not yet created (Slice 7).
+- Single verify command: `scripts/verify.sh` (backend tests, typecheck, build, Playwright e2e incl. guided demo)
 
 ## Invariants
 - No binary floats for money. Keep currencies, units, original values and versions explicit.

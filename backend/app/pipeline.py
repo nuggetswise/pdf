@@ -7,14 +7,17 @@ from pathlib import Path
 
 from .config import Settings
 from .db import Database, now
+from . import workflow
 from .extraction import Extractor, GeminiBusy, FixtureTestExtractor, GeminiExtractor, normalise, read_pdf_pages
 
 log = logging.getLogger("order_agent.pipeline")
 SYSTEM = "system:order-agent"
 
 
-def get_extractor(settings: Settings) -> Extractor | None:
-    if settings.extractor_mode == "test":
+def get_extractor(settings: Settings, db: Database | None = None) -> Extractor | None:
+    # Rehearsal mode (set by an administrator in the demo) uses the labelled TEST ADAPTER, never presented as AI.
+    rehearsal = db is not None and workflow.get_setting(db, "rehearsal_mode") == "on"
+    if settings.extractor_mode == "test" or rehearsal:
         return FixtureTestExtractor()
     if settings.gemini_api_key and settings.gemini_model:
         return GeminiExtractor(settings.gemini_api_key, settings.gemini_model,
@@ -41,7 +44,7 @@ def process_document(db: Database, settings: Settings, doc_id: int) -> None:
         _set_status(db, doc_id, "unsupported",
                     "No native text found (scanned or image-only PDF). No OCR adapter is configured.")
         return
-    extractor = get_extractor(settings)
+    extractor = get_extractor(settings, db)
     if extractor is None:
         _set_status(db, doc_id, "extraction_unavailable",
                     "Extraction unavailable: no LLM credentials configured. Nothing was simulated.")
@@ -66,6 +69,7 @@ def process_document(db: Database, settings: Settings, doc_id: int) -> None:
         db.audit(conn, "document", doc_id, "extracted", SYSTEM,
                  {"extractor": extractor.name, "is_ai": extractor.is_ai, "lines": len(result["lines"])})
     log.info("extracted document=%s lines=%s extractor_ai=%s", doc_id, len(result["lines"]), extractor.is_ai)
+    workflow.process_after_extraction(db, doc_id)
 
 
 def reset_for_retry(db: Database, doc_id: int, actor: str) -> bool:
@@ -86,3 +90,10 @@ def resume_pending(db: Database, settings: Settings) -> None:
             "SELECT id FROM source_documents WHERE status IN ('received', 'extracting') ORDER BY id")]
     for doc_id in ids:
         process_document(db, settings, doc_id)
+    with db.connect() as conn:
+        stalled = [r["id"] for r in conn.execute(
+            "SELECT d.id FROM source_documents d LEFT JOIN orders o ON o.document_id = d.id"
+            " WHERE d.status IN ('extracted', 'matching', 'validating') AND o.document_id IS NULL ORDER BY d.id")]
+    for doc_id in stalled:
+        workflow.process_after_extraction(db, doc_id)
+    workflow.recover_deliveries(db)

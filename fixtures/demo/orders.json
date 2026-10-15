@@ -32,6 +32,25 @@
      "lines": [
        {"line": "C", "gtin": "OLD-DEMO-003", "description": "Demo trail mix case", "quantity": "3", "unit": "CASE", "unit_price": "18.00", "amount": "54.00"}
      ],
-     "subtotal": "54.00", "tax": "0.00", "shipping": "0.00", "total": "54.00"}
+     "subtotal": "54.00", "tax": "0.00", "shipping": "0.00", "total": "54.00"},
+    {"file": "VIDEO-DEMO-004", "purpose": "Same customer and OLD-DEMO-003 after the memory rule is revoked; must stay held",
+     "customer_name": "Northfield Demo Retail", "customer_id": "DEMO-CUST-01", "supplier": "Marlow Demo Foods",
+     "po_number": "VIDEO-DEMO-004", "ship_to_id": "DEMO-DC-01", "order_date": "2026-10-16",
+     "requested_delivery_date": "2026-10-23", "currency": "CAD",
+     "sender": "orders@northfield-demo.example", "subject": "PO VIDEO-DEMO-004",
+     "lines": [
+       {"line": "C", "gtin": "OLD-DEMO-003", "description": "Demo trail mix case", "quantity": "2", "unit": "CASE", "unit_price": "18.00", "amount": "36.00"}
+     ],
+     "subtotal": "36.00", "tax": "0.00", "shipping": "0.00", "total": "36.00"},
+    {"file": "VIDEO-DEMO-005", "purpose": "Clean order: held for human approval in Review-all mode; used for safe retry",
+     "customer_name": "Northfield Demo Retail", "customer_id": "DEMO-CUST-01", "supplier": "Marlow Demo Foods",
+     "po_number": "VIDEO-DEMO-005", "ship_to_id": "DEMO-DC-01", "order_date": "2026-10-16",
+     "requested_delivery_date": "2026-10-24", "currency": "CAD",
+     "sender": "orders@northfield-demo.example", "subject": "PO VIDEO-DEMO-005",
+     "lines": [
+       {"line": "A", "gtin": "DEMO-GTIN-A01", "description": "Demo granola case", "quantity": "12", "unit": "CASE", "unit_price": "24.00", "amount": "288.00"},
+       {"line": "B", "gtin": "DEMO-GTIN-B02", "description": "Demo cracker case", "quantity": "3", "unit": "CASE", "unit_price": "24.00", "amount": "72.00"}
+     ],
+     "subtotal": "360.00", "tax": "0.00", "shipping": "0.00", "total": "360.00"}
   ]
 }

@@ -37,3 +37,23 @@ D16 Identical files (same SHA-256) are stored as "duplicate" linked to the origi
 D17 Storage: original .eml and PDFs are stored by content hash under data/files; the uploaded filename is display-only and sanitised. Limits: 10 MB PDF, 20 MB email, 50 pages.
 
 D18 Headless browser screenshots do not render the embedded PDF (headless Chromium has no PDF viewer). In a normal browser the PDF shows beside the fields.
+
+D19 Validation is deterministic code (backend/app/validation.py) with a policy table: every issue code blocks approval until a recorded decision resolves it. A decision resolves an issue only while the issue's printed and reference values are unchanged (fingerprint), so an edit re-opens checks. Reverse: change POLICY in validation.py.
+
+D20 Each decision creates a new order version; approval binds to one version and any later version invalidates it. Printed values are never changed; edits are stored as overrides and derived totals are recalculated, with printed totals kept and differences raised as issues.
+
+D21 Resolving the final exception counts as the reviewer's approval of that version, and delivery starts automatically (no Send button). This applies in both modes. In Review-all mode a clean order needs an explicit "Approve order" click; in Exception-only mode a clean order with no human decisions is approved by the system, recording the policy version.
+
+D22 Demo roles are a request header chosen in the UI (Reviewer, Administrator, Viewer), labelled "demo-only sign-in". Only Administrator may change the mode, activate or revoke memory, change simulator toggles, import reference data or reset. Not real security.
+
+D23 ERP simulator lives in the same SQLite file but in its own tables (erp_sim_orders) with its own IDs (SIM-ERP-100001...). Idempotency key = first 16 characters of the document hash + approved version. Before every submission, and on every retry or restart, the agent first looks the key up in the ERP (reconciliation). Toggles "fail next" and "time out after creating" simulate outages.
+
+D24 Agent memory holds identifier mappings only (candidate, active, revoked), scoped to one customer and the reference version it was approved against. A rule is applied when an order is first validated; activation never changes orders already processed. If reference data gets a new version, the rule is not reused until revalidated. Price and MOQ exceptions are never offered as reusable.
+
+D25 Added fictional fixtures VIDEO-DEMO-004 (Northfield, OLD-DEMO-003, used after revocation) and VIDEO-DEMO-005 (clean order for Review-all and safe retry), because the acceptance demo needs a new order after revocation and a clean order in Review-all mode, and re-sending an identical file is correctly a duplicate.
+
+D26 Guided demo: owner confirmed "click through without a presenter". Each step's first click performs the real action and waits for the real state; the next click moves on. Play/Pause autoplays the same steps. Starting the demo resets the prototype. Live AI start is offered only when a Gemini key is configured; rehearsal mode is an administrator setting that switches extraction to the TEST ADAPTER, labelled "not AI" in the top bar, on the order and in the start button.
+
+D27 The review screen shows the PDF's own text with the extraction evidence highlighted, next to a tab with the original PDF. This works in every browser, including headless test browsers (D18), and makes evidence easy to see on a projector.
+
+D28 Reference data can be replaced by an administrator via POST /api/reference-data; it must carry a new reference_version. It is stored in the database; reset returns to fixtures/reference-data.v1.json.
