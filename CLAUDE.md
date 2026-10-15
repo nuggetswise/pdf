@@ -13,12 +13,13 @@
 - Implement the documented acceptance checks; do not weaken them to manufacture success.
 - Keep this file concise. Add actual verified start/build/test/verify commands after setup.
 
-## Verified commands (Slice 1)
+## Verified commands (Slices 1-2)
 - Backend setup: `python3 -m venv backend/.venv && backend/.venv/bin/pip install -r backend/requirements.lock`
 - Backend tests: `cd backend && .venv/bin/python -m pytest -q`
 - Backend start: `backend/.venv/bin/uvicorn app.main:app --app-dir backend --port 8000`
 - Frontend setup/build: `cd frontend && npm ci && npm run typecheck && npm run build`
 - Frontend start: `cd frontend && npm run dev` (open http://localhost:3000)
+- End-to-end (deterministic, test adapter): `cd frontend && npx playwright test`
 - Regenerate fictional fixtures: `backend/.venv/bin/python scripts/generate_fixtures.py`
 - Single verify command: not yet created (Slice 7).
 
