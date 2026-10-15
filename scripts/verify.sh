@@ -8,7 +8,13 @@ cd "$(dirname "$0")/.."
 echo "== 1/5 Backend tests =="
 (cd backend && .venv/bin/python -m pytest -q)
 
-echo "== 2/5 Frontend unit tests (Vitest) =="
+echo "== 2/5 Frontend unit tests (Vitest, incl. Python parity) =="
+# The parity file must still match what the Python prototype produces today.
+parity_tmp="$(mktemp)"
+backend/.venv/bin/python scripts/validation_parity.py "$parity_tmp"
+cmp -s "$parity_tmp" frontend/lib/domain/__fixtures__/validation-parity.json \
+  || { echo "validation-parity.json is stale: run backend/.venv/bin/python scripts/validation_parity.py"; exit 1; }
+rm -f "$parity_tmp"
 (cd frontend && npm run -s test)
 
 echo "== 3/5 Frontend typecheck =="

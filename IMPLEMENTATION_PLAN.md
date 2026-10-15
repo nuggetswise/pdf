@@ -179,4 +179,12 @@ Rebuild slice 1: scaffold and RunState schema
 - [x] Vitest: the export parses unchanged; JSON-number money, malformed decimals, unknown fields and unknown states are rejected
 - [x] Vitest added to scripts/verify.sh
 
-Remaining rebuild slices: 2 pure domain port with Python parity, 3 workflow port, 4 browser intake and Gemini route, 5 UI switch-over (Playwright parity gate), 6 Vercel deploy, 7 retire Python.
+Rebuild slice 2: pure domain port with Python parity
+- [x] money.ts: exact decimal that behaves like Python's decimal module (28 digits, kept exponents, half-even context, half-up cents)
+- [x] normalise.ts and validation.ts, with POLICY and TITLES copied verbatim
+- [x] pyjson.ts: Python json.dumps output, used for issue fingerprints and the parity check
+- [x] scripts/validation_parity.py records Python output for every fixture, the regression sample and edge cases (all 17 issue codes)
+- [x] Vitest compares TypeScript output with Python byte for byte; verify.sh fails if the Python side is stale
+- [x] Guard test: no Number(), parseFloat, toFixed or Math.round in lib/domain
+
+Remaining rebuild slices: 3 workflow port, 4 browser intake and Gemini route, 5 UI switch-over (Playwright parity gate), 6 Vercel deploy, 7 retire Python.

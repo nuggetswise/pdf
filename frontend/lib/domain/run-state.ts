@@ -145,7 +145,7 @@ export const Issue = z.strictObject({
   message: z.string(),
   line_index: maybe(z.number().int().nonnegative()),
   printed_value: maybe(text),
-  reference_value: maybe(z.string()),
+  reference_value: maybe(z.union([z.string(), z.array(z.string())])),
   reference_version: maybe(z.string()),
   proposed_action: maybe(z.string()),
   evidence: maybe(text),

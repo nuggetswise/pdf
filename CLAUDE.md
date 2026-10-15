@@ -22,6 +22,7 @@
 - Frontend start: `cd frontend && npm run dev` (open http://localhost:3000)
 - End-to-end (deterministic, test adapter): `cd frontend && npx playwright test`
 - Regenerate fictional fixtures: `backend/.venv/bin/python scripts/generate_fixtures.py`
+- Regenerate the Python side of the TypeScript parity check: `backend/.venv/bin/python scripts/validation_parity.py`
 - Export SQLite state as RunState JSON: `backend/.venv/bin/python scripts/export_run_state.py <sqlite> <out.json>`
 - Single verify command: `scripts/verify.sh` (backend tests, Vitest, typecheck, build, Playwright e2e incl. guided demo)
 

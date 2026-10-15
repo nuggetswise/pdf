@@ -63,3 +63,9 @@ D29 Vercel rebuild, RunState naming: the run's own records use camelCase; payloa
 D30 RunState holds page text, never PDF bytes or server file paths. Money and quantities are strings; computed values must match a decimal pattern, and printed values stay as untrusted text. Role moves into RunState.settings (still demo-only, D22).
 
 D31 Vitest 4.1.11 instead of 5.x: npm 10 cannot add Vitest 5 to this project (an npm resolver crash), and the lockfile was written with npm 11. `npm ci` on npm 10 installs it fine. @types/node moved from 22.10.7 to 22.19.1 because Vitest's Vite needs at least 22.12. Reverse: bump the versions in frontend/package.json.
+
+D32 Money in TypeScript uses our own small exact decimal (frontend/lib/domain/money.ts, BigInt coefficient plus exponent) instead of decimal.js, which was removed. decimal.js drops trailing zeros ("2.50" becomes "2.5") and does not follow Python's division and precision rules, so its output could not match the Python prototype character for character. The class mirrors Python's default decimal context: 28 significant digits, ROUND_HALF_EVEN for arithmetic and bare quantize, and money() rounds cents with ROUND_HALF_UP (D07).
+
+D33 Known, deliberate differences from Python in the port: NaN and Infinity in a document are treated as unreadable (Python kept them and would then crash in a comparison); a number that cannot be represented is never guessed. A model answer that returns a JSON float such as 24.0 instead of a string would print as "24" here and "24.0" in Python; the extraction schema requires strings, so this does not arise.
+
+D34 Kept for parity, flagged for review: the agreed-price check rounds the printed unit price half-even (Python's bare quantize), while the order records it rounded half-up. A printed 24.005 against an agreed 24.00 passes the price check but is recorded as 24.01. Changing this is a business-rule decision, to be made after the cutover.
