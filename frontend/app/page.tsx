@@ -17,7 +17,9 @@ export default function Page() {
 
 function App() {
   const [tab, setTab] = useState<Tab>("work");
-  const [role, setRole] = useState<Role>("reviewer");
+  // One signed-in user with full rights. Switching to a restricted demo user stays possible (role checks are
+  // an acceptance check, P15) but is tucked away so it is not the first thing a supplier sees.
+  const [role, setRole] = useState<Role>("administrator");
   const agent = useAgent();
   const health = useHealth();
   const summary = agent.ready ? summarise(agent.state) : null;
@@ -37,12 +39,15 @@ function App() {
         </span>
         <span className={`pill ${health?.rehearsal_mode || health?.extractor_mode === "test" ? "warn" : health?.extraction === "available" ? "ok" : "bad"}`}>{extraction}</span>
         <span className="pill muted">ERP and Trading Grid: simulated</span>
-        <label className="role">Signed in as
-          <select value={role} onChange={(e) => setRole(e.target.value as Role)} aria-label="Demo role">
-            {(["reviewer", "administrator", "viewer"] as Role[]).map((r) => <option key={r} value={r}>{PEOPLE[r]}</option>)}
-          </select>
-          <small>demo-only sign-in</small>
-        </label>
+        <details className="role">
+          <summary>Signed in as {PEOPLE[role]}</summary>
+          <label>Switch demo user
+            <select value={role} onChange={(e) => setRole(e.target.value as Role)} aria-label="Demo role">
+              {(["administrator", "reviewer", "viewer"] as Role[]).map((r) => <option key={r} value={r}>{PEOPLE[r]}</option>)}
+            </select>
+          </label>
+          <small>Only to show that a viewer cannot approve and a reviewer cannot change settings.</small>
+        </details>
       </header>
       {error && <div className="alert bad" role="alert">{error}</div>}
       {agent.storageWarning && <div className="alert warn" role="status">{agent.storageWarning}</div>}

@@ -7,8 +7,8 @@ test("forwarded email is processed automatically and shows evidence", async ({ p
   await page.getByRole("tab", { name: "Inbox & review" }).click();
   await expect(page.getByText("No orders yet")).toBeVisible();
 
-  await page.getByLabel("Demo email").selectOption("VIDEO-DEMO-001");
-  await page.getByRole("button", { name: "Forward to agent" }).click();
+  await page.getByLabel("Sample purchase order").selectOption("VIDEO-DEMO-001");
+  await page.getByRole("button", { name: "Open sample" }).click();
 
   // No Extract button: processing runs through matching and validation on its own.
   await expect(page.locator(".issue")).toHaveCount(3);
@@ -19,6 +19,6 @@ test("forwarded email is processed automatically and shows evidence", async ({ p
   await page.screenshot({ path: "../docs/screenshots/slice2-inbox.png", fullPage: true });
 
   // Identical file again is flagged as a duplicate, not reprocessed.
-  await page.getByRole("button", { name: "Forward to agent" }).click();
+  await page.getByRole("button", { name: "Open sample" }).click();
   await expect(page.locator(".mail").first()).toContainText("Duplicate file");
 });

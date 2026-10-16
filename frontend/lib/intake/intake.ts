@@ -49,9 +49,18 @@ export async function intakeUpload(pdf: Uint8Array, filename: string | null, fie
 }
 
 /** The bundled fictional demo inbox, served from public/demo/. Any other name is refused. */
-export const DEMO_EMAILS = ["DEMO-PO-001", "VIDEO-DEMO-001", "VIDEO-DEMO-002", "VIDEO-DEMO-003", "VIDEO-DEMO-004",
+export const DEMO_EMAILS = ["VIDEO-DEMO-001", "VIDEO-DEMO-002", "VIDEO-DEMO-003", "VIDEO-DEMO-004",
   "VIDEO-DEMO-005"] as const;
 export type DemoEmail = (typeof DEMO_EMAILS)[number];
+
+/** What each sample shows, in the words a supplier would use. */
+export const SAMPLE_LABELS: Record<DemoEmail, string> = {
+  "VIDEO-DEMO-001": "Order with 3 problems (price, minimum quantity, retired item)",
+  "VIDEO-DEMO-002": "Repeat order the agent fixes from memory",
+  "VIDEO-DEMO-003": "Another retailer, same retired item",
+  "VIDEO-DEMO-004": "Order after a memory rule is turned off",
+  "VIDEO-DEMO-005": "Clean order, no problems",
+};
 
 export function demoEmailPath(name: string): string | null {
   return (DEMO_EMAILS as readonly string[]).includes(name) ? `/demo/${name}.eml` : null;

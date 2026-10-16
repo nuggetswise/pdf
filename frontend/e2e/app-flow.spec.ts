@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { asRole } from "./helpers";
 
 // The whole story through the real app, as a user would click it (replaces the guided demo): upload a PDF,
 // exception review, automatic delivery, Exception-only mode, agent memory reuse and scope, revocation,
@@ -12,7 +13,7 @@ test("a user runs the order desk end to end", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("tab", { name: "Inbox & review", selected: true })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Guided demo" })).toHaveCount(0);
-  const role = (r: string) => page.getByLabel("Demo role").selectOption(r);
+  const role = (r: "administrator" | "reviewer" | "viewer") => asRole(page, r);
   const card = (title: string) => page.locator(".issue", { hasText: title });
   const upload = (name: string) => page.getByLabel("Upload a purchase order").setInputFiles(PDF(name));
 
