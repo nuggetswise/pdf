@@ -136,3 +136,11 @@ D49 Phase 2, Act 1 (owner plan 2026-10-16): every order shows "If you retyped th
 - A Supplier/Retailer toggle at the top replaces the split screen. Supplier workspace: Today, Orders, Agent memory, ERP records, Trading Grid outbox, Settings. Retailer workspace: Documents received, Suppliers.
 - Today shows a live flow ribbon (forwarded, read, checked, in ERP, sent to retailer), what needs a person, and what the agent handled alone.
 - Colours: Cobalt Blue #001889 and Electric Blue #0075FC, from public brand listings (not verified against brandcentral.opentext.com). Icons from lucide-react.
+
+## D56 — Real product only, no demo controls (2026-10-16)
+Mandip: no demo mode. Removed from the screen: the Exception-only/Review-all badge, the retype-cost panel and
+risk lines, the chargeback KPI, the prefilled reply and the hardcoded carrier/tracking (the supplier now enters both
+when marking shipped). Automation stays as one plain Settings choice ("When an order passes every check"), since
+both modes are acceptance requirements. Rehearsal, ERP-failure simulation and clearing the tab show only when the
+server runs the test adapter, never with the AI, so the acceptance tests keep exercising them. Each order now shows
+who emailed it, when, and that it was forwarded to the agent address. Retype-cost figures move to talking points.

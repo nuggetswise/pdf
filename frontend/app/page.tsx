@@ -5,7 +5,6 @@ import {
 } from "lucide-react";
 import { pilotRows, toCsv } from "../lib/domain/pilot";
 import { summary as summarise } from "../lib/domain/workflow";
-import { manualRouteTotals } from "../lib/domain/manual-route";
 import { PEOPLE, Role } from "./api";
 import { ErpView, MemoryView, SettingsView, Workspace } from "./Panels";
 import { EdiView } from "./Portal";
@@ -13,7 +12,7 @@ import { RetailerInbox, RetailerSuppliers, SupplierToday } from "./LiveView";
 import { RunProvider, useAgent, useHealth } from "./run/RunProvider";
 
 // D55: one product, two audiences. A toggle at the top switches between the supplier's workspace and what the
-// retailer receives; each has its own short navigation. The view is a demo lens; the data underneath is one run.
+// retailer receives; each has its own short navigation. The data underneath is one run.
 type View = "supplier" | "retailer";
 type Tab = "today" | "work" | "memory" | "erp" | "edi" | "settings" | "received" | "suppliers";
 const NAV: Record<View, [Tab, string, LucideIcon, string][]> = {
@@ -23,7 +22,7 @@ const NAV: Record<View, [Tab, string, LucideIcon, string][]> = {
     ["memory", "Agent memory", Brain, "Corrections an administrator approved for reuse"],
     ["erp", "ERP records", Database, "What the agent wrote to your ERP (simulated)"],
     ["edi", "Trading Grid outbox", Outbox, "Every document sent to the retailer, with its X12"],
-    ["settings", "Settings", Settings, "Automation, retailer EDI setup and assumptions"],
+    ["settings", "Settings", Settings, "Approvals, retailer EDI setup and your company details"],
   ],
   retailer: [
     ["received", "Documents received", FileStack, "Standard X12 arriving from suppliers who stay on email"],
@@ -45,9 +44,7 @@ function App() {
   const agent = useAgent();
   const health = useHealth();
   const summary = agent.ready ? summarise(agent.state) : null;
-  const totals = agent.ready ? manualRouteTotals(agent.state) : null;
   const error = agent.serverError;
-  const exceptionOnly = health?.policy.mode === "exception_only";
   const testMode = health?.rehearsal_mode || health?.extractor_mode === "test";
   const extraction = !health ? "…" : testMode ? "Rehearsal: TEST ADAPTER (not AI)"
     : health.extraction === "available" ? `AI: ${health.model}` : "AI unavailable";
@@ -77,18 +74,14 @@ function App() {
           <button aria-pressed={view === "retailer"} onClick={() => switchView("retailer")}><Store size={16} aria-hidden /> Retailer</button>
         </div>
         <div className="mast-right">
-          <span className={`mode ${exceptionOnly ? "exc" : "all"}`} title="Automation mode, set by an administrator">
-            {exceptionOnly ? "Exception-only mode" : "Review-all mode"}
-          </span>
           <span className={`chip ${testMode ? "warn" : health?.extraction === "available" ? "ok" : "bad"}`}>{extraction}</span>
           <details className="role">
             <summary>Signed in as {PEOPLE[role]}</summary>
-            <label>Switch demo user
-              <select value={role} onChange={(e) => setRole(e.target.value as Role)} aria-label="Demo role">
+            <label>Switch user
+              <select value={role} onChange={(e) => setRole(e.target.value as Role)} aria-label="Signed-in user">
                 {(["administrator", "reviewer", "viewer"] as Role[]).map((r) => <option key={r} value={r}>{PEOPLE[r]}</option>)}
               </select>
             </label>
-            <small>Only to show that a viewer cannot approve and a reviewer cannot change settings.</small>
           </details>
         </div>
       </header>
@@ -113,7 +106,6 @@ function App() {
               <Kpi n={summary?.orders_received} label="Orders received" />
               <Kpi n={summary?.delivered_to_erp} label="Delivered to ERP" tone="ok" />
               <Kpi n={summary?.held_for_review} label="Waiting on a person" tone="warn" />
-              <Kpi n={totals ? `USD ${totals.exposureAvoided}` : undefined} label="Chargeback exposure avoided (estimate)" tone="ok" />
               {!!summary?.delivery_problems && <Kpi n={summary.delivery_problems} label="Delivery needs attention" tone="bad" />}
             </div>
           )}

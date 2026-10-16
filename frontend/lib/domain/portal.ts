@@ -252,13 +252,13 @@ export function applySupplierReply(state: RunState, docId: number, text: string,
  * (so a reply that cut a quantity ships the confirmed amount) and the invoice from the ASN. Both go to the retailer
  * with the usual checks; the supplier types neither.
  */
-export function shipFromErp(state: RunState, docId: number, who: Who, clock: Clock = systemClock): RunState {
+export function shipFromErp(state: RunState, docId: number, ship: { carrierScac: string; trackingNumber: string },
+  who: Who, clock: Clock = systemClock): RunState {
   const o = orderFor(state, docId);
   const open = openQuantities(state, docId);
-  const n = (state.portal?.asns.length ?? 0) + 1;
   let s = submitAsn(state, docId, {
     lines: o.validation.order.lines.map((l) => ({ lineIndex: l.line_index, shippedQty: (open.get(l.line_index) ?? Dec.ZERO).toFixedPoint() })),
-    carrierScac: "UPSN", trackingNumber: `1ZDEMO${String(100000 + n)}`,
+    carrierScac: ship.carrierScac, trackingNumber: ship.trackingNumber,
   }, who, clock);
   const asn = s.portal!.asns.filter((a) => a.documentId === docId).at(-1)!;
   s = submitInvoice(s, asn.id, { lines: invoiceLinesFor(s, asn).map((l) => ({ lineIndex: l.lineIndex, quantity: l.quantity })) }, who, clock);

@@ -4,7 +4,7 @@
 // standard EDI as each of those happens. Nothing here is a script; every card is read from the run's state.
 import { useState } from "react";
 import { ArrowRight, CheckCircle2, FileCheck2, Mail, Network, Receipt, ScanText, ShieldCheck, Truck } from "lucide-react";
-import { SAMPLE_LABELS } from "../lib/intake/intake";
+import { SAMPLE_LABELS, SAMPLE_SENDERS } from "../lib/intake/intake";
 import { openQuantities, portalForOrder, repliesFor } from "../lib/domain/portal";
 import { type ReplyPoLine, type SupplierReplyInterpretation, replyRows } from "../lib/domain/reply";
 import type { OutboundMessage, RunState } from "../lib/domain/run-state";
@@ -125,18 +125,22 @@ function Forward() {
   });
   return (
     <div className="forward-box">
+      <p className="how">Retailers keep emailing PDF purchase orders to you as they do today. You forward each one to your
+        agent address, <b>order-agent@supplier-demo.example</b>, or drop the email or PDF here.</p>
+      <div className="forward">
+        <label className="muted small">Your mailbox (fictional)
+          <select value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Sample purchase order">
+            {DEMO_EMAILS.map((n) => <option key={n} value={n}>{SAMPLE_LABELS[n]}</option>)}
+          </select>
+        </label>
+        <span className="muted small">From {SAMPLE_SENDERS[pick as keyof typeof SAMPLE_SENDERS]}</span>
+        <button onClick={() => wrap(() => agent.forwardDemo(pick))}>Forward to agent</button>
+      </div>
       <label className="dropzone small-drop">
         <input type="file" accept=".pdf,application/pdf,.eml,message/rfc822" aria-label="Forward a purchase order"
           onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) add(f); }} />
-        <b>Forward a purchase order</b>
-        <span className="muted small">The retailer's email (.eml) or its PDF. In production the supplier just forwards it to their agent address.</span>
+        <b>Or drop a retailer email (.eml) or PDF</b>
       </label>
-      <div className="forward">
-        <select value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Sample purchase order">
-          {DEMO_EMAILS.map((n) => <option key={n} value={n}>{SAMPLE_LABELS[n]}</option>)}
-        </select>
-        <button onClick={() => wrap(() => agent.forwardDemo(pick))}>Forward sample</button>
-      </div>
       {error && <div className="alert bad" role="alert">{error}</div>}
     </div>
   );
@@ -148,6 +152,11 @@ function SupplierCard({ s, docId, role, onOpen }: { s: RunState; docId: number; 
   const d = s.documents.find((x) => x.id === docId)!;
   const o = s.orders.find((x) => x.documentId === docId);
   const po = o?.validation.order.po_number ?? d.originalFilename ?? `Document ${docId}`;
+  const [scac, setScac] = useState("");
+  const [track, setTrack] = useState("");
+  const env = s.envelopes.find((e) => e.id === d.envelopeId);
+  const via = env?.sender ? `Emailed by ${env.sender}${env.receivedAt ? ` · ${new Date(env.receivedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "UTC" })} UTC` : ""} · forwarded to your agent`
+    : `PDF ${d.originalFilename ?? ""} added by you`;
   const open = o ? o.validation.issues.filter((i) => i.status === "open").length : 0;
   const p = o ? portalForOrder(s, docId) : null;
   const left = o?.erpOrderId ? [...openQuantities(s, docId).values()].some((q) => !q.isZero()) : false;
@@ -166,17 +175,21 @@ function SupplierCard({ s, docId, role, onOpen }: { s: RunState; docId: number; 
         <h4>{po}<span className="sub"> · {o?.validation.order.customer_name ?? "unknown customer"}</span></h4>
         <button className="ghost" onClick={() => onOpen(docId)}>Open order</button>
       </header>
+      <p className="via muted small">{via}</p>
       <p className="state">{state}</p>
       {o?.erpOrderId && !p?.asn && !replied && <ReplyBox o={o} role={role} />}
       {replied && !p?.asn && <p className="muted small">Your reply was confirmed to the retailer.</p>}
       {o?.erpOrderId && left && role !== "viewer" && (
         <div className="btns">
-          <button className="primary" onClick={() => wrap(() => agent.run({ type: "shipFromErp", role, docId }))}>Mark shipped in ERP</button>
+          <input className="qty" aria-label="Carrier SCAC" placeholder="Carrier code" value={scac} onChange={(e) => setScac(e.target.value.toUpperCase())} />
+          <input aria-label="Tracking number" placeholder="Tracking number" value={track} onChange={(e) => setTrack(e.target.value)} />
+          <button className="primary" disabled={!scac.trim() || !track.trim()}
+            onClick={() => wrap(() => agent.run({ type: "shipFromErp", role, docId, carrierScac: scac.trim(), trackingNumber: track.trim() }))}>Mark shipped in ERP</button>
           <span className="muted small">The agent sends the ship notice and the invoice from what shipped.</span>
         </div>
       )}
       {p?.shipments.map((x) => (
-        <p key={x.asn.id} className="muted small">Shipped {x.asn.lines.filter((l) => !l.shippedQty.startsWith("0")).length} line(s) on {x.asn.despatchDate}: {x.asn.asnNumber}{x.invoice ? ` and invoice ${x.invoice.invoiceNumber}` : ""} sent to the retailer. You typed nothing.</p>
+        <p key={x.asn.id} className="muted small">Shipped {x.asn.lines.filter((l) => !l.shippedQty.startsWith("0")).length} line(s) on {x.asn.despatchDate}: {x.asn.asnNumber}{x.invoice ? ` and invoice ${x.invoice.invoiceNumber}` : ""} sent to the retailer.</p>
       ))}
       {error && <div className="alert bad" role="alert">{error}</div>}
     </article>
@@ -186,18 +199,9 @@ function SupplierCard({ s, docId, role, onOpen }: { s: RunState; docId: number; 
 const poLines = (o: Order): ReplyPoLine[] => o.validation.order.lines.map((l) => ({ sourceLineId: l.source_line_id,
   description: l.description, quantity: l.quantity, unit: l.unit, unitPrice: l.unit_price }));
 
-/** A believable first draft so the demo has something to read; the user can type anything instead. */
-function sampleReply(o: Order): string {
-  const [a, b] = o.validation.order.lines;
-  const changes: string[] = [];
-  if (a?.quantity && Number(a.quantity) > 1) changes.push(`we can only do ${Number(a.quantity) - 1} not ${a.quantity} on line ${a.source_line_id}`);
-  if (b?.unit_price) changes.push(`line ${b.source_line_id} price is now ${(Number(b.unit_price) + 1.5).toFixed(2)} a case`);
-  return `Hi, thanks for the PO. ${changes.length ? `Heads up: ${changes.join(", and ")}. ` : ""}Ships Monday.`;
-}
-
 function ReplyBox({ o, role }: { o: Order; role: Role }) {
   const agent = useAgent();
-  const [text, setText] = useState(() => sampleReply(o));
+  const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [interp, setInterp] = useState<SupplierReplyInterpretation | null>(null);
   const { error, wrap } = useWrap();
@@ -217,7 +221,7 @@ function ReplyBox({ o, role }: { o: Order; role: Role }) {
   return (
     <div className="reply" aria-label="Reply to the retailer">
       <label>Reply to the retailer, in your own words
-        <textarea rows={3} value={text} aria-label="Supplier's reply" onChange={(e) => { setText(e.target.value); setInterp(null); }} />
+        <textarea rows={3} value={text} aria-label="Supplier's reply" placeholder="Paste or type what you would tell the buyer, in your own words." onChange={(e) => { setText(e.target.value); setInterp(null); }} />
       </label>
       <div className="btns"><button onClick={read} disabled={busy || !text.trim()}>{busy ? "Reading…" : "Read reply"}</button>
         <span className="muted small">Only the changes are taken; a clean order needs no reply.</span></div>

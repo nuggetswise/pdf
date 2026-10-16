@@ -67,7 +67,7 @@ describe("applying a reply", () => {
     expect(s.portal!.outbound.some((m) => m.kind === "ERP_ORDER_CHANGE" && m.status === "delivered")).toBe(true);
     expect(openQuantities(s, 1).get(0)!.toFixedPoint()).toBe("4");
 
-    const shipped = shipFromErp(s, 1, REVIEWER, clock);
+    const shipped = shipFromErp(s, 1, { carrierScac: "UPSN", trackingNumber: "1ZTEST100001" }, REVIEWER, clock);
     const p = portalForOrder(shipped, 1);
     expect(p.asn!.lines.map((l) => l.shippedQty)).toEqual(["4", "2", "1"]);
     expect(p.invoice!.lines.map((l) => l.quantity)).toEqual(["4", "2", "1"]);
@@ -79,7 +79,7 @@ describe("applying a reply", () => {
     expect(() => applySupplierReply(replayGuidedDemo(), 1, REPLY, interp, { actor: "viewer:v", role: "viewer" }, clock)).toThrow(Forbidden);
     const more = { ...interp, lines: [{ sourceLineId: "A", quantity: "9", unitPrice: null, evidence: "x" }] };
     expect(() => applySupplierReply(replayGuidedDemo(), 1, REPLY, more, REVIEWER, clock)).toThrow(/more than the 5 ordered/);
-    const shipped = shipFromErp(replayGuidedDemo(), 1, REVIEWER, clock);
+    const shipped = shipFromErp(replayGuidedDemo(), 1, { carrierScac: "UPSN", trackingNumber: "1ZTEST100001" }, REVIEWER, clock);
     expect(() => applySupplierReply(shipped, 1, REPLY, interp, REVIEWER, clock)).toThrow(Conflict);
   });
 });

@@ -21,27 +21,19 @@ test("a user runs the order desk end to end", async ({ page }) => {
   // Administrator switches on Exception-only.
   await role("administrator");
   await page.getByRole("tab", { name: "Settings" }).click();
-  await page.getByLabel("Automation mode").selectOption("exception_only");
+  await page.getByLabel("Clean orders").selectOption("exception_only");
+  await expect(page.getByLabel("Clean orders")).toHaveValue("exception_only");
   await page.getByRole("tab", { name: "Orders" }).click();
-  await expect(page.locator(".mode")).toHaveText("Exception-only mode");
 
   // A reviewer uploads a PDF; three exceptions are held, resolved, and the order goes to the ERP by itself.
   await role("reviewer");
   await upload("VIDEO-DEMO-001");
   await expect(page.locator(".issue.open")).toHaveCount(3);
   await expect(page.locator(".mail").first()).toContainText("VIDEO-DEMO-001.pdf");
-  // Act 1 (D49): what retyping this PDF would have cost, from the errors the agent caught.
-  const manual = page.getByRole("region", { name: "If you retyped this order" });
-  await expect(manual).toContainText("30");
-  await expect(manual).toContainText("USD 54.38");
-  await expect(card("Price differs")).toContainText("Manual route: USD 4.00 at risk.");
-  // The agent's own steps, from this run's data, beside the manual cost; the maths is one click away.
+  // The agent's own steps, from this run's data. No cost estimate is shown in the product.
   const work = page.getByRole("region", { name: "What the Order Agent did" });
   await expect(work).toContainText("found 3 problems");
-  await expect(work).toContainText("0 fields typed by hand, instead of 30");
-  await manual.getByRole("button", { name: "Show the maths" }).click();
-  await expect(manual).toContainText("30 fields × 20 s = 10.0 min");
-  await page.screenshot({ path: "../docs/screenshots/app-00-manual-route-cost.png", fullPage: true });
+  await expect(page.getByText("If you retyped this order")).toHaveCount(0);
   await card("Below minimum order quantity").getByLabel("Reason").fill("Trial quantity agreed (fictional)");
   await card("Below minimum order quantity").getByRole("button", { name: "Allow once (one-off exception)" }).click();
   await card("Price differs").getByLabel("Reason").fill("Promotion (fictional)");
@@ -78,7 +70,7 @@ test("a user runs the order desk end to end", async ({ page }) => {
 
   // Review-all: a clean order waits; one approval sends it; the ERP times out; a safe retry reconciles.
   await page.getByRole("tab", { name: "Settings" }).click();
-  await page.getByLabel("Automation mode").selectOption("review_all");
+  await page.getByLabel("Clean orders").selectOption("review_all");
   await page.getByLabel("ERP simulator next call").selectOption("timeout_next");
   await page.getByRole("tab", { name: "Orders" }).click();
   await upload("VIDEO-DEMO-005");

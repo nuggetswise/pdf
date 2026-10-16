@@ -6,7 +6,6 @@ import { documentDetail, documentsList, erpOrdersList, rulesList } from "../lib/
 import { Health, Issue, PROCESS_LABEL, Role } from "./api";
 import { OrderView } from "./OrderView";
 import { EdiSetting } from "./Portal";
-import { ManualRouteSetting } from "./ManualRoute";
 import { DEMO_EMAILS, useAgent } from "./run/RunProvider";
 
 const who = (actor: string | null) => (actor ? actor.split(":")[1] ?? actor : "—");
@@ -67,7 +66,7 @@ function SessionAdditions() {
     <section className="additions" aria-label="Added in this session">
       <h3>Added in this session</h3>
       <p className="muted">Customers and products a reviewer added from real purchase orders. They are used for validation
-        in this browser tab only (reference version {any ? `${base} + session additions` : base}); Reset demo removes them.
+        in this browser tab only (reference version {any ? `${base} + session additions` : base}).
         The reference data file is not changed.</p>
       {!any && <p className="placeholder">Nothing added yet.</p>}
       {ov && ov.customers.length > 0 && (
@@ -206,17 +205,22 @@ function AdminSettings({ health, onError }: { health: Health; onError: (e: strin
   async function go(f: () => Promise<unknown>) {
     try { await f(); onError(null); } catch (e) { onError((e as Error).message); }
   }
+  const test = health.extractor_mode === "test";
   const setting = (key: "rehearsal_mode" | "erp_failure_mode", value: string) =>
     go(() => agent.run({ type: "setDemoSetting", role: "administrator", key, value }));
   return (
     <div className="admin">
       <h3>Administrator settings</h3>
-      <label>Automation mode
-        <select value={health.policy.mode} onChange={(e) => go(() => agent.run({ type: "setPolicy", role: "administrator", mode: e.target.value }))}>
-          <option value="review_all">Review-all (default)</option>
-          <option value="exception_only">Exception-only</option>
+      <label>When an order passes every check
+        <select aria-label="Clean orders" value={health.policy.mode} onChange={(e) => go(() => agent.run({ type: "setPolicy", role: "administrator", mode: e.target.value }))}>
+          <option value="review_all">Wait for a person to approve it</option>
+          <option value="exception_only">Put it in the ERP automatically</option>
         </select>
       </label>
+      <EdiSetting onError={onError} />
+      {test && <>
+      <h3>Test controls</h3>
+      <p className="muted small">Shown only when the app runs with the test adapter, never with the AI.</p>
       <label>Rehearsal mode (TEST ADAPTER, not AI)
         <select value={health.rehearsal_mode ? "on" : "off"} onChange={(e) => setting("rehearsal_mode", e.target.value)}>
           <option value="off">Off</option><option value="on">On</option>
@@ -227,12 +231,11 @@ function AdminSettings({ health, onError }: { health: Health; onError: (e: strin
           <option value="none">Succeeds</option><option value="fail_next">Fails</option><option value="timeout_next">Times out after creating</option>
         </select>
       </label>
-      <ManualRouteSetting onError={onError} />
-      <EdiSetting onError={onError} />
       <button className="ghost danger" onClick={async () => {
-        if (!confirm("Reset the demo? The run in this browser tab is cleared.")) return;
+        if (!confirm("Clear everything in this browser tab?")) return;
         await go(() => agent.resetDemo());
-      }}>Reset demo</button>
+      }}>Clear this tab</button>
+      </>}
     </div>
   );
 }

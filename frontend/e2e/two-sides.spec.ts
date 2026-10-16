@@ -14,9 +14,10 @@ test("a supplier replies in plain words and the retailer receives the changes as
 
   // A clean PO: in Review-all mode it waits for one approval, made from the order screen.
   await supplier.getByLabel("Sample purchase order").selectOption("VIDEO-DEMO-005");
-  await supplier.getByRole("button", { name: "Forward sample" }).click();
+  await supplier.getByRole("button", { name: "Forward to agent" }).click();
   const card = page.getByRole("article", { name: /Order VIDEO-DEMO-005/ });
   await expect(card).toContainText("waiting for one approval");
+  await expect(card).toContainText("Emailed by orders@northfield-demo.example");
   await card.getByRole("button", { name: "Open order" }).click();
   await page.getByRole("button", { name: "Approve order" }).click();
   await expect(page.locator(".order .erp h3")).toContainText("ERP order SIM-ERP-");
@@ -44,8 +45,10 @@ test("a supplier replies in plain words and the retailer receives the changes as
 
   await asSupplier();
   // Shipped in the ERP: the ship notice and invoice follow the confirmed 10, with nothing typed.
+  await card.getByLabel("Carrier SCAC").fill("UPSN");
+  await card.getByLabel("Tracking number").fill("1ZTEST100001");
   await card.getByRole("button", { name: "Mark shipped in ERP" }).click();
-  await expect(card).toContainText("You typed nothing.");
+  await expect(card).toContainText("sent to the retailer.");
   await page.screenshot({ path: "../docs/screenshots/app-12-supplier-today.png", fullPage: true });
   await asRetailer();
   await expect(retailer.locator(".rcard[data-kind=DESADV]")).toContainText("received");
