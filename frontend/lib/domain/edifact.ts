@@ -58,7 +58,7 @@ function wrap(env: Envelope, body: Segment[]): EdiMessage {
 
 export interface EdiLine {
   sourceLineId: string; gtin: string | null; sku: string; customerItemCode?: string | null; description: string | null;
-  unit: string; quantity: string; orderedQty?: string; unitPrice?: string; lineAmount?: string; taxRate?: string;
+  unit: string; quantity: string; orderedQty?: string; unitPrice?: string; orderedPrice?: string; lineAmount?: string; taxRate?: string;
 }
 export interface EdiParty { gln: string | null; vatId?: string | null; name?: string | null }
 export interface EdiParties {

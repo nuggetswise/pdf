@@ -55,11 +55,17 @@ export type DemoEmail = (typeof DEMO_EMAILS)[number];
 
 /** What each sample shows, in the words a supplier would use. */
 export const SAMPLE_LABELS: Record<DemoEmail, string> = {
-  "VIDEO-DEMO-001": "Order with 3 problems (price, minimum quantity, retired item)",
-  "VIDEO-DEMO-002": "Repeat order the agent fixes from memory",
-  "VIDEO-DEMO-003": "Another retailer, same retired item",
-  "VIDEO-DEMO-004": "Order after a memory rule is turned off",
-  "VIDEO-DEMO-005": "Clean order, no problems",
+  "VIDEO-DEMO-001": "Northfield Grocers · PO VIDEO-DEMO-001 · Oct 14",
+  "VIDEO-DEMO-002": "Northfield Grocers · PO VIDEO-DEMO-002 · Oct 15",
+  "VIDEO-DEMO-003": "Lakeshore Markets · PO VIDEO-DEMO-003 · Oct 15",
+  "VIDEO-DEMO-004": "Northfield Grocers · PO VIDEO-DEMO-004 · Oct 16",
+  "VIDEO-DEMO-005": "Northfield Grocers · PO VIDEO-DEMO-005 · Oct 16",
+};
+/** Who sent each fictional email, from its own headers. */
+export const SAMPLE_SENDERS: Record<DemoEmail, string> = {
+  "VIDEO-DEMO-001": "orders@northfield-demo.example", "VIDEO-DEMO-002": "orders@northfield-demo.example",
+  "VIDEO-DEMO-003": "purchasing@lakeshore-demo.example", "VIDEO-DEMO-004": "orders@northfield-demo.example",
+  "VIDEO-DEMO-005": "orders@northfield-demo.example",
 };
 
 export function demoEmailPath(name: string): string | null {

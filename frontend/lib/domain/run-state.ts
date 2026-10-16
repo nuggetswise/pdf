@@ -9,6 +9,7 @@
 // Money and quantities are always strings. A JSON number in any of those fields is rejected, so a
 // binary float can never enter the run.
 import { z } from "zod";
+import { SupplierReplyInterpretation } from "./reply";
 import { ManualRouteAssumptions } from "./manual-route-schema";
 import { PROFILE_IDS } from "./compliance";
 
@@ -540,6 +541,9 @@ export const Portal = z.strictObject({
   /** D52: order quantities the supplier will not ship (backorder cancelled). */
   cancellations: z.array(z.strictObject({ documentId: id, lineIndex: z.number().int().nonnegative(), quantity: decimalString,
     reason: z.string(), createdBy: z.string(), createdAt: isoTime })).optional(),
+  /** D54: supplier replies to a PO, read by the agent and confirmed by a person. */
+  replies: z.array(z.strictObject({ id, documentId: id, text: z.string(), interpretation: SupplierReplyInterpretation,
+    appliedBy: z.string(), appliedAt: isoTime })).optional(),
 });
 export const emptyPortal = (): z.infer<typeof Portal> =>
   ({ asns: [], invoices: [], outbound: [], received: [], ediFailureMode: "none" });

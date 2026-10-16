@@ -10,6 +10,7 @@ test("a reviewer onboards an unknown customer and products from a PO", async ({ 
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
+  await page.getByRole("tab", { name: "Orders" }).click();
   await asRole(page, "reviewer");
   const card = (text: string) => page.locator(".issue.open", { hasText: text });
 

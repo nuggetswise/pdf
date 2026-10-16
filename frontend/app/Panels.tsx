@@ -1,11 +1,11 @@
 "use client";
+import type React from "react";
 import { SAMPLE_LABELS } from "../lib/intake/intake";
 import { useState } from "react";
 import { documentDetail, documentsList, erpOrdersList, rulesList } from "../lib/domain/selectors";
 import { Health, Issue, PROCESS_LABEL, Role } from "./api";
 import { OrderView } from "./OrderView";
 import { EdiSetting } from "./Portal";
-import { ManualRouteSetting } from "./ManualRoute";
 import { DEMO_EMAILS, useAgent } from "./run/RunProvider";
 
 const who = (actor: string | null) => (actor ? actor.split(":")[1] ?? actor : "—");
@@ -66,7 +66,7 @@ function SessionAdditions() {
     <section className="additions" aria-label="Added in this session">
       <h3>Added in this session</h3>
       <p className="muted">Customers and products a reviewer added from real purchase orders. They are used for validation
-        in this browser tab only (reference version {any ? `${base} + session additions` : base}); Reset demo removes them.
+        in this browser tab only (reference version {any ? `${base} + session additions` : base}).
         The reference data file is not changed.</p>
       {!any && <p className="placeholder">Nothing added yet.</p>}
       {ov && ov.customers.length > 0 && (
@@ -115,12 +115,12 @@ export function ErpView() {
   );
 }
 
-export function Workspace({ role, health }: { role: Role; health: Health | null }) {
+export function Workspace({ role, focus = null }: { role: Role; focus?: number | null }) {
   const agent = useAgent();
   const docs = agent.ready ? documentsList(agent.state) : null;
   const emails: readonly string[] = DEMO_EMAILS;
   const [pick, setPick] = useState<string>(DEMO_EMAILS[0]);
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selected, setSelected] = useState<number | null>(focus);
   const detail = selected === null ? null : documentDetail(agent.state, selected);
   const [error, setError] = useState<string | null>(null);
 
@@ -168,7 +168,6 @@ export function Workspace({ role, health }: { role: Role; health: Health | null 
             <span className="meta"><span>{d.sender}</span><span className={`pill ${PROCESS_LABEL[d.status]?.[1] ?? "info"}`}>{PROCESS_LABEL[d.status]?.[0] ?? d.status}</span></span>
           </button>
         ))}
-        {role === "administrator" && health && <AdminSettings health={health} onError={setError} />}
       </aside>
       <section className="main">
         {error && <div className="alert bad" role="alert">{error}</div>}
@@ -188,22 +187,40 @@ export function Workspace({ role, health }: { role: Role; health: Health | null 
   );
 }
 
+/** Settings live on their own tab so the inbox shows only what a supplier needs to process an order. */
+export function SettingsView({ role, health, pilot }: { role: Role; health: Health | null; pilot?: React.ReactNode }) {
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <section className="settings" aria-label="Settings">
+      {error && <div className="alert bad" role="alert">{error}</div>}
+      {pilot}
+      {role !== "administrator" ? <p className="placeholder">Only an administrator can change settings.</p>
+        : health ? <AdminSettings health={health} onError={setError} /> : <p className="placeholder">Loading…</p>}
+    </section>
+  );
+}
+
 function AdminSettings({ health, onError }: { health: Health; onError: (e: string | null) => void }) {
   const agent = useAgent();
   async function go(f: () => Promise<unknown>) {
     try { await f(); onError(null); } catch (e) { onError((e as Error).message); }
   }
+  const test = health.extractor_mode === "test";
   const setting = (key: "rehearsal_mode" | "erp_failure_mode", value: string) =>
     go(() => agent.run({ type: "setDemoSetting", role: "administrator", key, value }));
   return (
     <div className="admin">
       <h3>Administrator settings</h3>
-      <label>Automation mode
-        <select value={health.policy.mode} onChange={(e) => go(() => agent.run({ type: "setPolicy", role: "administrator", mode: e.target.value }))}>
-          <option value="review_all">Review-all (default)</option>
-          <option value="exception_only">Exception-only</option>
+      <label>When an order passes every check
+        <select aria-label="Clean orders" value={health.policy.mode} onChange={(e) => go(() => agent.run({ type: "setPolicy", role: "administrator", mode: e.target.value }))}>
+          <option value="review_all">Wait for a person to approve it</option>
+          <option value="exception_only">Put it in the ERP automatically</option>
         </select>
       </label>
+      <EdiSetting onError={onError} />
+      {test && <>
+      <h3>Test controls</h3>
+      <p className="muted small">Shown only when the app runs with the test adapter, never with the AI.</p>
       <label>Rehearsal mode (TEST ADAPTER, not AI)
         <select value={health.rehearsal_mode ? "on" : "off"} onChange={(e) => setting("rehearsal_mode", e.target.value)}>
           <option value="off">Off</option><option value="on">On</option>
@@ -214,12 +231,11 @@ function AdminSettings({ health, onError }: { health: Health; onError: (e: strin
           <option value="none">Succeeds</option><option value="fail_next">Fails</option><option value="timeout_next">Times out after creating</option>
         </select>
       </label>
-      <ManualRouteSetting onError={onError} />
-      <EdiSetting onError={onError} />
       <button className="ghost danger" onClick={async () => {
-        if (!confirm("Reset the demo? The run in this browser tab is cleared.")) return;
+        if (!confirm("Clear everything in this browser tab?")) return;
         await go(() => agent.resetDemo());
-      }}>Reset demo</button>
+      }}>Clear this tab</button>
+      </>}
     </div>
   );
 }

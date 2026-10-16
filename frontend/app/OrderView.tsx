@@ -2,8 +2,7 @@
 import { useEffect, useState } from "react";
 import { useAgent } from "./run/RunProvider";
 import { OrderPortal } from "./Portal";
-import { IssueRiskLine, ManualRoutePanel, useManualRoute } from "./ManualRoute";
-import type { ManualRisk } from "../lib/domain/manual-route";
+import { AgentWorkPanel } from "./ManualRoute";
 import type { Action } from "../lib/server/run-action";
 import bundledReferenceJson from "../lib/domain/reference-data.v1.json";
 import { mergeReference } from "../lib/domain/onboarding";
@@ -167,9 +166,8 @@ function Onboard({ issue, docId, role, onRun, line, currency }: { issue: Issue; 
   return null;
 }
 
-function IssueCard({ issue, onAct, role, focused, onFocus, onRun, docId, line, currency, risk }: { issue: Issue; onAct?: Act;
-  role: Role; focused: boolean; onFocus: () => void; onRun?: RunFn; docId: number; line?: Line; currency: string | null;
-  risk?: ManualRisk }) {
+function IssueCard({ issue, onAct, role, focused, onFocus, onRun, docId, line, currency }: { issue: Issue; onAct?: Act;
+  role: Role; focused: boolean; onFocus: () => void; onRun?: RunFn; docId: number; line?: Line; currency: string | null }) {
   const [reason, setReason] = useState("");
   const [value, setValue] = useState("");
   const [sku, setSku] = useState(issue.candidate_skus?.[0] ?? "");
@@ -199,7 +197,6 @@ function IssueCard({ issue, onAct, role, focused, onFocus, onRun, docId, line, c
         <span className={`pill ${resolved ? "ok" : "warn"}`}>{resolved ? "Resolved" : "Held"}</span>
       </header>
       <p>{issue.message}</p>
-      <IssueRiskLine risk={risk} currency={currency ?? "USD"} />
       <dl>
         <div><dt>Printed on PO</dt><dd>{issue.printed_value ?? "—"}</dd></div>
         <div><dt>Reference</dt><dd>{issue.reference_value ?? "—"}{issue.reference_version && <small> ({issue.reference_version})</small>}</dd></div>
@@ -249,7 +246,6 @@ export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight
   const issues = o?.validation.issues ?? [];
   const isAi = d.latest_version?.payload.extractor.is_ai;
   const lastDelivery = o?.deliveries.at(-1);
-  const mr = useManualRoute(d.document.id);
   return (
     <div className={`order ${highlight ?? ""}`}>
       <div className="order-head">
@@ -274,7 +270,7 @@ export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight
       {d.document.status_detail && <div className={`alert ${d.document.status === "duplicate" ? "warn" : "bad"}`}>{d.document.status_detail}</div>}
       {IN_FLIGHT.has(d.document.status) && <div className="alert info pulse">The agent is working on this order…</div>}
 
-      {o && <ManualRoutePanel docId={d.document.id} />}
+      {o && <AgentWorkPanel d={d} />}
       {o && (
         <div className="review-grid">
           <div>
@@ -284,7 +280,6 @@ export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight
                 {issues.map((i) => (
                   <IssueCard key={i.key} issue={i} role={role} onAct={onAct} focused={focus?.key === i.key} onFocus={() => setFocus(i)}
                     onRun={onRun} docId={d.document.id} currency={v?.currency ?? null}
-                    risk={mr?.risks.find((r) => r.issueKey === i.key)}
                     line={i.line_index === null ? undefined : v?.lines[i.line_index]} />
                 ))}
               </section>

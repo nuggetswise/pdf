@@ -123,3 +123,24 @@ D49 Phase 2, Act 1 (owner plan 2026-10-16): every order shows "If you retyped th
 - "Export pilot measurements (CSV)" under the summary tiles downloads one row per order, built only from what the run records: received, approved by (person or policy), in ERP, minutes PDF to ERP, first ASN and minutes ERP to ASN, ASN count, first invoice, values extracted, values a person edited after extraction, issues caught, lines fixed by memory, decisions by a person, and the Act 1 estimate (fields, minutes, exposure). Durations are calendar time between recorded events.
 - The CSV defuses spreadsheet formulas (a leading apostrophe on cells starting with = + - @ that are not numbers) because PO numbers and customer IDs come from uploaded documents.
 - Nothing is sent anywhere; the file is made in the browser. A pilot compares these rows with the supplier's own timing of the manual route.
+
+## D54 Suppliers who stay on email; the retailer gets EDI (2026-10-16)
+- Mandip reframed the product: some suppliers refuse the Trading Grid portal because it is not connected to their ERP, so the agent goes where they are. The supplier keeps email and their ERP; the retailer receives standard X12 as from any connected supplier.
+- New default screen "Supplier and retailer": supplier's inbox on the left (forward a PO, decide exceptions, reply in plain words, mark shipped in ERP), the retailer's EDI inbox on the right.
+- A plain-language reply ("we can only do 10 not 12 on line A, ships Monday") is read by Gemini (or the labelled rehearsal reader) into per-line changes. Every change must quote words found in the reply, name a PO line and differ from the PO; anything else is listed as unclear. A person confirms before anything is sent.
+- Confirming sends a changed 855 (BAK AC; ACK IQ/IP/IC; DTM*068 ship date), an ERP order change, and closes the quantity that will not ship so the ASN and invoice follow the confirmed amount. Increases over the PO and replies after shipping are refused. Quoted price changes go on the 855 for the retailer to accept; the invoice stays at the PO price.
+- "Mark shipped in ERP" builds the ASN from open quantities and the invoice from the ASN, with the usual compliance checks.
+- Supplier scorecard as a paid retailer product was dropped: no public evidence retailers pay for one (search 2026-10-16).
+
+## D55 Enterprise shell in OpenText colours (2026-10-16)
+- A Supplier/Retailer toggle at the top replaces the split screen. Supplier workspace: Today, Orders, Agent memory, ERP records, Trading Grid outbox, Settings. Retailer workspace: Documents received, Suppliers.
+- Today shows a live flow ribbon (forwarded, read, checked, in ERP, sent to retailer), what needs a person, and what the agent handled alone.
+- Colours: Cobalt Blue #001889 and Electric Blue #0075FC, from public brand listings (not verified against brandcentral.opentext.com). Icons from lucide-react.
+
+## D56 — Real product only, no demo controls (2026-10-16)
+Mandip: no demo mode. Removed from the screen: the Exception-only/Review-all badge, the retype-cost panel and
+risk lines, the chargeback KPI, the prefilled reply and the hardcoded carrier/tracking (the supplier now enters both
+when marking shipped). Automation stays as one plain Settings choice ("When an order passes every check"), since
+both modes are acceptance requirements. Rehearsal, ERP-failure simulation and clearing the tab show only when the
+server runs the test adapter, never with the AI, so the acceptance tests keep exercising them. Each order now shows
+who emailed it, when, and that it was forwarded to the agent address. Retype-cost figures move to talking points.

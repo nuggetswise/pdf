@@ -3,8 +3,9 @@ import { expect, test } from "@playwright/test";
 test("forwarded email is processed automatically and shows evidence", async ({ page, request }) => {
   await request.post("/api/demo/reset", { headers: { "X-Demo-Role": "administrator", "X-Demo-User": "alex" } });
   await page.goto("/");
+  await page.getByRole("tab", { name: "Orders" }).click();
   await expect(page.getByText("Rehearsal: TEST ADAPTER (not AI)")).toBeVisible();
-  await page.getByRole("tab", { name: "Inbox & review" }).click();
+  await page.getByRole("tab", { name: "Orders" }).click();
   await expect(page.getByText("No orders yet")).toBeVisible();
 
   await page.getByLabel("Sample purchase order").selectOption("VIDEO-DEMO-001");

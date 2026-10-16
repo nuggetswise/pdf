@@ -98,19 +98,34 @@ const idText = (l: EdiLine) =>
 const vendorRef = (p: EdiParties): Segment[] =>
   p.vendorNumber ? [seg(`REF*IA*${xesc(p.vendorNumber)}`, `Your vendor number at this retailer: ${p.vendorNumber}`)] : [];
 
-export function buildOrdrspX12(o: { ref: string; createdAt: string; erpOrderId: string; orderDate: string | null } & EdiParties,
-  lines: EdiLine[]): EdiMessage {
+/** D54: ACK code from what changed. IA accepted; IQ quantity changed; IP price changed; IC both. */
+const ackCode = (l: EdiLine) => {
+  const q = !Dec.of(l.quantity).eq(Dec.of(l.orderedQty ?? l.quantity));
+  const p = Boolean(l.unitPrice && l.orderedPrice && !Dec.of(l.unitPrice).eq(Dec.of(l.orderedPrice)));
+  return q && p ? "IC" : q ? "IQ" : p ? "IP" : "IA";
+};
+const ACK_TEXT: Record<string, string> = { IA: "IA = item accepted", IQ: "IQ = quantity changed", IP: "IP = price changed",
+  IC: "IC = quantity and price changed" };
+
+export function buildOrdrspX12(o: { ref: string; createdAt: string; erpOrderId: string; orderDate: string | null;
+  shipDate?: string | null } & EdiParties, lines: EdiLine[]): EdiMessage {
+  const changed = lines.some((l) => ackCode(l) !== "IA");
   const body: Segment[] = [
-    seg(`BAK*00*AC*${xesc(o.poNumber)}*${d8(o.orderDate)}`, `Acknowledges purchase order ${o.poNumber} (AC = acknowledged with detail)`),
+    seg(`BAK*00*${changed ? "AC" : "AK"}*${xesc(o.poNumber)}*${d8(o.orderDate)}`,
+      `Acknowledges purchase order ${o.poNumber} (${changed ? "AC = acknowledged with detail and changes" : "AK = acknowledged with detail, no changes"})`),
     seg(`REF*VN*${xesc(o.erpOrderId)}`, `Supplier's order number ${o.erpOrderId} (ERP simulator)`),
     ...vendorRef(o),
+    ...(o.shipDate ? [seg(`DTM*068*${d8(o.shipDate)}`, `Supplier will ship on ${o.shipDate}`)] : []),
     ...parties(o),
-    ...lines.flatMap((l, i) => [
-      seg(`PO1*${i + 1}*${xesc(l.orderedQty ?? l.quantity)}*${uom(l.unit)}***${ids(l)}`,
-        `Line ${i + 1} (PO line ${l.sourceLineId}): ${idText(l)}`),
-      seg(`ACK*${Dec.of(l.quantity).eq(Dec.of(l.orderedQty ?? l.quantity)) ? "IA" : "IQ"}*${xesc(l.quantity)}*${uom(l.unit)}`,
-        `Confirmed ${l.quantity} ${l.unit}${Dec.of(l.quantity).eq(Dec.of(l.orderedQty ?? l.quantity)) ? " (IA = item accepted)" : " (IQ = quantity changed)"}`),
-    ]),
+    ...lines.flatMap((l, i) => {
+      const code = ackCode(l);
+      return [
+        seg(`PO1*${i + 1}*${xesc(l.orderedQty ?? l.quantity)}*${uom(l.unit)}*${l.unitPrice ? `${xesc(l.unitPrice)}*PE` : "*"}*${ids(l)}`,
+          `Line ${i + 1} (PO line ${l.sourceLineId}): ${idText(l)}${l.unitPrice ? `, unit price ${l.unitPrice}` : ""}`),
+        seg(`ACK*${code}*${xesc(l.quantity)}*${uom(l.unit)}`,
+          `Confirmed ${l.quantity} ${l.unit}${code === "IP" || code === "IC" ? ` at ${l.unitPrice} (PO said ${l.orderedPrice})` : ""} (${ACK_TEXT[code]})`),
+      ];
+    }),
     seg(`CTT*${lines.length}`, `${lines.length} line items`),
   ];
   return wrap({ kind: "ORDRSP", ref: o.ref, createdAt: o.createdAt, from: o.supplier.gln ?? "", to: o.buyer.gln }, body);
