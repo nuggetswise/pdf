@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { type PageTarget, PdfPage } from "./PdfPage";
 import { useAgent } from "./run/RunProvider";
 import { OrderPortal } from "./Portal";
+import { FulfilmentPanel } from "./Fulfilment";
 import { AgentWorkPanel } from "./ManualRoute";
 import type { Action } from "../lib/server/run-action";
 import bundledReferenceJson from "../lib/domain/reference-data.v1.json";
@@ -54,7 +55,8 @@ const FIELD_LABEL: Record<string, string> = {
   tax: "Tax", shipping: "Freight", total: "Total", source_line_id: "Line", gtin: "Product code", customer_item_code: "Retailer item",
   description: "Description", quantity: "Quantity", unit: "Unit", unit_price: "Unit price", line_amount: "Line amount",
   payment_terms: "Payment terms", ship_not_before: "Ship not before", ship_no_later_than: "Ship no later than",
-  delivery_window: "Delivery window", ship_complete: "Ship complete", freight_terms: "Freight terms",
+  delivery_window: "Delivery window", ship_complete: "Ship complete", freight_terms: "Freight terms", supplier_sku: "Supplier SKU",
+  instruction: "Order note",
 };
 /** Which printed value an issue is about, so its box on the page turns amber. */
 const ISSUE_FIELD: Record<string, string> = {
@@ -84,7 +86,7 @@ function pageTargets(d: DocDetail, issues: Issue[]): PageTarget[] {
   for (const [k, f] of Object.entries(p.terms ?? {})) if (k !== "instructions") add(`t:${k}`, k, f as Field);
   (p.terms?.instructions ?? []).forEach((f, i) => add(`t:instructions:${i}`, "instruction", f));
   p.lines.forEach((l, i) => {
-    for (const [k, f] of Object.entries(l)) add(`l:${i}:${k}`, k, f, `line${i}`, k === "description" || k === "gtin");
+    for (const [k, f] of Object.entries(l)) add(`l:${i}:${k}`, k, f, `line${i}`, k === "description" || k === "gtin" || k === "supplier_sku");
   });
   return out;
 }
@@ -236,6 +238,28 @@ function IssueCard({ issue, onAct, role, focused, onFocus, onRun, docId, line, c
   );
 }
 
+/** D59: the PO's own terms and the buyer's notes, as printed. Notes are shown to people, never acted on. */
+function OrderTerms({ d, onPick }: { d: DocDetail; onPick: (id: string) => void }) {
+  const t = d.latest_version?.payload.terms;
+  if (!t) return null;
+  const rows = (["payment_terms", "freight_terms", "ship_not_before", "ship_no_later_than", "delivery_window", "ship_complete"] as const)
+    .filter((k) => t[k]?.value);
+  return (
+    <section className="terms" aria-label="Order terms">
+      <h4 className="section">Terms and notes on the PO</h4>
+      {rows.length > 0 && (
+        <dl className="termlist">
+          {rows.map((k) => <div key={k} onClick={() => onPick(`t:${k}`)}><dt>{FIELD_LABEL[k] ?? k}</dt><dd>{t[k]!.value}</dd></div>)}
+        </dl>
+      )}
+      {(t.instructions ?? []).length > 0 && (
+        <ul className="notes">{t.instructions!.map((n, i) => <li key={i} onClick={() => onPick(`t:instructions:${i}`)}>{n.value}</li>)}</ul>
+      )}
+      <p className="muted small">Notes are shown as printed for you to act on. The agent never takes them as instructions.</p>
+    </section>
+  );
+}
+
 export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight }: {
   d: DocDetail; role: Role; onAct?: Act; onRun?: RunFn; onApprove?: () => void; onRetry?: () => void; highlight?: string;
 }) {
@@ -313,7 +337,7 @@ export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight
                     return (
                       <tr key={l.line_index} className={`pick ${focus.line === l.line_index ? "picked" : ""}`} onClick={() => pickLine(l.line_index)}>
                         <td>{l.source_line_id}</td>
-                        <td>{l.description}<div className="muted small">{l.sku ?? "unmatched"} · printed {l.printed_gtin ?? l.customer_item_code}{l.gtin && l.gtin !== l.printed_gtin ? ` → ${l.gtin}` : ""}</div></td>
+                        <td>{l.description}<div className="muted small">{l.sku ?? "unmatched"} · printed {l.printed_gtin ?? l.customer_item_code ?? (l as { supplier_sku?: string }).supplier_sku}{l.gtin && l.gtin !== l.printed_gtin ? ` → ${l.gtin}` : ""}</div></td>
                         <td>{l.quantity ?? l.original_quantity} {l.unit ?? l.original_unit}{l.original_unit && l.unit && l.original_unit !== l.unit && <div className="muted small">printed {l.original_quantity} {l.original_unit}</div>}</td>
                         <td>{l.unit_price ?? l.printed_unit_price}</td>
                         <td>{l.line_amount ?? l.printed_line_amount}</td>
@@ -334,6 +358,7 @@ export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight
               <span>Calculated <b>{v?.totals.computed_total}</b></span>
               <span className="muted small">Decimal arithmetic, {v?.totals.rounding}</span>
             </div>
+            <OrderTerms d={d} onPick={(id) => setFocus({ issue: null, line: null, ids: new Set([id]) })} />
             {(o.erp_order_id || lastDelivery) && (
               <section className={`erp ${o.delivery_state}`} aria-label="ERP record">
                 <div className="eyebrow">ERP simulator (local, not a live ERP)</div>
@@ -347,11 +372,12 @@ export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight
                 )}
               </section>
             )}
-            {o.delivery_state === "erp_created" && <OrderPortal docId={d.document.id} role={role} />}
           </div>
           <SourcePanel d={d} focus={focus.ids} onPick={pickBox} />
         </div>
       )}
+      {o?.delivery_state === "erp_created" && <FulfilmentPanel docId={d.document.id} role={role} />}
+      {o?.delivery_state === "erp_created" && <OrderPortal docId={d.document.id} role={role} />}
     </div>
   );
 }

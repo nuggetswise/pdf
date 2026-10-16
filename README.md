@@ -28,6 +28,7 @@ Put `GEMINI_API_KEY`, `GEMINI_MODEL` and optional `GEMINI_FALLBACK_MODEL` in `fr
 ## Folders
 - `docs/` requirements (Markdown is the source; the .docx has the same content)
 - `fixtures/regression/` the original sample order and expected results
+- `fixtures/example/` the one example purchase order the app offers (fictional, USD); ERP stock is in `frontend/lib/domain/erp-stock.v1.json` (fictional)
 - `fixtures/demo/` the video-aligned demo orders, expected results and generated fictional PDFs/emails
 - `fixtures/reference-data.v1.json` fictional customers, products, prices, MOQ rules and identifiers
 - `frontend/` the app (screens, server actions, /api/extract); `backend/` the Python prototype, kept for comparison tests; `scripts/` fixture generators and verify

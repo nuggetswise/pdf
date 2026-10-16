@@ -2,6 +2,7 @@
 // The purchase order as it looks (D58): each PDF page drawn as it prints, with a box on every value the agent read.
 // Clicking a box selects that value; selecting an issue or an order line in the review highlights its boxes.
 // Rendering runs in pdf.js's worker with scripts and forms off; nothing in the document is executed.
+import "../lib/intake/pdfjs-polyfill";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { type Box, type Target, type TextRun, locateValues } from "../lib/intake/page-boxes";
 import { useAgent } from "./run/RunProvider";
@@ -64,7 +65,7 @@ export function PdfPage({ docId, targets, focus, onPick, pageText, scanned }: {
       if (!bytes) { if (live) setMissing(true); return; }
       const r = await renderPages(bytes);
       if (live) setPages(r);
-    }).catch(() => { if (live) setMissing(true); });
+    }).catch((e) => { console.error("pdf page view failed", e); if (live) setMissing(true); });
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docId]);

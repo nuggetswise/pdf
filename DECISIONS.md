@@ -144,3 +144,35 @@ when marking shipped). Automation stays as one plain Settings choice ("When an o
 both modes are acceptance requirements. Rehearsal, ERP-failure simulation and clearing the tab show only when the
 server runs the test adapter, never with the AI, so the acceptance tests keep exercising them. Each order now shows
 who emailed it, when, and that it was forwarded to the agent address. Retype-cost figures move to talking points.
+
+## D57 OpenText palette on every screen (2026-10-16)
+Cobalt #001889 as the accent everywhere, neutral card borders with a thin coloured left bar for state, sticky
+header and side menu. Only the landing screen matched before.
+
+## D58 The PO page as printed, with boxes (2026-10-16)
+The order screen draws each PDF page (pdf.js, scripts and forms off) and boxes every value the agent read; issues
+box amber. Clicking a box, an issue or an order line selects the others. The PDF is kept in this browser
+(IndexedDB, by hash) so the page survives a reload; it never leaves the browser except to the AI. The text tab is
+removed. pdf.js 6 needs Map.getOrInsertComputed, polyfilled for browsers without it.
+
+## D59 Any layout: terms, dates and the PDF itself to the AI (2026-10-16)
+The AI now receives the PDF (up to about 2.6 MB) with its text, or page images for a scan, and a wider schema:
+supplier SKU, payment and freight terms, ship-not-before / ship-no-later-than, delivery window, ship complete and
+the buyer's notes word for word. Terms sit outside the Python parity payload, so the parity gates are unchanged.
+Lines match by GTIN, retailer item, then supplier SKU; units compare case-insensitively. A scan's transcription
+becomes its page text and a scanned order always waits for a person. Printed dates are read US month-first; a date
+that cannot be read is never guessed. Not done: saving per-retailer reading corrections after admin approval.
+
+## D60 One example PO (2026-10-16)
+The product offers one fictional example, PO-2026-104587 from Maple Retail Group (FreshMart Markets) in USD,
+modelled on the owner's sample (scripts/example_po.py). The VIDEO-DEMO samples stay for tests only. The test
+adapter reads both fictional layouts; real uploads go to the AI.
+
+## D61 Stock check, ship date and short stock (2026-10-16)
+When an order reaches the ERP the agent checks each line against ERP stock (on hand less what other open orders
+hold; incoming deliveries; lead time). Ship date follows available-to-promise practice: ready date plus packing
+working days, never before the ship window; latest ship date is the earlier of the window end and delivery date
+less transit days. If stock is short, the confirmation waits for a person: hold and ship complete (recommended when
+on time or the PO asks to ship complete), ship now and backorder, or ship now and cancel. The 855 then carries one
+ACK per part (IA/IB/IR with 068 and its date) and the ERP gets the schedule. Shipping takes what stock covers and
+lowers stock. Settings: packing days, transit days, short-stock rule. Lateness is a warning, never a hold.

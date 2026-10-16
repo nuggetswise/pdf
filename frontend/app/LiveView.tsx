@@ -3,9 +3,12 @@
 // decide the odd exception, reply in plain words, mark it shipped in their ERP). Right: the retailer receives
 // standard EDI as each of those happens. Nothing here is a script; every card is read from the run's state.
 import { useState } from "react";
-import { ArrowRight, CheckCircle2, FileCheck2, Mail, Network, Receipt, ScanText, ShieldCheck, Truck } from "lucide-react";
+import { ArrowRight, Boxes, CheckCircle2, FileCheck2, Mail, Network, Receipt, ScanText, ShieldCheck, Truck } from "lucide-react";
 import { SAMPLE_LABELS, SAMPLE_SENDERS } from "../lib/intake/intake";
-import { openQuantities, portalForOrder, repliesFor } from "../lib/domain/portal";
+import { portalForOrder } from "../lib/domain/portal";
+import { showDate } from "../lib/domain/dates";
+import { firstShipOn } from "../lib/domain/fulfilment";
+import { partsText } from "./Fulfilment";
 import { type ReplyPoLine, type SupplierReplyInterpretation, replyRows } from "../lib/domain/reply";
 import type { OutboundMessage, RunState } from "../lib/domain/run-state";
 import { IN_FLIGHT, type Role } from "./api";
@@ -31,17 +34,21 @@ export function SupplierToday({ role, onOpen }: { role: Role; onOpen: (docId: nu
   const docs = s ? [...s.documents].sort((a, b) => b.id - a.id) : [];
   const needs = s ? docs.filter((d) => {
     const o = s.orders.find((x) => x.documentId === d.id);
-    return !IN_FLIGHT.has(d.status) && (!o || (o.deliveryState !== "erp_created" && (o.validation.issues.some((i) => i.status === "open") || o.reviewState === "ready")));
+    return !IN_FLIGHT.has(d.status) && (!o || o.fulfilment?.status === "needs_decision"
+      || (o.deliveryState !== "erp_created" && (o.validation.issues.some((i) => i.status === "open") || o.reviewState === "ready")));
   }) : [];
   const rest = docs.filter((d) => !needs.includes(d));
   const inErp = s ? s.orders.filter((o) => o.erpOrderId).length : 0;
   const sent = s ? (s.portal?.outbound ?? []).filter((m) => m.channel === "retailer_edi_outbox" && m.status === "delivered").length : 0;
   const caught = s ? s.orders.reduce((t, o) => t + o.validation.issues.length, 0) : 0;
+  const stocked = s ? s.orders.filter((o) => o.fulfilment).length : 0;
+  const short = s ? s.orders.filter((o) => o.fulfilment?.lines.some((l) => l.short !== "0")).length : 0;
   const steps: [typeof Mail, string, string][] = [
     [Mail, "Forwarded", `${docs.length} purchase order${docs.length === 1 ? "" : "s"}`],
     [ScanText, "Read by the agent", "every value tied to the PDF"],
     [ShieldCheck, "Checked", `${caught} problem${caught === 1 ? "" : "s"} caught`],
     [CheckCircle2, "In your ERP", `${inErp} order${inErp === 1 ? "" : "s"}`],
+    [Boxes, "Stock checked", stocked ? `${stocked} with ship dates${short ? `, ${short} short` : ""}` : "ship dates from your stock"],
     [FileCheck2, "Sent to the retailer", `${sent} EDI document${sent === 1 ? "" : "s"}`],
   ];
   return (
@@ -116,7 +123,7 @@ export function RetailerSuppliers() {
 
 function Forward() {
   const agent = useAgent();
-  const [pick, setPick] = useState<string>(DEMO_EMAILS[0]);
+  const sample = DEMO_EMAILS[0];
   const { error, wrap } = useWrap();
   const add = (f: File) => wrap(async () => {
     const bytes = new Uint8Array(await f.arrayBuffer());
@@ -126,15 +133,11 @@ function Forward() {
   return (
     <div className="forward-box">
       <p className="how">Retailers keep emailing PDF purchase orders to you as they do today. You forward each one to your
-        agent address, <b>order-agent@supplier-demo.example</b>, or drop the email or PDF here.</p>
-      <div className="forward">
-        <label className="muted small">Your mailbox (fictional)
-          <select value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Sample purchase order">
-            {DEMO_EMAILS.map((n) => <option key={n} value={n}>{SAMPLE_LABELS[n]}</option>)}
-          </select>
-        </label>
-        <span className="muted small">From {SAMPLE_SENDERS[pick as keyof typeof SAMPLE_SENDERS]}</span>
-        <button onClick={() => wrap(() => agent.forwardDemo(pick))}>Forward to agent</button>
+        agent address, <b>order-agent@supplier-demo.example</b>, or drop the email or PDF here. Any layout works.</p>
+      <div className="forward mailrow" aria-label="Example purchase order">
+        <Mail size={18} aria-hidden />
+        <div><b>{SAMPLE_LABELS[sample]}</b><div className="muted small">From {SAMPLE_SENDERS[sample]} · fictional example</div></div>
+        <button onClick={() => wrap(() => agent.forwardDemo(sample))}>Forward to agent</button>
       </div>
       <label className="dropzone small-drop">
         <input type="file" accept=".pdf,application/pdf,.eml,message/rfc822" aria-label="Forward a purchase order"
@@ -146,26 +149,27 @@ function Forward() {
   );
 }
 
-function SupplierCard({ s, docId, role, onOpen }: { s: RunState; docId: number; role: Role; onOpen: (id: number) => void }) {
-  const agent = useAgent();
-  const { error, wrap } = useWrap();
+function SupplierCard({ s, docId, onOpen }: { s: RunState; docId: number; role: Role; onOpen: (id: number) => void }) {
   const d = s.documents.find((x) => x.id === docId)!;
   const o = s.orders.find((x) => x.documentId === docId);
   const po = o?.validation.order.po_number ?? d.originalFilename ?? `Document ${docId}`;
-  const [scac, setScac] = useState("");
-  const [track, setTrack] = useState("");
   const env = s.envelopes.find((e) => e.id === d.envelopeId);
   const via = env?.sender ? `Emailed by ${env.sender}${env.receivedAt ? ` · ${new Date(env.receivedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "UTC" })} UTC` : ""} · forwarded to your agent`
     : `PDF ${d.originalFilename ?? ""} added by you`;
   const open = o ? o.validation.issues.filter((i) => i.status === "open").length : 0;
   const p = o ? portalForOrder(s, docId) : null;
-  const left = o?.erpOrderId ? [...openQuantities(s, docId).values()].some((q) => !q.isZero()) : false;
-  const replied = repliesFor(s, docId).length > 0;
+  const f = o?.fulfilment;
   let state: string;
   let tone = "info";
   if (IN_FLIGHT.has(d.status)) state = "The agent is reading it…";
   else if (!o) { state = d.statusDetail ?? "Could not be read"; tone = "bad"; }
-  else if (o.deliveryState === "erp_created") { state = `In your ERP as ${o.erpOrderId}. Acknowledged to the retailer.`; tone = "ok"; }
+  else if (f?.status === "needs_decision") {
+    const n = f.lines.filter((l) => l.short !== "0").length;
+    state = `In your ERP as ${o.erpOrderId}. Stock is short on ${n} line${n === 1 ? "" : "s"}: choose how to ship before the retailer is told.`; tone = "warn";
+  } else if (o.deliveryState === "erp_created") {
+    const back = f?.parts.some((x) => x.kind === "backorder");
+    state = `In your ERP as ${o.erpOrderId}. Confirmed to the retailer${f ? `: ships ${showDate(firstShipOn(f.parts))}${back ? ", rest backordered" : ""}` : ""}.`; tone = "ok";
+  }
   else if (open > 0) { state = `Needs your decision on ${open} thing${open === 1 ? "" : "s"}. The agent holds it until then.`; tone = "warn"; }
   else if (o.reviewState === "ready") { state = "Checked, waiting for one approval."; tone = "warn"; }
   else state = "Checked.";
@@ -177,21 +181,9 @@ function SupplierCard({ s, docId, role, onOpen }: { s: RunState; docId: number; 
       </header>
       <p className="via muted small">{via}</p>
       <p className="state">{state}</p>
-      {o?.erpOrderId && !p?.asn && !replied && <ReplyBox o={o} role={role} />}
-      {replied && !p?.asn && <p className="muted small">Your reply was confirmed to the retailer.</p>}
-      {o?.erpOrderId && left && role !== "viewer" && (
-        <div className="btns">
-          <input className="qty" aria-label="Carrier SCAC" placeholder="Carrier code" value={scac} onChange={(e) => setScac(e.target.value.toUpperCase())} />
-          <input aria-label="Tracking number" placeholder="Tracking number" value={track} onChange={(e) => setTrack(e.target.value)} />
-          <button className="primary" disabled={!scac.trim() || !track.trim()}
-            onClick={() => wrap(() => agent.run({ type: "shipFromErp", role, docId, carrierScac: scac.trim(), trackingNumber: track.trim() }))}>Mark shipped in ERP</button>
-          <span className="muted small">The agent sends the ship notice and the invoice from what shipped.</span>
-        </div>
-      )}
       {p?.shipments.map((x) => (
         <p key={x.asn.id} className="muted small">Shipped {x.asn.lines.filter((l) => !l.shippedQty.startsWith("0")).length} line(s) on {x.asn.despatchDate}: {x.asn.asnNumber}{x.invoice ? ` and invoice ${x.invoice.invoiceNumber}` : ""} sent to the retailer.</p>
       ))}
-      {error && <div className="alert bad" role="alert">{error}</div>}
     </article>
   );
 }
@@ -199,7 +191,7 @@ function SupplierCard({ s, docId, role, onOpen }: { s: RunState; docId: number; 
 const poLines = (o: Order): ReplyPoLine[] => o.validation.order.lines.map((l) => ({ sourceLineId: l.source_line_id,
   description: l.description, quantity: l.quantity, unit: l.unit, unitPrice: l.unit_price }));
 
-function ReplyBox({ o, role }: { o: Order; role: Role }) {
+export function ReplyBox({ o, role }: { o: Order; role: Role }) {
   const agent = useAgent();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -247,9 +239,12 @@ const KIND_ICON = { ORDRSP: FileCheck2, DESADV: Truck, INVOIC: Receipt } as cons
 function RetailerCard({ m, s }: { m: OutboundMessage; s: RunState }) {
   const [open, setOpen] = useState(false);
   const o = s.orders.find((x) => x.documentId === m.documentId);
-  const changed = m.mapping.some((x) => /changed/i.test(x.meaning));
+  const changed = m.mapping.some((x) => /changed|backordered|will not ship/i.test(x.meaning));
   // The plain-language reading of the document the retailer's system would show: line, quantity and total rows.
-  const facts = m.mapping.map((x) => x.meaning).filter((t) => /^(Confirmed|Supplier will ship|Line \d|Ship(ped)? date|Estimated delivery|Total|Invoice total|Carrier)/.test(t)).slice(0, 6);
+  // An acknowledgement built from the stock plan reads as each line's ship and backorder dates, not codes.
+  const plan = m.kind === "ORDRSP" && o?.fulfilment?.status === "confirmed" && m.idempotencyKey === `ORDRSP:${o.erpOrderId}` ? o.fulfilment.parts : null;
+  const facts = plan ? o!.validation.order.lines.map((l) => `${l.description ?? l.sku}: ${partsText(plan, l.line_index)}`)
+    : m.mapping.map((x) => x.meaning).filter((t) => /^(Confirmed|Supplier will ship|Line \d|Ship(ped)? date|Estimated delivery|Total|Invoice total|Carrier)/.test(t)).slice(0, 6);
   const Icon = KIND_ICON[m.kind as keyof typeof KIND_ICON] ?? FileCheck2;
   return (
     <article className={`rcard ${m.status} ${changed ? "changed" : ""}`} data-kind={m.kind}>

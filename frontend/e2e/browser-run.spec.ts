@@ -1,16 +1,14 @@
 import { expect, test } from "@playwright/test";
 
 // Rebuild slice 5: the run lives in this browser tab. It survives a reload of the tab, a new tab starts
-// empty, and the original PDF (kept in memory only) is shown until the reload and explained after it.
+// empty, and the original PDF (kept in this browser) is still shown after the reload.
 test("the run is kept for the tab's session and nowhere else", async ({ page, context }) => {
   await page.goto("/");
   await page.getByRole("tab", { name: "Orders" }).click();
   await page.getByRole("tab", { name: "Orders" }).click();
-  await page.getByLabel("Sample purchase order").selectOption("VIDEO-DEMO-001");
-  await page.getByRole("button", { name: "Open sample" }).click();
+  await page.getByLabel("Upload a purchase order").setInputFiles("../fixtures/demo/generated/VIDEO-DEMO-001.pdf");
   await expect(page.locator(".issue.open")).toHaveCount(3);
-  await page.getByRole("tab", { name: "Original PDF" }).click();
-  await expect(page.locator('iframe[title="Source PDF"]')).toHaveAttribute("src", /^blob:/);
+  await expect(page.locator(".pdfpage img")).toBeVisible();
 
   await page.reload();
   await expect(page.locator(".kpi b").first()).toHaveText("1");
@@ -18,8 +16,8 @@ test("the run is kept for the tab's session and nowhere else", async ({ page, co
   await expect(page.locator(".mail")).toHaveCount(1);
   await page.locator(".mail").first().click();
   await expect(page.locator(".issue.open")).toHaveCount(3);
-  await page.getByRole("tab", { name: "Original PDF" }).click();
-  await expect(page.getByText("The original PDF is kept only in memory")).toBeVisible();
+  // The PDF itself is kept in this browser, so the page still shows after a reload.
+  await expect(page.locator(".pdfpage img")).toBeVisible();
 
   const other = await context.newPage();
   await other.goto("/");
@@ -33,8 +31,7 @@ test("an extraction cut off by a reload is marked for retry, and retry finishes 
   await page.goto("/");
   await page.getByRole("tab", { name: "Orders" }).click();
   await page.getByRole("tab", { name: "Orders" }).click();
-  await page.getByLabel("Sample purchase order").selectOption("VIDEO-DEMO-001");
-  await page.getByRole("button", { name: "Open sample" }).click();
+  await page.getByLabel("Upload a purchase order").setInputFiles("../fixtures/demo/generated/VIDEO-DEMO-001.pdf");
   await expect(page.locator(".mail").first()).toContainText("Reading PDF");
   await page.unroute("/api/extract");
   await page.reload();

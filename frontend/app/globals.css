@@ -358,3 +358,40 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .rcard.changed { border-left: 3px solid var(--warn); }
 .rcard header { align-items: flex-start; }
 @media (max-width: 900px) { .flowbar { grid-template-columns: 1fr 1fr; } .flowbar .farrow { display: none; } }
+
+/* D61: stock and ship date, inside the order */
+.fulfil { border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-top: 12px; display: grid; gap: 10px; background: var(--panel); min-width: 0; }
+.fhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.fhead h4 { margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px; color: var(--cobalt); }
+.fulfil table.lines tr.short td { background: var(--warn-soft); }
+.working { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; background: var(--subtle); border-radius: 8px; border-left: 3px solid var(--electric); }
+.working svg { flex: none; margin-top: 2px; color: var(--electric); }
+.stock-decide { border: 1px solid var(--warn-line); border-left: 3px solid var(--warn); border-radius: 8px; padding: 12px; display: grid; gap: 10px; }
+.stock-decide p { margin: 0; }
+.choices { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.choice { display: flex; gap: 8px; align-items: flex-start; border: 1px solid var(--line-strong); border-radius: 8px; padding: 10px; cursor: pointer; background: var(--panel); }
+.choice.on { border-color: var(--cobalt); box-shadow: 0 0 0 1px var(--cobalt); }
+.choice > span { display: grid; gap: 4px; }
+.choice .pill { margin-left: 6px; }
+.stock-decide input[type="date"] { font: inherit; padding: 4px 6px; border: 1px solid var(--line-strong); border-radius: 6px; margin-left: 6px; }
+.ship { border-top: 1px solid var(--line); padding-top: 10px; }
+.ship h5 { margin: 0 0 8px; font-size: 14px; display: flex; gap: 6px; align-items: center; }
+.ship input, .stock input, .shipping-settings input { font: inherit; padding: 4px 6px; border: 1px solid var(--line-strong); border-radius: 6px; }
+.ship input.qty, .stock input.qty, .shipping-settings input.qty { width: 6em; }
+button.tiny { padding: 2px 8px; font-size: 12px; margin-left: 6px; }
+
+/* D59: the PO's own terms and notes */
+.terms { margin-top: 12px; }
+.termlist { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin: 0 0 8px; }
+.termlist > div { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; cursor: pointer; }
+.termlist dt { font-size: 12px; color: var(--muted); }
+.termlist dd { margin: 2px 0 0; font-weight: 600; }
+.terms .notes { margin: 0 0 6px; padding-left: 18px; }
+.terms .notes li { cursor: pointer; margin: 2px 0; }
+
+.mailrow { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--subtle); }
+.mailrow > div { flex: 1; min-width: 0; }
+.mailrow svg { color: var(--cobalt); flex: none; }
+.shipping-settings { border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 8px; max-width: 520px; }
+.shipping-settings legend { font-weight: 600; padding: 0 4px; }
+.shipping-settings label { display: flex; justify-content: space-between; align-items: center; gap: 12px; }

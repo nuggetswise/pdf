@@ -22,6 +22,7 @@
 - App start: `cd frontend && npm run dev` (open http://localhost:3000; Gemini key in frontend/.env.local)
 - End-to-end (deterministic, test adapter): `cd frontend && npx playwright test`
 - Regenerate fictional fixtures: `backend/.venv/bin/python scripts/generate_fixtures.py`
+- Regenerate the example PO (PDF and .eml): `backend/.venv/bin/python scripts/example_po.py`
 - Regenerate the Python side of the TypeScript parity check: `backend/.venv/bin/python scripts/validation_parity.py`
 - Regenerate the demo inbox the Vitest workflow tests forward: `backend/.venv/bin/python scripts/demo_inbox.py`
 - Regenerate the FastAPI read-endpoint answers the selectors are compared with: `backend/.venv/bin/python scripts/read_models.py`

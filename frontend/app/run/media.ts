@@ -1,5 +1,6 @@
 // What goes to the AI with the page text (D59): the PDF itself, so the model sees the layout, or for a scan
 // (no text layer) the pages as images. Large files fall back to text only, inside the server's request limit.
+import "../../lib/intake/pdfjs-polyfill";
 import { MAX_PAGES } from "../../lib/intake/pdf";
 
 /** Base64 of up to about 2.6 MB of PDF keeps the request under the 4 MB the route accepts. */
