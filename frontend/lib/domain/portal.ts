@@ -19,9 +19,11 @@ import { Dec, money } from "./money";
 import { partnerFor, supplierSetup, termsText, validRate } from "./partners";
 import {
   type Asn, type ComplianceSummary, type Invoice, type InvoiceAllowance, type OutboundMessage, type Pallet, type Portal,
-  type RunState, decimalString, emptyPortal,
+  type RunState, FulfilmentSettings, decimalString, emptyPortal,
 } from "./run-state";
 import { Conflict, type Clock, Forbidden, type Who, systemClock } from "./workflow";
+import { choose, consumeStock, firstShipOn, freeStock, planFulfilment, stockOf } from "./fulfilment";
+import { isoDate } from "./dates";
 
 const REVIEWERS = new Set(["reviewer", "administrator"]);
 const requireReviewer = (role: string) => {
@@ -162,15 +164,21 @@ const isIsoDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(
 function ordrspFor(s: RunState, o: OrderRow, createdAt: string, reply?: SupplierReplyInterpretation, n = 0) {
   const erpOrderId = o.erpOrderId!;
   const ctx = ediContext(s, o);
+  // D61: the stock plan the supplier settled: per line what ships when, what is backordered, what will not ship.
+  const parts = o.fulfilment?.status === "confirmed" ? o.fulfilment.parts : [];
   const lines = o.validation.order.lines.map((l) => {
     const c = reply?.lines.find((x) => x.sourceLineId === l.source_line_id);
     const base = ediLine(o, l.line_index, c?.quantity ?? l.quantity ?? "0");
+    const mine = parts.filter((p) => p.lineIndex === l.line_index);
+    const schedule = !c && mine.length ? mine.map((p) => ({ quantity: p.quantity,
+      code: (p.kind === "now" ? "IA" : p.kind === "backorder" ? "IB" : "IR") as "IA" | "IB" | "IR", date: p.shipOn })) : undefined;
     return c ? { ...base, orderedQty: l.quantity ?? undefined, unitPrice: c.unitPrice ?? l.unit_price ?? undefined,
-      orderedPrice: l.unit_price ?? undefined } : base;
+      orderedPrice: l.unit_price ?? undefined } : { ...base, ...(schedule ? { schedule } : {}) };
   });
   const ref = `ORDRSP-${erpOrderId.replace(/^SIM-ERP-/, "")}${n ? `-C${n}` : ""}`;
   const msg = (ctx.profile === "x12_retail" ? buildOrdrspX12 : buildOrdrsp)({ ref, createdAt, erpOrderId,
-    orderDate: o.validation.order.order_date, shipDate: reply?.shipDate ?? null, ...ctx.parties }, lines);
+    orderDate: isoDate(o.validation.order.order_date) ?? o.validation.order.order_date,
+    shipDate: reply?.shipDate ?? firstShipOn(parts) ?? null, ...ctx.parties }, lines);
   return { msg, check: checkMessage("ORDRSP", msg.text, ctx.profile) };
 }
 
@@ -181,6 +189,10 @@ export function confirmOrder(state: RunState, now: string, docId: number) {
   if (!o.erpOrderId) return;
   const key = `ORDRSP:${o.erpOrderId}`;
   if (s.portal.outbound.some((m) => m.idempotencyKey === key)) return;
+  // D61: check stock and work out the ship date first; a shortage waits for a person before the retailer hears.
+  o.fulfilment ??= planFulfilment(s, docId, now);
+  if (o.fulfilment.status !== "confirmed") return;
+  if (o.fulfilment.parts.some((p) => p.kind === "cancelled")) cancelShort(s, now, o, "Stock short: shipping what is available");
   const { msg: built, check } = ordrspFor(s, o, now);
   const msg = addMessage(s, now, { kind: "ORDRSP", channel: "retailer_edi_outbox", documentId: docId, sourceType: "order",
     sourceId: o.erpOrderId, idempotencyKey: key, ...edifact(built, check) });
@@ -255,14 +267,112 @@ export function applySupplierReply(state: RunState, docId: number, text: string,
 export function shipFromErp(state: RunState, docId: number, ship: { carrierScac: string; trackingNumber: string },
   who: Who, clock: Clock = systemClock): RunState {
   const o = orderFor(state, docId);
-  const open = openQuantities(state, docId);
+  if (o.fulfilment?.status === "needs_decision") throw new Conflict("Choose how to ship the short stock first");
+  const plan = shippable(state, docId);
+  const holding = o.fulfilment?.choice === "ship_complete" && plan.some((p) => p.qty.lt(p.open));
+  if (holding) throw new Conflict("This order ships complete and some stock has not arrived yet. Receive it in ERP records, or switch to a split shipment");
   let s = submitAsn(state, docId, {
-    lines: o.validation.order.lines.map((l) => ({ lineIndex: l.line_index, shippedQty: (open.get(l.line_index) ?? Dec.ZERO).toFixedPoint() })),
+    lines: plan.map((p) => ({ lineIndex: p.lineIndex, shippedQty: p.qty.toFixedPoint() })),
     carrierScac: ship.carrierScac, trackingNumber: ship.trackingNumber,
   }, who, clock);
   const asn = s.portal!.asns.filter((a) => a.documentId === docId).at(-1)!;
   s = submitInvoice(s, asn.id, { lines: invoiceLinesFor(s, asn).map((l) => ({ lineIndex: l.lineIndex, quantity: l.quantity })) }, who, clock);
   return s;
+}
+
+/** D61: per line, what is still open and how much of it ERP stock can cover now (stock held by other orders aside). */
+export function shippable(s: RunState, docId: number) {
+  const o = orderFor(s, docId);
+  const open = openQuantities(s, docId);
+  return o.validation.order.lines.map((l) => {
+    const left = open.get(l.line_index) ?? Dec.ZERO;
+    const free = l.sku ? freeStock(s, l.sku, docId) : null;
+    return { lineIndex: l.line_index, open: left, qty: free === null || !free.lt(left) ? left : free };
+  });
+}
+
+/** Close quantity that will not ship (ship-available choice), so the ASN and invoice follow the plan. */
+function cancelShort(s: Run, now: string, o: OrderRow, reason: string) {
+  s.portal.cancellations ??= [];
+  if (s.portal.cancellations.some((c) => c.documentId === o.documentId && c.reason === reason)) return;
+  for (const p of o.fulfilment!.parts) {
+    if (p.kind === "cancelled") s.portal.cancellations.push({ documentId: o.documentId, lineIndex: p.lineIndex, quantity: p.quantity,
+      reason, createdBy: o.fulfilment!.decidedBy ?? "system:order-agent", createdAt: now });
+  }
+}
+
+/**
+ * D61: a person settles how a short order ships: hold and ship complete, ship what is there and backorder the rest,
+ * or ship what is there and cancel the rest. Optionally a later ship date. The ERP order gets the schedule and the
+ * retailer gets the confirmation with each line's quantities and dates.
+ */
+export function decideFulfilment(state: RunState, docId: number, input: { choice: "ship_complete" | "split" | "ship_available"; shipOn?: string | null },
+  who: Who, clock: Clock = systemClock): RunState {
+  requireReviewer(who.role);
+  return act(state, clock, (s, now) => {
+    const o = orderFor(s, docId);
+    if (o.deliveryState !== "erp_created" || !o.fulfilment) throw new Conflict("The stock check runs once the order is in the ERP");
+    if (s.portal.outbound.some((m) => m.kind === "ORDRSP" && m.documentId === docId)) throw new Conflict("The retailer already has the confirmation; change it with a reply instead");
+    const shipOn = input.shipOn?.trim() || null;
+    if (shipOn && !isIsoDate(shipOn)) throw new Conflict("Ship date must be a date (YYYY-MM-DD)");
+    let parts;
+    try { parts = choose(o.fulfilment, input.choice, shipOn); } catch (e) { throw new Conflict((e as Error).message); }
+    Object.assign(o.fulfilment, { status: "confirmed", choice: input.choice, decidedBy: who.actor, decidedAt: now, parts });
+    s.audit.push({ id: nextId(s.audit), entityType: "document", entityId: docId, event: "fulfilment_decided", actor: who.actor,
+      detail: { choice: input.choice, ship_on: firstShipOn(parts), backordered: parts.filter((p) => p.kind === "backorder").length,
+        cancelled: parts.filter((p) => p.kind === "cancelled").length }, createdAt: now });
+    const erp = addMessage(s, now, { kind: "ERP_ORDER_CHANGE", channel: "supplier_erp", documentId: docId, sourceType: "order",
+      sourceId: `SCHEDULE-${o.erpOrderId}`, idempotencyKey: `ERP-SCHEDULE:${o.erpOrderId}`,
+      ...json({ order_change_for: o.erpOrderId, schedule: parts.map((p) => ({
+        sku: o.validation.order.lines.find((l) => l.line_index === p.lineIndex)?.sku ?? null, quantity: p.quantity, ship_on: p.shipOn, kind: p.kind })) },
+      [{ segment: "schedule", meaning: "What ships when: now, backordered to a later date, or cancelled" }]) });
+    dispatch(s, now, erp);
+    confirmOrder(s, now, docId);
+  });
+}
+
+/** D61: an incoming purchase order from the supplier's own vendor arrives; its quantity joins stock on hand. */
+export function receiveStock(state: RunState, sku: string, ref: string, who: Who, clock: Clock = systemClock): RunState {
+  requireReviewer(who.role);
+  return act(state, clock, (s, now) => {
+    const stock = structuredClone(stockOf(s));
+    const item = stock.find((x) => x.sku === sku);
+    const inc = item?.incoming.find((x) => x.ref === ref);
+    if (!item || !inc) throw new Conflict("That incoming delivery is not on file");
+    item.onHand = Dec.of(item.onHand).add(Dec.of(inc.quantity)).toFixedPoint();
+    item.incoming = item.incoming.filter((x) => x !== inc);
+    s.erpStock = stock;
+    s.audit.push({ id: nextId(s.audit), entityType: "system", entityId: 0, event: "stock_received", actor: who.actor,
+      detail: { sku, ref, quantity: inc.quantity }, createdAt: now });
+  });
+}
+
+/** D61: an administrator corrects an ERP stock record (on hand and lead time). */
+export function setStock(state: RunState, sku: string, input: { onHand: string; leadTimeDays: number }, who: Who, clock: Clock = systemClock): RunState {
+  if (who.role !== "administrator") throw new Forbidden("Only an administrator can change ERP records");
+  if (!decimalString.safeParse(input.onHand).success || input.onHand.startsWith("-")) throw new Conflict("On hand must be a number of zero or more");
+  if (!Number.isInteger(input.leadTimeDays) || input.leadTimeDays < 0 || input.leadTimeDays > 365) throw new Conflict("Lead time must be 0 to 365 days");
+  return act(state, clock, (s, now) => {
+    const stock = structuredClone(stockOf(s));
+    const item = stock.find((x) => x.sku === sku);
+    if (item) Object.assign(item, { onHand: input.onHand, leadTimeDays: input.leadTimeDays });
+    else stock.push({ sku, onHand: input.onHand, leadTimeDays: input.leadTimeDays, incoming: [] });
+    s.erpStock = stock;
+    s.audit.push({ id: nextId(s.audit), entityType: "system", entityId: 0, event: "stock_updated", actor: who.actor,
+      detail: { sku, on_hand: input.onHand, lead_time_days: input.leadTimeDays }, createdAt: now });
+  });
+}
+
+/** D61: an administrator sets packing and transit days and what happens when stock is short. */
+export function setFulfilmentSettings(state: RunState, input: unknown, who: Who, clock: Clock = systemClock): RunState {
+  if (who.role !== "administrator") throw new Forbidden("Only an administrator can change shipping settings");
+  const parsed = FulfilmentSettings.omit({ updatedBy: true, updatedAt: true }).safeParse(input);
+  if (!parsed.success) throw new Conflict("Packing and transit days must be whole numbers from 0 to 30");
+  return act(state, clock, (s, now) => {
+    s.fulfilmentSettings = { ...parsed.data, updatedBy: who.actor, updatedAt: now };
+    s.audit.push({ id: nextId(s.audit), entityType: "system", entityId: 0, event: "shipping_settings_changed", actor: who.actor,
+      detail: { pack_days: parsed.data.packDays, transit_days: parsed.data.transitDays, short_stock: parsed.data.shortStock }, createdAt: now });
+  });
 }
 
 export const repliesFor = (s: RunState, docId: number) => (s.portal?.replies ?? []).filter((r) => r.documentId === docId);
@@ -357,7 +467,7 @@ export function draftAsn(s: RunState, docId: number, input: AsnInput, actor: str
   if (!anyShipped) throw new Conflict("Nothing is shipped: at least one line needs a quantity above zero");
 
   const despatchDate = input.despatchDate?.trim() || dateOnly(now);
-  const requested = o.validation.order.requested_delivery_date ?? "";
+  const requested = isoDate(o.validation.order.requested_delivery_date) ?? "";
   const estimatedDelivery = input.estimatedDelivery === undefined
     ? (isIsoDate(requested) ? requested : "") : (input.estimatedDelivery ?? "").trim();
   for (const [v, what] of [[despatchDate, "Despatch date"], [estimatedDelivery, "Estimated delivery date"]] as const) {
@@ -420,6 +530,7 @@ export function submitAsn(state: RunState, docId: number, input: AsnInput, who: 
       sourceId: asn.asnNumber, idempotencyKey: `DESADV:${asn.asnNumber}`, ...edifact(message, compliance) });
     dispatch(s, now, erp);
     dispatch(s, now, edi);
+    consumeStock(s, shippedLines.map((l) => ({ sku: l.sku, quantity: l.shippedQty }))); // D61: the ERP issues the goods
   });
 }
 

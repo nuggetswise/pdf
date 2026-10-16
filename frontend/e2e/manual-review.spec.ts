@@ -10,8 +10,7 @@ test("reviewer resolves exceptions by hand and the order is delivered without a 
   await page.goto("/");
   await page.getByRole("tab", { name: "Orders" }).click();
   await page.getByRole("tab", { name: "Orders" }).click();
-  await page.getByLabel("Sample purchase order").selectOption("VIDEO-DEMO-001");
-  await page.getByRole("button", { name: "Open sample" }).click();
+  await page.getByLabel("Upload a purchase order").setInputFiles("../fixtures/demo/generated/VIDEO-DEMO-001.pdf");
   await expect(page.locator(".issue.open")).toHaveCount(3);
 
   // Viewer cannot act.

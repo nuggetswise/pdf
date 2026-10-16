@@ -1,7 +1,7 @@
 // Read models over RunState, in the same JSON shapes the prototype's FastAPI read endpoints returned
 // (/api/documents, /api/documents/{id}, /api/orders, /api/memory-rules, /api/erp/orders, /api/policy).
 // The screens read these instead of polling a server. Pure functions; nothing here changes the run.
-import type { RunState } from "./run-state";
+import type { OrderTerms, RunState } from "./run-state";
 import { ruleRow } from "./workflow";
 
 export type Field = { value: string | null; page: number | null; evidence: string | null; evidence_verified: boolean; notes: string[] };
@@ -15,7 +15,7 @@ export type Issue = {
   key: string; code: string; title: string; message: string; line_index: number | null;
   printed_value: string | null; reference_value: string | null; reference_version: string | null;
   proposed_action: string | null; evidence: string | null; page: number | null; blocking: boolean;
-  actions: string[]; status: "open" | "resolved"; candidate_skus?: string[];
+  actions: string[]; status: "open" | "resolved"; candidate_skus?: string[]; field?: string;
   resolution: null | { decision_id: number; action: string; actor: string; role: string; reason: string | null; at: string };
 };
 export type Line = {
@@ -49,7 +49,8 @@ export type DocDetail = {
   envelope: { id: number; message_id: string | null; sender: string | null; received_at: string | null; subject_metadata: string | null;
     intake_mode: string; raw_sha256: string | null; created_at: string };
   latest_version: null | { id: number; document_id: number; version: number; origin: string; extractor: string | null; created_by: string;
-    created_at: string; payload: { extractor: { name: string; is_ai: boolean }; header: Record<string, Field>; lines: Record<string, Field>[] } };
+    created_at: string; payload: { extractor: { name: string; is_ai: boolean }; header: Record<string, Field>; lines: Record<string, Field>[];
+      terms?: OrderTerms; source?: "text" | "scan" } };
   timeline: { event: string; actor: string; created_at: string; detail: Record<string, unknown> }[];
   order: Order | null;
   /** Native PDF text per page (was /api/documents/{id}/text). */

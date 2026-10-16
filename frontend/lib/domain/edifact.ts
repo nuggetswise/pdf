@@ -59,6 +59,8 @@ function wrap(env: Envelope, body: Segment[]): EdiMessage {
 export interface EdiLine {
   sourceLineId: string; gtin: string | null; sku: string; customerItemCode?: string | null; description: string | null;
   unit: string; quantity: string; orderedQty?: string; unitPrice?: string; orderedPrice?: string; lineAmount?: string; taxRate?: string;
+  /** D61 (X12 855 only): what ships when. IA ships on the date, IB backordered to the date, IR will not ship. */
+  schedule?: { quantity: string; code: "IA" | "IB" | "IR"; date: string | null }[];
 }
 export interface EdiParty { gln: string | null; vatId?: string | null; name?: string | null }
 export interface EdiParties {

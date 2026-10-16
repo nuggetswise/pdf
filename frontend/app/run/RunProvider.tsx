@@ -1,7 +1,7 @@
 "use client";
 // The run lives in this browser tab (D31). This provider holds it, saves it to sessionStorage after every change,
 // sends each action to the server one at a time, and runs the agent's background work: reading forwarded PDFs
-// and asking the server to extract them. The original PDF bytes stay in memory only and are gone after a reload.
+// and asking the server to extract them. The original PDFs are kept in this browser (IndexedDB) for the page view.
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { DEMO_EMAILS, demoEmailPath, intakeEml, intakeUpload, type Intake } from "../../lib/intake/intake";
 import { IntakeRejected } from "../../lib/intake/pdf";
@@ -11,6 +11,8 @@ import { currentPolicy } from "../../lib/domain/selectors";
 import type { Action } from "../../lib/server/run-action";
 import type { Health } from "../api";
 import { runAction } from "../actions/run";
+import { clearPdfs, loadPdf, savePdf } from "./pdf-store";
+import { mediaFor } from "./media";
 
 const STORAGE_KEY = "order-agent-run-v1";
 const INTERRUPTED = "Extraction was interrupted when the page reloaded. Use Retry extraction.";
@@ -32,7 +34,8 @@ type Agent = {
   uploadPdf: (pdf: Uint8Array, filename: string) => Promise<number[]>;
   retryExtraction: (docId: number) => Promise<void>;
   resetDemo: () => Promise<void>;
-  pdfBytes: (docId: number) => Uint8Array | undefined;
+  /** The original PDF, from memory or from this browser's storage; null when it is not kept (storage blocked). */
+  pdfBytes: (docId: number) => Promise<Uint8Array | null>;
 };
 
 const Ctx = createContext<Agent | null>(null);
@@ -63,6 +66,15 @@ export function RunProvider({ children }: { children: ReactNode }) {
   const stateRef = useRef(state);
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const pdfs = useRef(new Map<number, Uint8Array>());
+  /** The original PDF: this tab's memory first, then this browser's store by its hash. */
+  const pdfBytesOf = useCallback(async (id: number) => {
+    const mem = pdfs.current.get(id);
+    if (mem) return mem;
+    const sha = stateRef.current.documents.find((d) => d.id === id)?.sha256;
+    const kept = sha ? await loadPdf(sha) : null;
+    if (kept) pdfs.current.set(id, kept);
+    return kept;
+  }, []);
 
   const commit = useCallback((next: RunState) => {
     stateRef.current = next;
@@ -98,8 +110,10 @@ export function RunProvider({ children }: { children: ReactNode }) {
       await run({ type: "startExtraction", docId });
       let outcome: { ok: true; payload: unknown } | { ok: false; status: string; detail: string };
       try {
+        const rehearsal = stateRef.current.settings.rehearsalMode;
+        const media = rehearsal ? {} : await mediaFor(await pdfBytesOf(docId), doc.pageText);
         const r = await fetch("/api/extract", { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pages: doc.pageText, rehearsal: stateRef.current.settings.rehearsalMode }) });
+          body: JSON.stringify({ pages: doc.pageText, rehearsal, ...media }) });
         outcome = r.ok ? await r.json() : { ok: false, status: "extraction_failed",
           detail: `Extraction failed (${r.status === 413 ? "the page text is too large to send" : `the server answered HTTP ${r.status}`}). Use Retry extraction.` };
       } catch {
@@ -107,16 +121,21 @@ export function RunProvider({ children }: { children: ReactNode }) {
       }
       // A reset while extraction ran means this document is gone; its result must not land on a new one.
       if (!same()) return;
-      if (outcome.ok) await run({ type: "recordExtraction", docId, payload: outcome.payload as never });
+      if (outcome.ok) await run({ type: "recordExtraction", docId, payload: outcome.payload as never,
+        ...((outcome as { transcript?: string[] }).transcript ? { transcript: (outcome as { transcript?: string[] }).transcript } : {}) });
       else await run({ type: "failExtraction", docId, kind: outcome.status as "extraction_failed", detail: outcome.detail });
     } catch (e) {
       setServerError((e as Error).message);
     }
-  }, [run]);
+  }, [run, pdfBytesOf]);
 
   const receive = useCallback(async (intake: Intake) => {
     const ids = await run({ type: "receive", envelope: intake.envelope, attachments: intake.attachments });
-    ids.forEach((id, i) => pdfs.current.set(id, intake.pdfBytes[i]));
+    ids.forEach((id, i) => {
+      pdfs.current.set(id, intake.pdfBytes[i]);
+      const sha = stateRef.current.documents.find((d) => d.id === id)?.sha256;
+      if (sha) void savePdf(sha, intake.pdfBytes[i]);
+    });
     for (const id of ids) void process(id);
     return ids;
   }, [run, process]);
@@ -158,6 +177,7 @@ export function RunProvider({ children }: { children: ReactNode }) {
   const resetDemo = useCallback(async () => {
     await run({ type: "resetDemo", role: "administrator" });
     pdfs.current.clear();
+    void clearPdfs();
   }, [run]);
 
   // Restore the run saved in this tab. Extraction cannot resume after a reload, so a document caught
@@ -186,8 +206,9 @@ export function RunProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Agent>(() => ({
     state, ready, extraction, serverError, storageWarning, run, forwardDemo, importEml, uploadPdf, retryExtraction, resetDemo,
-    latest: () => stateRef.current, pdfBytes: (id) => pdfs.current.get(id),
-  }), [state, ready, extraction, serverError, storageWarning, run, forwardDemo, importEml, uploadPdf, retryExtraction, resetDemo]);
+    latest: () => stateRef.current,
+    pdfBytes: pdfBytesOf,
+  }), [state, ready, extraction, serverError, storageWarning, run, forwardDemo, importEml, uploadPdf, retryExtraction, resetDemo, pdfBytesOf]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

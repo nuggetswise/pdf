@@ -26,7 +26,7 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
   await expect(page.getByRole("button", { name: "Submit ASN" })).toBeDisabled();
   await page.getByLabel("Shipped quantity line B").fill("3");
   await page.getByLabel("Shipped quantity line A").fill("10");
-  await page.getByLabel("Carrier SCAC").fill("DEMO");
+  await portal.getByLabel("Carrier SCAC").fill("DEMO");
   await page.getByLabel("Bill of lading number").fill("BOL-0001");
   await expect(page.getByLabel("ASN timing")).toBeVisible();
   await page.getByRole("button", { name: "Submit ASN" }).click();

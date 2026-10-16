@@ -11,7 +11,7 @@ import {
   resetDemo, retryDelivery, retryExtraction, setDemoSetting, setPolicy, setRuleState, startExtraction,
 } from "../domain/workflow";
 import { setManualRouteAssumptions } from "../domain/manual-route";
-import { applySupplierReply, cancelBackorder, retryOutbound, shipFromErp, setEdiFailureMode, submitAsn, submitInvoice } from "../domain/portal";
+import { applySupplierReply, cancelBackorder, decideFulfilment, receiveStock, retryOutbound, setFulfilmentSettings, setStock, shipFromErp, setEdiFailureMode, submitAsn, submitInvoice } from "../domain/portal";
 import { saveSupplierSetup, saveTradingPartner } from "../domain/partners";
 import { PROFILE_IDS } from "../domain/compliance";
 
@@ -45,7 +45,9 @@ export const Action = z.discriminatedUnion("type", [
     attachments: z.array(Attachment).min(1).max(20),
   }),
   z.strictObject({ type: z.literal("startExtraction"), docId }),
-  z.strictObject({ type: z.literal("recordExtraction"), docId, payload: ExtractionPayload }),
+  z.strictObject({ type: z.literal("recordExtraction"), docId, payload: ExtractionPayload,
+    /** D59: the AI's page-by-page transcription of a scanned PDF (it had no text layer). */
+    transcript: z.array(z.string().max(60_000)).max(MAX_PAGES).optional() }),
   z.strictObject({ type: z.literal("failExtraction"), docId,
     kind: z.enum(["unsupported", "extraction_unavailable", "extraction_failed"]), detail: z.string().min(1).max(500) }),
   z.strictObject({ type: z.literal("retryExtraction"), docId }),
@@ -85,6 +87,13 @@ export const Action = z.discriminatedUnion("type", [
       unitsPerCarton: z.array(z.strictObject({ lineIndex: z.number().int().nonnegative(), units: z.string().max(40) }))
         .max(500).optional() }).optional() }),
   z.strictObject({ type: z.literal("cancelBackorder"), role: Role, docId, reason: z.string().max(400) }),
+  // D61: stock and ship dates.
+  z.strictObject({ type: z.literal("decideFulfilment"), role: Role, docId, choice: z.enum(["ship_complete", "split", "ship_available"]),
+    shipOn: z.string().max(10).nullable().optional() }),
+  z.strictObject({ type: z.literal("receiveStock"), role: Role, sku: z.string().max(80), ref: z.string().max(80) }),
+  z.strictObject({ type: z.literal("setStock"), role: Role, sku: z.string().min(1).max(80), onHand: z.string().max(20),
+    leadTimeDays: z.number().int() }),
+  z.strictObject({ type: z.literal("setFulfilmentSettings"), role: Role, settings: z.unknown() }),
   z.strictObject({ type: z.literal("applySupplierReply"), role: Role, docId, text: z.string().max(4000), interpretation: z.unknown() }),
   z.strictObject({ type: z.literal("shipFromErp"), role: Role, docId, carrierScac: z.string().max(4),
     trackingNumber: z.string().min(1).max(40) }),
@@ -130,7 +139,15 @@ function apply(s: RunState, a: Action): { state: RunState; documentIds?: number[
       // so a payload cannot claim evidence the stored text does not contain.
       const doc = s.documents.find((d) => d.id === a.docId);
       if (!doc) throw new Conflict("Unknown document");
-      const checked = normalise(a.payload, doc.pageText, { name: a.payload.extractor.name, isAi: a.payload.extractor.is_ai });
+      const scan = a.payload.source === "scan" && a.payload.extractor.is_ai && !doc.pageText.some((p) => p.trim()) && a.transcript;
+      if (scan) {
+        // A scan has no text of its own: the AI's transcription becomes the page text, labelled, and the order
+        // always waits for a person (workflow.settle).
+        if (a.transcript!.length !== doc.pageText.length) throw new Conflict("The transcription does not match the page count");
+        s = { ...s, documents: s.documents.map((d) => (d.id === doc.id ? { ...d, pageText: a.transcript! } : d)) };
+      }
+      const checked = normalise(a.payload, scan ? a.transcript! : doc.pageText, { name: a.payload.extractor.name, isAi: a.payload.extractor.is_ai });
+      if (scan) checked.source = "scan";
       return { state: recordExtraction(s, a.docId, checked) };
     }
     case "failExtraction":
@@ -171,6 +188,14 @@ function apply(s: RunState, a: Action): { state: RunState; documentIds?: number[
       return { state: applySupplierReply(s, a.docId, a.text, a.interpretation, who(a.role)) };
     case "shipFromErp":
       return { state: shipFromErp(s, a.docId, { carrierScac: a.carrierScac, trackingNumber: a.trackingNumber }, who(a.role)) };
+    case "decideFulfilment":
+      return { state: decideFulfilment(s, a.docId, { choice: a.choice, shipOn: a.shipOn ?? null }, who(a.role)) };
+    case "receiveStock":
+      return { state: receiveStock(s, a.sku, a.ref, who(a.role)) };
+    case "setStock":
+      return { state: setStock(s, a.sku, { onHand: a.onHand, leadTimeDays: a.leadTimeDays }, who(a.role)) };
+    case "setFulfilmentSettings":
+      return { state: setFulfilmentSettings(s, a.settings, who(a.role)) };
     case "cancelBackorder":
       return { state: cancelBackorder(s, a.docId, a.reason, who(a.role)) };
     case "submitInvoice":

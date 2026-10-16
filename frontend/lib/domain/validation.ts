@@ -228,6 +228,10 @@ export function validate(payload: Payload, ref: Reference, activeRules: RuleInpu
       const hit = (ref.customer_aliases ?? []).find((a) => a.customer_id === custId && a.customer_item_code === alias);
       product = hit ? products.get(hit.sku) ?? null : null;
     }
+    // D59: many retailer POs print the supplier's own item number instead of a GTIN.
+    const supplierSku = v((line as { supplier_sku?: typeof line.gtin }).supplier_sku ?? null);
+    if (supplierSku) out.supplier_sku = supplierSku;
+    if (product === null && supplierSku && products.has(supplierSku)) product = products.get(supplierSku)!;
     if (product === null && gtin && obsolete.has(gtin)) {
       const rule = rules.find((r) => r.obsolete_identifier === gtin && r.customer_id === custId && r.state === "active");
       if (rule && rule.reference_version === (ref.base_reference_version ?? rv)) {
@@ -264,9 +268,9 @@ export function validate(payload: Payload, ref: Reference, activeRules: RuleInpu
         product = products.get(ov[mkey].sku as string) ?? null;
         out.resolved_by = { type: "review_decision", text: ov[mkey].text };
       }
-      issues.push(issue("unknown_item", `Line ${label}: '${alias || gtin || "no identifier"}' does not ` +
+      issues.push(issue("unknown_item", `Line ${label}: '${alias || gtin || supplierSku || "no identifier"}' does not ` +
         `match any product for ${custId || "this customer"}.`, {
-        line: idx, printed: alias || gtin || null, evidence, page, refVersion: rv,
+        line: idx, printed: alias || gtin || supplierSku || null, evidence, page, refVersion: rv,
         extra: { candidate_skus: ref.products.map((p) => p.sku) },
       }));
     }
@@ -283,7 +287,9 @@ export function validate(payload: Payload, ref: Reference, activeRules: RuleInpu
     let dq = q;
     let dp = price;
     let dunit = unit;
-    if (q !== null && unit && unit !== product.unit) {
+    // Units printed in another case ("Case" for CASE) are the same unit.
+    if (unit && unit !== product.unit && unit.toLowerCase() === product.unit.toLowerCase()) dunit = product.unit;
+    if (q !== null && unit && unit.toLowerCase() !== product.unit.toLowerCase()) {
       const p = product;
       const conv = (ref.unit_conversions ?? []).find((c) => c.sku === p.sku && c.from_unit === unit
         && c.to_unit === p.unit && c.approved);

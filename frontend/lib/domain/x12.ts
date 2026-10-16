@@ -104,12 +104,12 @@ const ackCode = (l: EdiLine) => {
   const p = Boolean(l.unitPrice && l.orderedPrice && !Dec.of(l.unitPrice).eq(Dec.of(l.orderedPrice)));
   return q && p ? "IC" : q ? "IQ" : p ? "IP" : "IA";
 };
-const ACK_TEXT: Record<string, string> = { IA: "IA = item accepted", IQ: "IQ = quantity changed", IP: "IP = price changed",
+const ACK_TEXT: Record<string, string> = { IB: "IB = item backordered", IR: "IR = item rejected, will not ship", IA: "IA = item accepted", IQ: "IQ = quantity changed", IP: "IP = price changed",
   IC: "IC = quantity and price changed" };
 
 export function buildOrdrspX12(o: { ref: string; createdAt: string; erpOrderId: string; orderDate: string | null;
   shipDate?: string | null } & EdiParties, lines: EdiLine[]): EdiMessage {
-  const changed = lines.some((l) => ackCode(l) !== "IA");
+  const changed = lines.some((l) => ackCode(l) !== "IA" || l.schedule?.some((x) => x.code !== "IA"));
   const body: Segment[] = [
     seg(`BAK*00*${changed ? "AC" : "AK"}*${xesc(o.poNumber)}*${d8(o.orderDate)}`,
       `Acknowledges purchase order ${o.poNumber} (${changed ? "AC = acknowledged with detail and changes" : "AK = acknowledged with detail, no changes"})`),
@@ -119,11 +119,15 @@ export function buildOrdrspX12(o: { ref: string; createdAt: string; erpOrderId: 
     ...parties(o),
     ...lines.flatMap((l, i) => {
       const code = ackCode(l);
+      // D61: one ACK per scheduled part, each with its ship date (ACK04 068 = current schedule ship, ACK05 the date).
+      const acks = l.schedule?.length ? l.schedule.map((x) => seg(`ACK*${x.code}*${xesc(x.quantity)}*${uom(l.unit)}${x.date ? `*068*${d8(x.date)}` : ""}`,
+        x.code === "IR" ? `${x.quantity} ${l.unit} will not ship (${ACK_TEXT.IR})`
+          : `${x.quantity} ${l.unit} ${x.code === "IB" ? "backordered, ships" : "ships"} on ${x.date ?? "(no date)"} (${ACK_TEXT[x.code]})`)) : null;
       return [
         seg(`PO1*${i + 1}*${xesc(l.orderedQty ?? l.quantity)}*${uom(l.unit)}*${l.unitPrice ? `${xesc(l.unitPrice)}*PE` : "*"}*${ids(l)}`,
           `Line ${i + 1} (PO line ${l.sourceLineId}): ${idText(l)}${l.unitPrice ? `, unit price ${l.unitPrice}` : ""}`),
-        seg(`ACK*${code}*${xesc(l.quantity)}*${uom(l.unit)}`,
-          `Confirmed ${l.quantity} ${l.unit}${code === "IP" || code === "IC" ? ` at ${l.unitPrice} (PO said ${l.orderedPrice})` : ""} (${ACK_TEXT[code]})`),
+        ...(acks ?? [seg(`ACK*${code}*${xesc(l.quantity)}*${uom(l.unit)}`,
+          `Confirmed ${l.quantity} ${l.unit}${code === "IP" || code === "IC" ? ` at ${l.unitPrice} (PO said ${l.orderedPrice})` : ""} (${ACK_TEXT[code]})`)]),
       ];
     }),
     seg(`CTT*${lines.length}`, `${lines.length} line items`),

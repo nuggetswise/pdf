@@ -112,7 +112,7 @@ function App() {
           {tab === "today" && <SupplierToday role={role} onOpen={(id) => { setFocus(id); setTab("work"); }} />}
           {tab === "work" && <Workspace key={focus ?? 0} role={role} focus={focus} />}
           {tab === "memory" && <MemoryView role={role} />}
-          {tab === "erp" && <ErpView />}
+          {tab === "erp" && <ErpView role={role} />}
           {tab === "edi" && <EdiView role={role} />}
           {tab === "settings" && <SettingsView role={role} health={health} pilot={pilot} />}
           {tab === "received" && <RetailerInbox />}

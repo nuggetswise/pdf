@@ -119,3 +119,9 @@ Owner's real sample PO (not committed): its text with a Gemini-like extraction r
 - Retailer rules: the three retailer samples pass every blocking rule of the mediamarktsaturn profile. Tests cover GS1 check digits (incl. GS1's SSCC example 106141411234567897), held ORDRSP until GLNs exist, blocked ASN and invoice with reasons, pallet and carton packing, tax and allowances (216.06 case), tamper detection on edited totals, and the three-way match.
 - New e2e/retailer-compliance.spec.ts: a customer onboarded from a fictional PO starts with its confirmation Held and the ASN blocked (app-09-edi-blocked.png); an invalid GLN is refused; after EDI setup on the MediaMarktSaturn profile the confirmation is checked again and sent, the ASN packs 2 pallets and 4 cartons, and the invoice with 19 % and 7 % lines and a 2 % discount totals 191.38 EUR (app-10-invoice-tax-match.png); the EDI tab shows each message's check (app-11-edi-compliance.png).
 - Not run: any real retailer test environment, AS2/VAN transport, CONTRL/APERAK acknowledgements, real PO PDFs beyond the one owner sample from D46, and the full MMS guide PDFs (not reachable from this environment). See docs/08-edi-mapping.md.
+
+## 2026-10-16: page view, example PO, stock check and ship dates (D57-D61)
+`scripts/verify.sh` exit 0: backend 47 passed; Vitest 496 passed (22 files); pydifact 5 of 5; typecheck clean;
+production build ok; Playwright 12 passed, including the new `stock.spec.ts` (example PO page view, short stock,
+split with backorder, retailer sees per-line dates, ship lowers stock). Live AI reading of varied layouts and scans:
+Not run (no Gemini key in this container); the request shape is covered by mocked tests in `lib/server/extract.test.ts`.

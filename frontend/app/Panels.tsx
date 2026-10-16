@@ -1,12 +1,13 @@
 "use client";
 import type React from "react";
-import { SAMPLE_LABELS } from "../lib/intake/intake";
 import { useState } from "react";
+import { showDate } from "../lib/domain/dates";
+import { freeStock, fulfilmentSettings, reserved, stockOf } from "../lib/domain/fulfilment";
 import { documentDetail, documentsList, erpOrdersList, rulesList } from "../lib/domain/selectors";
 import { Health, Issue, PROCESS_LABEL, Role } from "./api";
 import { OrderView } from "./OrderView";
 import { EdiSetting } from "./Portal";
-import { DEMO_EMAILS, useAgent } from "./run/RunProvider";
+import { useAgent } from "./run/RunProvider";
 
 const who = (actor: string | null) => (actor ? actor.split(":")[1] ?? actor : "—");
 
@@ -92,7 +93,54 @@ function SessionAdditions() {
   );
 }
 
-export function ErpView() {
+/** D61: the supplier's ERP stock (fictional), what open orders hold, and deliveries the supplier is waiting for. */
+function StockTable({ role }: { role: Role }) {
+  const agent = useAgent();
+  const s = agent.state;
+  const [edit, setEdit] = useState<{ sku: string; onHand: string; lead: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const go = async (f: () => Promise<unknown>) => { try { await f(); setError(null); setEdit(null); } catch (e) { setError((e as Error).message); } };
+  const ref = (s.settings.referenceData ?? null) as { products?: { sku: string; description?: string }[] } | null;
+  const desc = (sku: string) => ref?.products?.find((p) => p.sku === sku)?.description
+    ?? s.orders.flatMap((o) => o.validation.order.lines).find((l) => l.sku === sku)?.description ?? "";
+  const items = stockOf(s);
+  return (
+    <section aria-label="Stock">
+      <h3>Stock</h3>
+      <p className="muted small">Stock used for order availability checks. Fictional data.</p>
+      {error && <div className="alert bad" role="alert">{error}</div>}
+      <div className="scroll">
+        <table className="lines stock">
+          <thead><tr><th>Item</th><th>On hand</th><th>Held for orders</th><th>Free</th><th>Incoming</th><th>Lead time</th><th></th></tr></thead>
+          <tbody>
+            {items.map((i) => {
+              const held = reserved(s, i.sku, null);
+              const editing = edit?.sku === i.sku;
+              return (
+                <tr key={i.sku}>
+                  <td><b>{i.sku}</b><div className="muted small">{desc(i.sku)}</div></td>
+                  <td>{editing ? <input className="qty" aria-label={`On hand ${i.sku}`} value={edit.onHand} onChange={(e) => setEdit({ ...edit, onHand: e.target.value })} /> : i.onHand}</td>
+                  <td>{held.toFixedPoint()}</td>
+                  <td>{freeStock(s, i.sku)?.toFixedPoint() ?? "—"}</td>
+                  <td>{i.incoming.length === 0 ? "—" : i.incoming.map((x) => (
+                    <div key={x.ref} className="small">{x.quantity} on {showDate(x.expected)} <span className="muted">({x.ref})</span>
+                      {role !== "viewer" && <button className="ghost tiny" onClick={() => go(() => agent.run({ type: "receiveStock", role, sku: i.sku, ref: x.ref }))}>Receive</button>}</div>
+                  ))}</td>
+                  <td>{editing ? <input className="qty" aria-label={`Lead time ${i.sku}`} value={edit.lead} onChange={(e) => setEdit({ ...edit, lead: e.target.value })} /> : `${i.leadTimeDays} days`}</td>
+                  <td>{role === "administrator" && (editing
+                    ? <button className="tiny" onClick={() => go(() => agent.run({ type: "setStock", role, sku: i.sku, onHand: edit.onHand.trim(), leadTimeDays: Number(edit.lead) }))}>Save</button>
+                    : <button className="ghost tiny" onClick={() => setEdit({ sku: i.sku, onHand: i.onHand, lead: String(i.leadTimeDays) })}>Edit</button>)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+export function ErpView({ role }: { role: Role }) {
   const agent = useAgent();
   const orders = agent.ready ? erpOrdersList(agent.state) : null;
   return (
@@ -111,6 +159,7 @@ export function ErpView() {
           </article>
         ))}
       </div>
+      {agent.ready && <StockTable role={role} />}
     </section>
   );
 }
@@ -118,8 +167,6 @@ export function ErpView() {
 export function Workspace({ role, focus = null }: { role: Role; focus?: number | null }) {
   const agent = useAgent();
   const docs = agent.ready ? documentsList(agent.state) : null;
-  const emails: readonly string[] = DEMO_EMAILS;
-  const [pick, setPick] = useState<string>(DEMO_EMAILS[0]);
   const [selected, setSelected] = useState<number | null>(focus);
   const detail = selected === null ? null : documentDetail(agent.state, selected);
   const [error, setError] = useState<string | null>(null);
@@ -147,20 +194,8 @@ export function Workspace({ role, focus = null }: { role: Role; focus?: number |
           <input type="file" accept=".pdf,application/pdf,.eml,message/rfc822" aria-label="Upload a purchase order"
             onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) addFile(f); }} />
           <b>Upload a purchase order</b>
-          <span className="muted small">PDF, or a forwarded email (.eml) with the PDF attached. Drop it here or click to choose. The file is read in your browser; only its text is sent for extraction.</span>
+          <span className="muted small">PDF, or a forwarded email (.eml) with the PDF attached. Drop it here or click to choose. The file is read in your browser; the AI reads the PDF itself, in any layout.</span>
         </label>
-        <div className="samples">
-          <span className="muted small">No PDF to hand? Try a sample purchase order (fictional):</span>
-          <div className="forward">
-            <select value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Sample purchase order">
-              {emails.map((n) => <option key={n} value={n}>{SAMPLE_LABELS[n as keyof typeof SAMPLE_LABELS] ?? n}</option>)}
-            </select>
-            <button disabled={!pick} onClick={() => wrap(async () => {
-              const ids = await agent.forwardDemo(pick);
-              setSelected(ids[0]);
-            })}>Open sample</button>
-          </div>
-        </div>
         {docs?.length === 0 && <p className="placeholder">No orders yet. Upload a PDF purchase order to start.</p>}
         {docs?.map((d) => (
           <button key={d.id} className={`mail ${selected === d.id ? "active" : ""}`} onClick={() => setSelected(d.id)}>
@@ -171,7 +206,7 @@ export function Workspace({ role, focus = null }: { role: Role; focus?: number |
       </aside>
       <section className="main">
         {error && <div className="alert bad" role="alert">{error}</div>}
-        {!detail ? <div className="placeholder">Upload a purchase order, or select one in the inbox to see how the agent handled it.</div> : (
+        {!detail ? <div className="placeholder">Upload a purchase order or select one from the inbox.</div> : (
           <>
             {detail.document.status === "extraction_failed" || detail.document.status === "extraction_unavailable" ? (
               <button onClick={() => wrap(() => agent.retryExtraction(detail.document.id))}>Retry extraction</button>
@@ -218,6 +253,7 @@ function AdminSettings({ health, onError }: { health: Health; onError: (e: strin
         </select>
       </label>
       <EdiSetting onError={onError} />
+      <ShippingSettings onError={onError} />
       {test && <>
       <h3>Test controls</h3>
       <p className="muted small">Shown only when the app runs with the test adapter, never with the AI.</p>
@@ -237,5 +273,37 @@ function AdminSettings({ health, onError }: { health: Health; onError: (e: strin
       }}>Clear this tab</button>
       </>}
     </div>
+  );
+}
+
+/** D61: how ship dates are worked out, and what happens when stock is short. */
+function ShippingSettings({ onError }: { onError: (e: string | null) => void }) {
+  const agent = useAgent();
+  const cur = fulfilmentSettings(agent.state);
+  const [pack, setPack] = useState(String(cur.packDays));
+  const [transit, setTransit] = useState(String(cur.transitDays));
+  const [policy, setPolicy] = useState(cur.shortStock);
+  const save = async () => {
+    try {
+      await agent.run({ type: "setFulfilmentSettings", role: "administrator",
+        settings: { packDays: Number(pack), transitDays: Number(transit), shortStock: policy, retailers: cur.retailers } });
+      onError(null);
+    } catch (e) { onError((e as Error).message); }
+  };
+  return (
+    <fieldset className="shipping-settings">
+      <legend>Ship dates and short stock</legend>
+      <label>Working days to pick and pack<input className="qty" aria-label="Packing days" value={pack} onChange={(e) => setPack(e.target.value)} /></label>
+      <label>Working days in transit to the retailer<input className="qty" aria-label="Transit days" value={transit} onChange={(e) => setTransit(e.target.value)} /></label>
+      <label>When stock is short
+        <select aria-label="Short stock" value={policy} onChange={(e) => setPolicy(e.target.value as typeof policy)}>
+          <option value="ask">Ask me each time</option>
+          <option value="ship_complete">Hold and ship complete</option>
+          <option value="split">Ship what is there, backorder the rest</option>
+        </select>
+      </label>
+      <button onClick={save}>Save shipping settings</button>
+      <p className="muted small">Applies to new orders.</p>
+    </fieldset>
   );
 }

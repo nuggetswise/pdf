@@ -35,7 +35,7 @@ describe("/api/extract", () => {
 
   it.each([
     ["not json"], [JSON.stringify({ pages: [] , rehearsal: true })], [JSON.stringify({ pages: ["x"] })],
-    [JSON.stringify({ pages: ["x"], rehearsal: true, pdf: "bytes" })], [JSON.stringify({ pages: [1], rehearsal: true })],
+    [JSON.stringify({ pages: ["x"], rehearsal: true, pdf: "<not base64>" })], [JSON.stringify({ pages: [1], rehearsal: true })],
     [JSON.stringify({ pages: Array(51).fill("x"), rehearsal: true })],
   ])("POST refuses a malformed body: %s", async (body) => {
     expect((await post(body)).status).toBe(400);
