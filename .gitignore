@@ -13,3 +13,4 @@ playwright-report/
 .next-live/
 .env.local
 .env*.local
+frontend/.next-shot/
