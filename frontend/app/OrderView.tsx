@@ -378,8 +378,12 @@ export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight
           <SourcePanel d={d} focus={focus.ids} onPick={pickBox} />
         </div>
       )}
-      {o?.delivery_state === "erp_created" && <FulfilmentPanel docId={d.document.id} role={role} />}
-      {o?.delivery_state === "erp_created" && <OrderPortal docId={d.document.id} role={role} />}
+      {o?.delivery_state === "erp_created" && (
+        <div className="ship-asn">
+          <FulfilmentPanel docId={d.document.id} role={role} />
+          <OrderPortal docId={d.document.id} role={role} />
+        </div>
+      )}
     </div>
   );
 }
