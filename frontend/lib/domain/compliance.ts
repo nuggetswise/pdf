@@ -9,6 +9,7 @@
 import { MESSAGE_VERSION } from "./edifact";
 import { isGln, isGtin, isSscc } from "./gs1";
 import { Dec, money } from "./money";
+import { checkX12, X12_LABEL } from "./x12";
 
 export type EdiKind = keyof typeof MESSAGE_VERSION;
 
@@ -50,16 +51,18 @@ export type SourceId = keyof typeof SOURCES;
 
 // ---------- profiles ----------
 
-export const PROFILE_IDS = ["eancom2002", "mediamarktsaturn", "fictional_demo"] as const;
+export const PROFILE_IDS = ["x12_retail", "eancom2002", "mediamarktsaturn"] as const;
 export type ProfileId = (typeof PROFILE_IDS)[number];
 export const PROFILES: Record<ProfileId, { name: string; summary: string }> = {
+  x12_retail: { name: "US retail X12 baseline",
+    summary: "ANSI X12 004010 855, 856 and 810 with GLNs, UPCs (GTIN-12), SSCCs, dates and totals checked. Rules inferred "
+      + "from the X12 standard; a retailer's own guide adds more." },
   eancom2002: { name: "EANCOM 2002 baseline (GS1)",
     summary: "GS1 EANCOM 2002 rules any retailer using EANCOM expects: GLNs, GTINs, SSCCs, dates, tax totals." },
   mediamarktsaturn: { name: "MediaMarktSaturn (public guides, partial)",
     summary: "The baseline plus the rules confirmed from MediaMarktSaturn's public INVOIC and DESADV guides. "
       + "Not every rule in those guides is implemented; see the mapping document." },
-  fictional_demo: { name: "Fictional demo partner",
-    summary: "The baseline, except that the demo catalogue's made-up item numbers are a warning instead of a block." },
+
 };
 
 // ---------- parsing our own output back ----------
@@ -453,13 +456,12 @@ export interface ComplianceResult {
   profile: ProfileId; kind: EdiKind; rulesChecked: number; rulesPassed: number; findings: Finding[];
 }
 
-/** Rules that a fictional-demo partner reports as a warning: the demo catalogue's item numbers are made up. */
-const RELAXED: Partial<Record<ProfileId, string[]>> = { fictional_demo: ["ITEM-GTIN"] };
 
 export const rulesFor = (kind: EdiKind, profile: ProfileId) =>
   RULES.filter((r) => r.messages.includes(kind) && (!r.profiles || r.profiles.includes(profile)));
 
 export function checkMessage(kind: EdiKind, text: string, profile: ProfileId): ComplianceResult {
+  if (profile === "x12_retail") return checkX12(kind, text);
   const segs = parseInterchange(text);
   const rules = rulesFor(kind, profile);
   const findings: Finding[] = [];
@@ -467,7 +469,7 @@ export function checkMessage(kind: EdiKind, text: string, profile: ProfileId): C
   for (const r of rules) {
     const fails = r.check(segs, kind);
     if (fails.length === 0) { passed += 1; continue; }
-    const severity: Finding["severity"] = RELAXED[profile]?.includes(r.id) ? "warn" : "block";
+    const severity: Finding["severity"] = "block";
     findings.push(...fails.map((text) => ({ ruleId: r.id, severity, text, basis: r.basis, sources: r.sources })));
   }
   return { profile, kind, rulesChecked: rules.length, rulesPassed: passed, findings };
@@ -477,4 +479,4 @@ export const blocking = (r: ComplianceResult) => r.findings.filter((f) => f.seve
 
 /** One sentence for a refusal: "The retailer would reject this DESADV: a; b." */
 export const refusal = (r: ComplianceResult) =>
-  `The retailer would reject this ${r.kind} (${PROFILES[r.profile].name}): ${blocking(r).map((f) => f.text).join(" ")}`;
+  `The retailer would reject this ${r.profile === "x12_retail" ? X12_LABEL[r.kind] : r.kind} (${PROFILES[r.profile].name}): ${blocking(r).map((f) => f.text).join(" ")}`;

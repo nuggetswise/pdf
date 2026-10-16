@@ -21,7 +21,7 @@ const baseCustomers = (s: RunState): { fictional: boolean; customers: RefCustome
 /** The labelled fictional supplier used until a reviewer enters the real one. */
 export const FICTIONAL_SUPPLIER: Omit<SupplierSetup, "updatedBy" | "updatedAt"> = {
   name: "Fictional demo supplier", gln: FICTIONAL_GLN.supplier, vatId: null, companyPrefix: DEMO_COMPANY_PREFIX,
-  taxType: "GST", defaultTaxRate: "5",
+  taxType: "SALES", defaultTaxRate: "0",
 };
 
 export function supplierSetup(s: RunState): Omit<SupplierSetup, "updatedBy" | "updatedAt"> & { fictional: boolean } {
@@ -47,10 +47,10 @@ export function partnerFor(s: RunState, customerId: string | null): EffectivePar
     let n = 0;
     const shipToGlns = customers.flatMap((c, ci) => c.ship_tos.map((t) => ({ ci, shipToId: t.ship_to_id, gln: fictionalGln("ship_to", ++n) })))
       .filter((x) => x.ci === i).map(({ shipToId, gln }) => ({ shipToId, gln }));
-    return { customerId: customerId ?? "", profile: "fictional_demo", buyerGln: fictionalGln("buyer", i + 1), buyerVatId: null,
-      contractRef: null, shipToGlns, isDefault: true, fictional };
+    return { customerId: customerId ?? "", profile: "x12_retail", buyerGln: fictionalGln("buyer", i + 1), buyerVatId: null,
+      contractRef: null, vendorNumber: null, shipToGlns, isDefault: true, fictional };
   }
-  return { customerId: customerId ?? "", profile: "eancom2002", buyerGln: null, buyerVatId: null, contractRef: null,
+  return { customerId: customerId ?? "", profile: "x12_retail", buyerGln: null, buyerVatId: null, contractRef: null, vendorNumber: null,
     shipToGlns: [], isDefault: true, fictional };
 }
 
@@ -71,7 +71,7 @@ const glnOrNull = (v: string | null | undefined, what: string): string | null =>
 };
 
 export interface SupplierInput {
-  name?: string | null; gln: string; vatId?: string | null; companyPrefix: string; taxType: "VAT" | "GST";
+  name?: string | null; gln: string; vatId?: string | null; companyPrefix: string; taxType: "VAT" | "GST" | "SALES";
   defaultTaxRate?: string | null;
 }
 
@@ -94,7 +94,7 @@ export function saveSupplierSetup(state: RunState, input: SupplierInput, who: Wh
 }
 
 export interface PartnerInput {
-  customerId: string; profile: ProfileId; buyerGln?: string | null; buyerVatId?: string | null; contractRef?: string | null;
+  customerId: string; profile: ProfileId; buyerGln?: string | null; buyerVatId?: string | null; contractRef?: string | null; vendorNumber?: string | null;
   shipToGlns: { shipToId: string; gln: string }[];
 }
 
@@ -103,9 +103,6 @@ export function saveTradingPartner(state: RunState, input: PartnerInput, who: Wh
   if (!PROFILE_IDS.includes(input.profile)) throw new Conflict("Unknown compliance profile");
   const customerId = clean(input.customerId, 100, "Customer ID");
   if (!customerId) throw new Conflict("Customer ID is required");
-  if (input.profile === "fictional_demo" && !isFictionalCustomer(state, customerId)) {
-    throw new Conflict("The fictional demo profile is only for the fictional demo customers");
-  }
   const shipToGlns = input.shipToGlns.flatMap((t) => {
     const gln = glnOrNull(t.gln, `GLN for ship-to ${t.shipToId}`);
     const shipToId = clean(t.shipToId, 100, "Ship-to ID");
@@ -116,6 +113,7 @@ export function saveTradingPartner(state: RunState, input: PartnerInput, who: Wh
   const now = clock.now();
   const row: TradingPartner = { customerId, profile: input.profile, buyerGln: glnOrNull(input.buyerGln, "Buyer GLN"),
     buyerVatId: clean(input.buyerVatId, 35, "Buyer VAT number"), contractRef: clean(input.contractRef, 35, "Contract reference"),
+    vendorNumber: clean(input.vendorNumber, 30, "Vendor number"),
     shipToGlns, updatedBy: who.actor, updatedAt: now };
   s.portal.partners = [...(s.portal.partners ?? []).filter((p) => p.customerId !== customerId), row];
   s.audit.push({ id: nextId(s.audit), entityType: "system", entityId: 0, event: "trading_partner_saved", actor: who.actor,

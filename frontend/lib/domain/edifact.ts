@@ -68,6 +68,8 @@ export interface EdiParties {
   deliveryParty: EdiParty & { printedId: string | null };
   /** Contract or EDI agreement reference (RFF+CT), when the retailer requires one. */
   contractRef?: string | null;
+  /** D50: supplier's vendor number at the retailer (X12 REF*IA only). */
+  vendorNumber?: string | null;
 }
 
 function nad(qual: "BY" | "SU" | "DP", p: EdiParty, label: string, withVat: boolean): Segment[] {
@@ -181,8 +183,10 @@ export interface EdiInvoiceTotals {
 }
 
 const taxCategory = (rate: string) => (/^0+(\.0+)?$/.test(rate) ? "Z" : "S");
+// UNCL 5153 has no "SALES"; US sales tax is "LOC" (local sales taxes).
+const taxCode = (t: string) => (t === "SALES" ? "LOC" : t);
 const taxSeg = (taxType: string, rate: string, what: string) =>
-  seg(`TAX+7+${esc(taxType)}+++:::${esc(rate)}+${taxCategory(rate)}`,
+  seg(`TAX+7+${esc(taxCode(taxType))}+++:::${esc(rate)}+${taxCategory(rate)}`,
     `${what}: ${taxType} ${rate}% (category ${taxCategory(rate) === "S" ? "S = standard rate" : "Z = zero rated"})`);
 
 export function buildInvoic(inv: { ref: string; createdAt: string; asnRef: string; taxType: string } & EdiParties,

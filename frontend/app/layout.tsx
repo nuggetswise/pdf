@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import "./globals.css";
 
-export const metadata = { title: "PDF Order Agent (prototype)" };
+export const metadata = { title: "Order Agent for Trading Grid (prototype)" };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

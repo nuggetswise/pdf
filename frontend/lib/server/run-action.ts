@@ -92,10 +92,11 @@ export const Action = z.discriminatedUnion("type", [
   // D47: trading partner EDI setup.
   z.strictObject({ type: z.literal("saveSupplierSetup"), role: Role, name: z.string().max(200).nullable().optional(),
     gln: z.string().max(40), vatId: z.string().max(100).nullable().optional(), companyPrefix: z.string().max(20),
-    taxType: z.enum(["VAT", "GST"]), defaultTaxRate: z.string().max(20).nullable().optional() }),
+    taxType: z.enum(["VAT", "GST", "SALES"]), defaultTaxRate: z.string().max(20).nullable().optional() }),
   z.strictObject({ type: z.literal("saveTradingPartner"), role: Role, customerId: z.string().max(200),
     profile: z.enum(PROFILE_IDS), buyerGln: z.string().max(40).nullable().optional(),
     buyerVatId: z.string().max(100).nullable().optional(), contractRef: z.string().max(100).nullable().optional(),
+    vendorNumber: z.string().max(100).nullable().optional(),
     shipToGlns: z.array(z.strictObject({ shipToId: z.string().max(200), gln: z.string().max(40) })).max(50) }),
   z.strictObject({ type: z.literal("retryOutbound"), role: Role, messageId: docId }),
   z.strictObject({ type: z.literal("setEdiFailureMode"), role: Role, value: z.enum(["none", "fail_next", "hold_next"]) }),

@@ -32,11 +32,13 @@ test("EDI is held until the retailer is set up, then the ASN and invoice pass it
 
   // Enter the EDI setup. A wrong check digit is refused.
   const setup = portal.getByLabel("EDI setup");
+  // US X12 retailers hide the VAT fields; choosing the EANCOM MediaMarktSaturn rules shows them.
+  await expect(setup.getByLabel("Supplier VAT number")).toHaveCount(0);
+  await setup.getByLabel("Retailer rules").selectOption("mediamarktsaturn");
   await setup.getByLabel("Supplier GLN").fill("9520000005559");
   await setup.getByLabel("Supplier VAT number").fill("DE000000000");
   await setup.getByLabel("Tax type").selectOption("VAT");
   await setup.getByLabel("Default tax rate %").fill("19");
-  await setup.getByLabel("Retailer rules").selectOption("mediamarktsaturn");
   await setup.getByLabel("Buyer GLN").fill("9520010007773");
   await setup.getByRole("button", { name: "Save EDI setup" }).click();
   await expect(setup.getByRole("alert")).toContainText("not a valid GLN");
@@ -75,7 +77,7 @@ test("EDI is held until the retailer is set up, then the ASN and invoice pass it
   await expect(portal.getByLabel("Invoice").locator(".flowstate")).toContainText("ERP synced, EDI to retailer delivered");
 
   // The EDI tab shows the SSCCs, the tax subtotals and the passed check.
-  await page.getByRole("tab", { name: "EDI" }).click();
+  await page.getByRole("tab", { name: "Trading Grid outbox" }).click();
   const desadv = page.locator(".edi-card[data-kind=DESADV]");
   await desadv.getByRole("button", { name: "Show message" }).click();
   await expect(desadv.getByLabel("Raw message")).toContainText(/PCI\+33E'\s*GIN\+BJ\+09520000\d{10}'/);

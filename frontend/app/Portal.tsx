@@ -18,7 +18,7 @@ const KIND_LABEL: Record<OutboundMessage["kind"], string> = {
   ORDRSP: "Order confirmation (EDIFACT ORDRSP)", DESADV: "Shipping notice (EDIFACT DESADV)",
   INVOIC: "Invoice (EDIFACT INVOIC)", ERP_SHIPMENT: "Shipment record in supplier ERP", ERP_INVOICE: "Invoice record in supplier ERP",
 };
-const CHANNEL_LABEL = { retailer_edi_outbox: "Retailer EDI outbox (simulated)", supplier_erp: "Supplier ERP simulator" };
+const CHANNEL_LABEL = { retailer_edi_outbox: "Trading Grid, to the retailer (simulated)", supplier_erp: "Supplier ERP simulator" };
 const STATUS_TONE = { delivered: "ok", pending: "warn", failed: "bad" } as const;
 
 function useWrap() {
@@ -65,6 +65,11 @@ export function ComplianceBox({ result, sent = false }: { result: ComplianceResu
   );
 }
 
+const X12_KIND: Partial<Record<OutboundMessage["kind"], string>> = {
+  ORDRSP: "Order acknowledgement (X12 855)", DESADV: "Ship notice (X12 856)", INVOIC: "Invoice (X12 810)",
+};
+const msgLabel = (m: OutboundMessage) => (m.format === "x12" ? X12_KIND[m.kind] : undefined) ?? KIND_LABEL[m.kind];
+
 function MessageRow({ m, role }: { m: OutboundMessage; role: Role }) {
   const agent = useAgent();
   const { error, wrap } = useWrap();
@@ -72,7 +77,7 @@ function MessageRow({ m, role }: { m: OutboundMessage; role: Role }) {
   return (
     <li className={`outmsg ${m.status}`}>
       <span className={`pill ${held ? "bad" : STATUS_TONE[m.status]}`}>{held ? "Held" : m.status === "delivered" ? "Delivered" : m.status === "pending" ? "Pending" : "Failed"}</span>
-      <span> {KIND_LABEL[m.kind]} → {CHANNEL_LABEL[m.channel]}{m.receiverRef ? ` as ${m.receiverRef}` : ""}</span>
+      <span> {msgLabel(m)} → {CHANNEL_LABEL[m.channel]}{m.receiverRef ? ` as ${m.receiverRef}` : ""}</span>
       <div className="muted small">{m.attempts.at(-1)?.detail} · key <span className="mono">{m.idempotencyKey}</span></div>
       {m.compliance && !held && m.compliance.findings.length > 0 && (
         <div className="muted small">{m.compliance.findings.length} warning{m.compliance.findings.length === 1 ? "" : "s"} from the retailer check: {m.compliance.findings[0].text}</div>
@@ -99,7 +104,7 @@ export function OrderPortal({ docId, role }: { docId: number; role: Role }) {
   const invoic = p.invoiceMessages.find((m) => m.kind === "INVOIC");
   return (
     <section className="portal" aria-label="Supplier portal">
-      <div className="eyebrow">Supplier portal · simulated EDI, nothing is sent to a real retailer</div>
+      <div className="eyebrow">Trading Grid web form, pre-filled by the Order Agent (simulated) · nothing is sent to a real retailer</div>
       <EdiSetup docId={docId} role={role} />
       {p.confirmation && (
         <div className="flow" aria-label="Order confirmation">
@@ -162,11 +167,13 @@ function EdiSetup({ docId, role }: { docId: number; role: Role }) {
     supplierName: sup.name ?? "", supplierGln: sup.gln, supplierVat: sup.vatId ?? "", prefix: sup.companyPrefix,
     taxType: sup.taxType, defaultTaxRate: sup.defaultTaxRate ?? "",
     profile: partner.profile, buyerGln: partner.buyerGln ?? "", buyerVat: partner.buyerVatId ?? "",
-    contractRef: partner.contractRef ?? "", shipToGln: partner.shipToGlns.find((t) => t.shipToId === shipKey)?.gln ?? "",
+    contractRef: partner.contractRef ?? "", vendorNumber: partner.vendorNumber ?? "", shipToGln: partner.shipToGlns.find((t) => t.shipToId === shipKey)?.gln ?? "",
   }));
   const { error, wrap } = useWrap();
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
-  const profiles = PROFILE_IDS.filter((id) => id !== "fictional_demo" || partner.fictional);
+  const profiles = PROFILE_IDS;
+  // US X12 retailers need no VAT numbers or EDI agreement reference; those fields stay for the EANCOM profiles.
+  const x12 = f.profile === "x12_retail";
   return (
     <div className="flow edi-setup" aria-label="EDI setup">
       <h4>
@@ -181,9 +188,10 @@ function EdiSetup({ docId, role }: { docId: number; role: Role }) {
           if (role === "viewer") return;
           void wrap(async () => {
             await agent.run({ type: "saveSupplierSetup", role, name: f.supplierName || null, gln: f.supplierGln,
-              vatId: f.supplierVat || null, companyPrefix: f.prefix, taxType: f.taxType, defaultTaxRate: f.defaultTaxRate || null });
+              vatId: x12 ? sup.vatId : f.supplierVat || null, companyPrefix: f.prefix, taxType: x12 ? "SALES" : f.taxType, defaultTaxRate: f.defaultTaxRate || null });
             await agent.run({ type: "saveTradingPartner", role, customerId: ord.customer_id ?? "", profile: f.profile,
-              buyerGln: f.buyerGln || null, buyerVatId: f.buyerVat || null, contractRef: f.contractRef || null,
+              buyerGln: f.buyerGln || null, buyerVatId: x12 ? partner.buyerVatId : f.buyerVat || null, contractRef: x12 ? partner.contractRef : f.contractRef || null,
+              vendorNumber: f.vendorNumber || null,
               shipToGlns: [...partner.shipToGlns.filter((t) => t.shipToId !== shipKey),
                 ...(f.shipToGln ? [{ shipToId: shipKey, gln: f.shipToGln }] : [])] });
             setOpen(false);
@@ -192,19 +200,20 @@ function EdiSetup({ docId, role }: { docId: number; role: Role }) {
           <fieldset><legend>Your company (supplier)</legend>
             <label>Name<input value={f.supplierName} onChange={set("supplierName")} /></label>
             <label>Supplier GLN<input value={f.supplierGln} onChange={set("supplierGln")} inputMode="numeric" /></label>
-            <label>Supplier VAT number<input value={f.supplierVat} onChange={set("supplierVat")} /></label>
+            {!x12 && <label>Supplier VAT number<input value={f.supplierVat} onChange={set("supplierVat")} /></label>}
             <label>GS1 company prefix (for SSCCs)<input value={f.prefix} onChange={set("prefix")} inputMode="numeric" /></label>
-            <label>Tax type<select value={f.taxType} onChange={set("taxType")}><option>VAT</option><option>GST</option></select></label>
-            <label>Default tax rate %<input value={f.defaultTaxRate} onChange={set("defaultTaxRate")} inputMode="decimal" /></label>
+            {!x12 && <label>Tax type<select value={f.taxType} onChange={set("taxType")}><option>VAT</option><option>GST</option><option value="SALES">Sales tax</option></select></label>}
+            <label>{x12 ? "Default sales tax %" : "Default tax rate %"}<input value={f.defaultTaxRate} onChange={set("defaultTaxRate")} inputMode="decimal" /></label>
           </fieldset>
           <fieldset><legend>Retailer {ord.customer_id}</legend>
             <label>Retailer rules<select value={f.profile} onChange={set("profile")}>
               {profiles.map((id) => <option key={id} value={id}>{PROFILES[id as ProfileId].name}</option>)}
             </select></label>
             <label>Buyer GLN<input value={f.buyerGln} onChange={set("buyerGln")} inputMode="numeric" /></label>
-            <label>Buyer VAT number<input value={f.buyerVat} onChange={set("buyerVat")} /></label>
+            {!x12 && <label>Buyer VAT number<input value={f.buyerVat} onChange={set("buyerVat")} /></label>}
+            <label>Your vendor number at this retailer (optional)<input value={f.vendorNumber} onChange={set("vendorNumber")} /></label>
             <label>Delivery GLN for {ord.ship_to_id ?? "this PO (no ship-to printed)"}<input value={f.shipToGln} onChange={set("shipToGln")} inputMode="numeric" /></label>
-            <label>EDI agreement / contract reference<input value={f.contractRef} onChange={set("contractRef")} /></label>
+            {!x12 && <label>EDI agreement / contract reference<input value={f.contractRef} onChange={set("contractRef")} /></label>}
           </fieldset>
           <p className="muted small">{PROFILES[f.profile as ProfileId].summary}</p>
           {error && <div className="alert bad" role="alert">{error}</div>}
@@ -290,7 +299,7 @@ function AsnForm({ docId, role, onDone }: { docId: number; role: Role; onDone: (
         <button className="primary" type="submit" disabled={blocked}>Submit ASN</button>
         <button className="ghost" type="button" onClick={onDone}>Cancel</button>
       </div>
-      <p className="muted small">Submit sends the shipping notice to the retailer EDI outbox and records the shipment in the ERP simulator. No second step.</p>
+      <p className="muted small">Submit sends the ship notice to the retailer through Trading Grid and records the shipment in the ERP simulator. No second step.</p>
     </form>
   );
 }
@@ -327,7 +336,7 @@ function InvoiceForm({ docId, role, onDone }: { docId: number; role: Role; onDon
     }}>
       <p className="muted small">Quantities come from {asn.asnNumber} (what shipped), prices from the order. Exact decimals; tax per rate rounded half-up to cents.</p>
       <table className="lines" aria-label="Three-way match">
-        <thead><tr><th>Line</th><th>Item</th><th>PO qty</th><th>ASN qty</th><th>Invoice qty</th><th>Price</th><th>Amount</th><th>{sup.taxType} %</th><th>Match</th></tr></thead>
+        <thead><tr><th>Line</th><th>Item</th><th>PO qty</th><th>ASN qty</th><th>Invoice qty</th><th>Price</th><th>Amount</th><th>{sup.taxType === "SALES" ? "Sales tax" : sup.taxType} %</th><th>Match</th></tr></thead>
         <tbody>
           {shipped.map((l) => {
             const m = d?.match.find((x) => x.sourceLineId === l.sourceLineId);
@@ -359,7 +368,7 @@ function InvoiceForm({ docId, role, onDone }: { docId: number; role: Role; onDon
             <input className="qty" aria-label={`Allowance ${i + 1} percent`} placeholder="%" value={a.percent} onChange={(e) => setRow(i, { percent: e.target.value, amount: "" })} />
             <input className="qty" aria-label={`Allowance ${i + 1} amount`} placeholder={`or ${cur}`} value={a.amount} onChange={(e) => setRow(i, { amount: e.target.value, percent: "" })} />
             <select aria-label={`Allowance ${i + 1} tax rate`} value={a.taxRate} onChange={(e) => setRow(i, { taxRate: e.target.value })}>
-              {lineRates.map((r) => <option key={r} value={r}>{sup.taxType} {r}%</option>)}
+              {lineRates.map((r) => <option key={r} value={r}>{sup.taxType === "SALES" ? "Sales tax" : sup.taxType} {r}%</option>)}
             </select>
             <button type="button" className="ghost" onClick={() => setAlc(alc.filter((_, j) => j !== i))}>Remove</button>
           </div>
@@ -372,7 +381,7 @@ function InvoiceForm({ docId, role, onDone }: { docId: number; role: Role; onDon
         <div className="totals" aria-label="Amounts">
           <span>Lines <b>{d.totals.lineTotal}</b></span>
           <span>Taxable <b>{d.totals.taxableAmount}</b></span>
-          {d.totals.byRate.map((r) => <span key={r.rate}>{sup.taxType} {r.rate}% on {r.taxable}: <b>{r.tax}</b></span>)}
+          {d.totals.byRate.map((r) => <span key={r.rate}>{sup.taxType === "SALES" ? "Sales tax" : sup.taxType} {r.rate}% on {r.taxable}: <b>{r.tax}</b></span>)}
           <span>Invoice total <b className="invtotal">{d.totals.invoiceAmount} {cur}</b></span>
         </div>
       )}
@@ -394,11 +403,12 @@ export function EdiView({ role }: { role: Role }) {
   const [open, setOpen] = useState<number | null>(null);
   const { error, wrap } = useWrap();
   const download = (m: OutboundMessage) => {
-    const blob = new Blob([m.body], { type: m.format === "edifact" ? "application/edifact" : "application/json" });
+    const ext = m.format === "edifact" ? "edi" : m.format === "x12" ? "x12" : "json";
+    const blob = new Blob([m.body], { type: m.format === "edifact" ? "application/edifact" : m.format === "x12" ? "application/edi-x12" : "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${m.kind}-${m.sourceId}.${m.format === "edifact" ? "edi" : "json"}`;
+    a.download = `${m.kind}-${m.sourceId}.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -406,13 +416,13 @@ export function EdiView({ role }: { role: Role }) {
     <section className="edi-list" aria-label="Outbound messages">
       <div className="eyebrow">Simulated EDI and ERP messages · held in this browser tab · nothing is sent anywhere real</div>
       <h3>{msgs.length} outbound message{msgs.length === 1 ? "" : "s"}</h3>
-      <p className="muted small">EANCOM 2002 (UN/EDIFACT D.01B). Demo customers use {FICTIONAL_LABEL}. Every EDIFACT message is checked against the retailer's rules before it is sent.</p>
+      <p className="muted small">US retailers get ANSI X12 004010 (855, 856, 810); EANCOM 2002 (UN/EDIFACT D.01B) stays available per retailer. Demo customers use {FICTIONAL_LABEL}. Every message is checked against the retailer's rules before it is sent.</p>
       {error && <div className="alert bad" role="alert">{error}</div>}
       {msgs.length === 0 && <p className="placeholder">Nothing yet. A delivered order sends an order confirmation; ASNs and invoices add more.</p>}
       {msgs.map((m) => (
         <article key={m.id} className={`edi-card ${m.status}`} data-kind={m.kind}>
           <header>
-            <h4>{KIND_LABEL[m.kind]} · {m.sourceId}</h4>
+            <h4>{msgLabel(m)} · {m.sourceId}</h4>
             <span className={`pill ${STATUS_TONE[m.status]}`}>{m.status}</span>
           </header>
           <p className="muted small">To {CHANNEL_LABEL[m.channel]}{m.receiverRef ? ` as ${m.receiverRef}` : ""} · order #{m.documentId} · key <span className="mono">{m.idempotencyKey}</span></p>

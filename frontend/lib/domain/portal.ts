@@ -8,6 +8,7 @@
 // An ASN or invoice that would fail a blocking rule is refused with the reasons, so nothing the retailer would
 // reject leaves the portal. The ASN carries a pallet and carton hierarchy with SSCCs; the invoice carries tax
 // per rate and allowances or charges, and is matched line by line against the order and the ASN.
+import { buildDesadvX12, buildInvoicX12, buildOrdrspX12 } from "./x12";
 import { type ComplianceResult, PROFILES, blocking, checkMessage, rateKey, refusal } from "./compliance";
 import {
   type EdiAllowance, type EdiLine, type EdiMessage, type EdiParties, type EdiPallet, buildDesadv, buildInvoic, buildOrdrsp,
@@ -105,12 +106,13 @@ function dispatch(s: Run, now: string, msg: OutboundMessage) {
     return;
   }
   msg.receiverRef = store();
-  note(msg, now, "delivered", "delivered", `Placed in the simulated Retailer EDI outbox as ${msg.receiverRef}`);
+  note(msg, now, "delivered", "delivered", `Placed in the simulated Trading Grid outbox as ${msg.receiverRef}`);
 }
 
 const summary = (c: ComplianceResult): ComplianceSummary =>
   ({ profile: c.profile, rulesChecked: c.rulesChecked, rulesPassed: c.rulesPassed, findings: c.findings });
-const edifact = (m: EdiMessage, c: ComplianceResult) => ({ format: "edifact" as const, body: m.text,
+const edifact = (m: EdiMessage, c: ComplianceResult) => ({
+  format: c.profile === "x12_retail" ? "x12" as const : "edifact" as const, body: m.text,
   mapping: m.segments.map((x) => ({ segment: x.raw, meaning: x.meaning })), compliance: summary(c) });
 const json = (v: unknown, mapping: { segment: string; meaning: string }[]) =>
   ({ format: "json" as const, body: JSON.stringify(v, null, 2), mapping });
@@ -138,7 +140,7 @@ export function ediContext(s: RunState, o: OrderRow): { parties: EdiParties; pro
       supplier: { gln: sup.gln, vatId: sup.vatId, name: sup.name },
       buyer: { gln: partner.buyerGln, vatId: partner.buyerVatId, name: ord.customer_name },
       deliveryParty: { gln: partner.shipToGlns.find((t) => t.shipToId === shipTo)?.gln ?? null, printedId: ord.ship_to_id },
-      contractRef: partner.contractRef,
+      contractRef: partner.contractRef, vendorNumber: partner.vendorNumber ?? null,
     },
   };
 }
@@ -158,7 +160,7 @@ function ordrspFor(s: RunState, o: OrderRow, createdAt: string) {
   const erpOrderId = o.erpOrderId!;
   const ctx = ediContext(s, o);
   const lines = o.validation.order.lines.map((l) => ediLine(o, l.line_index, l.quantity ?? "0"));
-  const msg = buildOrdrsp({ ref: `ORDRSP-${erpOrderId.replace(/^SIM-ERP-/, "")}`, createdAt, erpOrderId,
+  const msg = (ctx.profile === "x12_retail" ? buildOrdrspX12 : buildOrdrsp)({ ref: `ORDRSP-${erpOrderId.replace(/^SIM-ERP-/, "")}`, createdAt, erpOrderId,
     orderDate: o.validation.order.order_date, ...ctx.parties }, lines);
   return { msg, check: checkMessage("ORDRSP", msg.text, ctx.profile) };
 }
@@ -281,7 +283,7 @@ export function draftAsn(s: RunState, docId: number, input: AsnInput, actor: str
   const ctx = ediContext(s, o);
   const ediPallets: EdiPallet[] = pallets.map((p) => ({ sscc: p.sscc,
     cartons: p.cartons.map((c) => ({ sscc: c.sscc, lines: c.contents.map((x) => ediLine(o, x.lineIndex, x.quantity)) })) }));
-  const message = buildDesadv({ ref: asn.asnNumber, createdAt: now, despatchDate, estimatedDelivery: estimatedDelivery || null,
+  const message = (ctx.profile === "x12_retail" ? buildDesadvX12 : buildDesadv)({ ref: asn.asnNumber, createdAt: now, despatchDate, estimatedDelivery: estimatedDelivery || null,
     ...ctx.parties }, ediPallets);
   return { asn, message, compliance: checkMessage("DESADV", message.text, ctx.profile), lastSerial };
 }
@@ -454,7 +456,7 @@ export function draftInvoice(s: RunState, asnId: number, input: InvoiceInput, ac
     taxAmount: totals.taxAmount, taxByRate: totals.byRate, createdBy: actor, createdAt: now };
   const ctx = ediContext(s, o);
   const edi: EdiAllowance[] = allowances.map((a) => ({ ...a }));
-  const message = buildInvoic({ ref: invoice.invoiceNumber, createdAt: now, asnRef: asn.asnNumber, taxType: sup.taxType,
+  const message = (ctx.profile === "x12_retail" ? buildInvoicX12 : buildInvoic)({ ref: invoice.invoiceNumber, createdAt: now, asnRef: asn.asnNumber, taxType: sup.taxType,
     ...ctx.parties }, lines.map((l) => ({ ...l, customerItemCode: o.validation.order.lines.find((x) => x.line_index === l.lineIndex)
     ?.customer_item_code ?? null })), edi, totals);
   return { invoice, message, compliance: checkMessage("INVOIC", message.text, ctx.profile),

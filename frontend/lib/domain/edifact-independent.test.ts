@@ -13,6 +13,7 @@ import { REVIEWER } from "./__fixtures__/demo";
 import { ASN, sessionOrder, setUp } from "./__fixtures__/retailer";
 import { replayGuidedDemo } from "./__fixtures__/replay";
 import { blocking, checkMessage } from "./compliance";
+import { partnerFor, saveTradingPartner } from "./partners";
 import { portalForOrder, retryOutbound, submitAsn, submitInvoice } from "./portal";
 
 const SPEC = join(dirname(createRequire(import.meta.url).resolve("ts-edifact")), "messageSpec") + "/";
@@ -35,7 +36,13 @@ function independentCheck(text: string) {
 
 function samples(): Record<string, { kind: "ORDRSP" | "DESADV" | "INVOIC"; text: string }> {
   // Fictional demo partner: the replayed demo order 1, shipped short on two pallets.
-  let demo = submitAsn(replayGuidedDemo(), 1, { lines: [{ lineIndex: 0, shippedQty: "4" }, { lineIndex: 1, shippedQty: "2" },
+  // The demo customer defaults to X12 (D50); switch it to EANCOM so the D.01B checks keep covering its
+  // ASN and invoice. Its order confirmation was already sent as an X12 855 during the replay.
+  const base = replayGuidedDemo();
+  const p = partnerFor(base, "DEMO-CUST-01");
+  const eancom = saveTradingPartner(base, { customerId: "DEMO-CUST-01", profile: "eancom2002", buyerGln: p.buyerGln ?? undefined,
+    shipToGlns: p.shipToGlns }, REVIEWER, clock);
+  let demo = submitAsn(eancom, 1, { lines: [{ lineIndex: 0, shippedQty: "4" }, { lineIndex: 1, shippedQty: "2" },
     { lineIndex: 2, shippedQty: "1" }], estimatedDelivery: "2026-10-20", packing: { cartonsPerPallet: 2 } }, REVIEWER, clock);
   demo = submitInvoice(demo, portalForOrder(demo, 1).asn!.id, { lines: [{ lineIndex: 0, quantity: "4" },
     { lineIndex: 1, quantity: "2" }, { lineIndex: 2, quantity: "1" }] }, REVIEWER, clock);
@@ -51,7 +58,6 @@ function samples(): Record<string, { kind: "ORDRSP" | "DESADV" | "INVOIC"; text:
   const rp = portalForOrder(r, docId);
   const body = (m: { kind: string; body: string }[], k: string) => m.find((x) => x.kind === k)!.body;
   return {
-    "demo-ORDRSP": { kind: "ORDRSP", text: dp.confirmation!.body },
     "demo-DESADV": { kind: "DESADV", text: body(dp.asnMessages, "DESADV") },
     "demo-INVOIC": { kind: "INVOIC", text: body(dp.invoiceMessages, "INVOIC") },
     "retailer-ORDRSP": { kind: "ORDRSP", text: rp.confirmation!.body },

@@ -147,9 +147,9 @@ describe("supplier portal actions (D45)", () => {
     const asnId = s.portal!.asns[0].id;
     s = must(applyAction(s, { type: "submitInvoice", role: "reviewer", asnId,
       lines: [{ lineIndex: 0, quantity: "4" }, { lineIndex: 1, quantity: "2" }, { lineIndex: 2, quantity: "1" }] }));
-    // Lines 166.00; the fictional demo supplier's default tax is GST 5%: 8.30.
-    expect([s.portal!.invoices[0].subtotal, s.portal!.invoices[0].total]).toStrictEqual(["166.00", "174.30"]);
-    expect(s.portal!.outbound.find((m) => m.kind === "DESADV")!.body).toContain("PCI+33E'");
+    // Lines 166.00; the fictional US demo supplier charges no sales tax by default.
+    expect([s.portal!.invoices[0].subtotal, s.portal!.invoices[0].total]).toStrictEqual(["166.00", "166.00"]);
+    expect(s.portal!.outbound.find((m) => m.kind === "DESADV")!.body).toMatch(/^MAN\*GM\*\d{18}~$/m);
   });
   it("refuses extra fields, a number instead of a decimal string, and an over-shipment without a reason", () => {
     const run = replayGuidedDemo();

@@ -108,9 +108,10 @@ describe("ASN", () => {
     expect(p.asn?.lines.map((l) => [l.orderedQty, l.shippedQty])).toStrictEqual([["5", "4"], ["2", "2"], ["1", "1"]]);
     expect(p.asnMessages.map((m) => [m.kind, m.status, m.idempotencyKey])).toStrictEqual([
       ["ERP_SHIPMENT", "delivered", "ERP-SHIPMENT:ASN-00001"], ["DESADV", "delivered", "DESADV:ASN-00001"]]);
-    expect(p.asnMessages[1].body).toContain("QTY+12:4'");
-    expect(p.asnMessages[1].compliance).toMatchObject({ profile: "fictional_demo" });
-    expect(p.asnMessages[1].compliance!.findings.every((f) => f.severity === "warn" && f.ruleId === "ITEM-GTIN")).toBe(true);
+    expect(p.asnMessages[1].format).toBe("x12");
+    expect(p.asnMessages[1].body).toMatch(/^ST\*856\*0001~$/m);
+    expect(p.asnMessages[1].body).toMatch(/^SN1\*\*4\*/m);
+    expect(p.asnMessages[1].compliance).toMatchObject({ profile: "x12_retail", findings: [] });
     expect(s.portal!.received.map((r) => r.receiverRef)).toContain("SIM-SHP-100001");
     expect(() => RunState.parse(s)).not.toThrow();
   });
@@ -176,16 +177,16 @@ describe("invoice", () => {
     const s = submitInvoice(s0, asnId(s0), { lines: [{ lineIndex: 0, quantity: "4" }, { lineIndex: 1, quantity: "2" }] }, REVIEWER, clock);
     const { invoice, invoiceMessages } = portalForOrder(s, 1);
     expect(invoice?.lines.map((l) => [l.quantity, l.unitPrice, l.lineAmount])).toStrictEqual([["4", "24.00", "96.00"], ["2", "26.00", "52.00"]]);
-    // Fictional demo supplier default: GST 5%. 148.00 + 7.40 = 155.40.
-    expect([invoice?.subtotal, invoice?.taxAmount, invoice?.total]).toStrictEqual(["148.00", "7.40", "155.40"]);
+    // Fictional US demo supplier default: no sales tax (wholesale for resale).
+    expect([invoice?.subtotal, invoice?.taxAmount, invoice?.total]).toStrictEqual(["148.00", "0.00", "148.00"]);
     expect(invoice?.currency).toBe("USD");
     const invoic = invoiceMessages.find((m) => m.kind === "INVOIC")!;
-    expect(invoic.body).toContain("QTY+47:4'");
-    expect(invoic.body).not.toContain("QTY+47:5");
-    expect(invoic.body).toContain("MOA+79:148.00'");
-    expect(invoic.body).toContain("MOA+77:155.40'");
-    expect(invoic.body).toContain("TAX+7+GST+++:::5+S'\nMOA+124:7.40'\nMOA+125:148.00'");
-    expect(invoic.body).toContain("RFF+AAK:ASN-00001'");
+    expect(invoic.body).toMatch(/^ST\*810\*0001~$/m);
+    expect(invoic.body).toMatch(/^IT1\*1\*4\*[A-Z]{2}\*24\.00\*\*/m);
+    expect(invoic.body).not.toMatch(/^IT1\*1\*5\*/m);
+    expect(invoic.body).toContain("TDS*14800~");
+    expect(invoic.body).not.toContain("TXI*");
+    expect(invoic.body).toContain("REF*PK*ASN-00001~");
     expect(invoiceMessages.map((m) => [m.kind, m.status])).toStrictEqual([["ERP_INVOICE", "delivered"], ["INVOIC", "delivered"]]);
     expect(() => RunState.parse(s)).not.toThrow();
   });

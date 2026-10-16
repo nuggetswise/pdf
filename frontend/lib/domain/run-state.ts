@@ -410,7 +410,8 @@ export const InvoiceLine = z.strictObject({
   taxRate: decimalString.optional(),
 });
 
-export const TaxType = z.enum(["VAT", "GST"]);
+/** SALES = US sales tax (D50); usually zero on wholesale for resale. */
+export const TaxType = z.enum(["VAT", "GST", "SALES"]);
 /** D47: an allowance (discount) or charge on the whole invoice, at one tax rate. */
 export const InvoiceAllowance = z.strictObject({
   kind: z.enum(["allowance", "charge"]),
@@ -451,7 +452,7 @@ export const OutboundMessage = z.strictObject({
   sourceId: z.string(),
   idempotencyKey: z.string(),
   status: OutboundStatus,
-  format: z.enum(["edifact", "json"]),
+  format: z.enum(["edifact", "x12", "json"]),
   body: z.string(),
   mapping: z.array(z.strictObject({ segment: z.string(), meaning: z.string() })),
   attempts: z.array(z.strictObject({ at: isoTime, outcome: z.string(), detail: z.string() })),
@@ -502,6 +503,8 @@ export const TradingPartner = z.strictObject({
   buyerGln: maybe(glnString),
   buyerVatId: maybe(z.string()),
   contractRef: maybe(z.string()),
+  /** D50: the supplier's vendor number at this retailer (X12 REF*IA), optional. */
+  vendorNumber: maybe(z.string()).optional(),
   shipToGlns: z.array(z.strictObject({ shipToId: z.string(), gln: glnString })),
   ...setupMeta,
 });

@@ -35,20 +35,22 @@ describe("GS1 keys", () => {
   });
 });
 
-describe("fictional demo partner", () => {
+describe("fictional demo partner (US, X12)", () => {
   it("passes every rule, including valid item GTINs", () => {
     const s = submitAsn(replayGuidedDemo(), 1, { lines: [{ lineIndex: 0, shippedQty: "4" }, { lineIndex: 1, shippedQty: "2" },
       { lineIndex: 2, shippedQty: "1" }], estimatedDelivery: "2026-10-20" }, REVIEWER, clock);
     const desadv = portalForOrder(s, 1).asnMessages.find((m) => m.kind === "DESADV")!;
-    expect(desadv.compliance!.findings.map((f) => [f.ruleId, f.severity])).toEqual([]);
-    expect(partnerFor(s, "DEMO-CUST-01")).toMatchObject({ profile: "fictional_demo", isDefault: true, fictional: true });
+    expect(desadv.format).toBe("x12");
+    expect(desadv.compliance).toMatchObject({ profile: "x12_retail", findings: [] });
+    expect(desadv.compliance!.rulesPassed).toBe(desadv.compliance!.rulesChecked);
+    expect(partnerFor(s, "DEMO-CUST-01")).toMatchObject({ profile: "x12_retail", isDefault: true, fictional: true });
   });
 
   it("blocks an ASN with no estimated delivery date and says why", () => {
     const s = replayGuidedDemo();
     const input = { lines: [{ lineIndex: 0, shippedQty: "4" }, { lineIndex: 1, shippedQty: "2" }, { lineIndex: 2, shippedQty: "1" }],
       estimatedDelivery: "" };
-    expect(() => submitAsn(s, 1, input, REVIEWER, clock)).toThrow(/would reject this DESADV.*Estimated delivery date \(DTM\+17\) is missing/);
+    expect(() => submitAsn(s, 1, input, REVIEWER, clock)).toThrow(/would reject this X12 856 ship notice.*Estimated delivery date \(DTM\*017\) is missing/);
     expect(portalForOrder(s, 1).asn).toBeNull();
   });
 });
@@ -81,8 +83,6 @@ describe("a real retailer (customer added from its PO)", () => {
     const { s, docId } = sessionOrder();
     expect(() => saveTradingPartner(s, { customerId: custId(s, docId), profile: "eancom2002", buyerGln: "9520010007770",
       shipToGlns: [] }, REVIEWER, clock)).toThrow(/not a valid GLN/);
-    expect(() => saveTradingPartner(s, { customerId: custId(s, docId), profile: "fictional_demo", shipToGlns: [] },
-      REVIEWER, clock)).toThrow(/only for the fictional demo customers/);
   });
 
   it("packs cartons onto pallets with unique SSCCs, continuing the serial across ASNs", () => {

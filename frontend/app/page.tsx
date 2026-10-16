@@ -8,7 +8,7 @@ import { EdiView } from "./Portal";
 import { RunProvider, useAgent, useHealth } from "./run/RunProvider";
 
 type Tab = "work" | "memory" | "erp" | "edi";
-const TABS: [Tab, string][] = [["work", "Inbox & review"], ["memory", "Agent memory"], ["erp", "ERP records"], ["edi", "EDI"]];
+const TABS: [Tab, string][] = [["work", "Inbox & review"], ["memory", "Agent memory"], ["erp", "ERP records"], ["edi", "Trading Grid outbox"]];
 
 export default function Page() {
   return <RunProvider><App /></RunProvider>;
@@ -30,12 +30,12 @@ function App() {
   return (
     <>
       <header className="topbar">
-        <div className="brand"><span className="logo" aria-hidden>◆</span> PDF Order Agent <small>prototype</small></div>
+        <div className="brand"><span className="logo" aria-hidden>◆</span> Order Agent for Trading Grid <small>prototype</small></div>
         <span className={`mode ${exceptionOnly ? "exc" : "all"}`} title="Automation mode, set by an administrator">
           {exceptionOnly ? "Exception-only mode" : "Review-all mode"}
         </span>
         <span className={`pill ${health?.rehearsal_mode || health?.extractor_mode === "test" ? "warn" : health?.extraction === "available" ? "ok" : "bad"}`}>{extraction}</span>
-        <span className="pill muted">ERP and EDI: local simulators</span>
+        <span className="pill muted">ERP and Trading Grid: simulated</span>
         <label className="role">Signed in as
           <select value={role} onChange={(e) => setRole(e.target.value as Role)} aria-label="Demo role">
             {(["reviewer", "administrator", "viewer"] as Role[]).map((r) => <option key={r} value={r}>{PEOPLE[r]}</option>)}
