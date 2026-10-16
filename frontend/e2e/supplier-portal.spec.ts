@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
 
 // D45 supplier portal through the real screens: PO -> order confirmation -> ASN with a short shipment ->
 // invoice with the shipped quantity -> EDI tab shows the DESADV and INVOIC. TEST ADAPTER only; all EDI simulated.
@@ -54,6 +55,13 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
   await portal.getByRole("button", { name: "Cancel the rest" }).click();
   await expect(portal.getByLabel("Backorder")).toContainText("Rest of the order cancelled: 2 CASE line A");
   await expect(page.getByRole("button", { name: /^Send/ })).toHaveCount(0);
+  const csv = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export pilot measurements (CSV)" }).click();
+  const file = await csv;
+  expect(file.suggestedFilename()).toBe("order-agent-pilot.csv");
+  const text = readFileSync(await file.path(), "utf8");
+  expect(text.split("\r\n")[0]).toContain("po_number,customer_id,received_at");
+  expect(text).toMatch(/VIDEO-DEMO-005,DEMO-CUST-01,.*,1,/);
   await page.screenshot({ path: "../docs/screenshots/app-04-supplier-portal.png", fullPage: true });
 
   // The EDI tab lists the messages with raw X12 and a plain-language mapping.

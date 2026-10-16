@@ -118,3 +118,8 @@ D49 Phase 2, Act 1 (owner plan 2026-10-16): every order shows "If you retyped th
 - After a short shipment the portal shows a backorder with two choices: ship the rest on a next ASN, or cancel the rest with a reason. Cancelling is recorded, audited and sent to the ERP simulator as an order change (ERP_ORDER_CHANGE); it is refused before anything has shipped (reject the order in review instead).
 - Payment terms live in the supplier's EDI setup (fictional default "2% 10, net 30"). Each invoice stores its terms and due date (invoice date + net days) and the 810 carries ITD and DTM*814; BIG now carries the PO date.
 - Deferred: an 855 that confirms less than ordered before shipping (the 855 still acknowledges the order as received); telling the retailer about a cancelled backorder by EDI.
+
+## D53 Pilot measurement export (2026-10-16)
+- "Export pilot measurements (CSV)" under the summary tiles downloads one row per order, built only from what the run records: received, approved by (person or policy), in ERP, minutes PDF to ERP, first ASN and minutes ERP to ASN, ASN count, first invoice, values extracted, values a person edited after extraction, issues caught, lines fixed by memory, decisions by a person, and the Act 1 estimate (fields, minutes, exposure). Durations are calendar time between recorded events.
+- The CSV defuses spreadsheet formulas (a leading apostrophe on cells starting with = + - @ that are not numbers) because PO numbers and customer IDs come from uploaded documents.
+- Nothing is sent anywhere; the file is made in the browser. A pilot compares these rows with the supplier's own timing of the manual route.
