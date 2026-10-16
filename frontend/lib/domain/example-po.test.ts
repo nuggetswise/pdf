@@ -27,3 +27,13 @@ describe("the example purchase order", () => {
     expect(v.issues.filter((i: { blocking: boolean }) => i.blocking)).toEqual([]);
   });
 });
+
+describe("amounts printed with their currency", () => {
+  it("reads USD 18.50, $18.50 and 2,220.00 USD as numbers", async () => {
+    const { dec } = await import("./money");
+    expect(dec("USD 18.50")?.toString()).toBe("18.50");
+    expect(dec("$18.50")?.toString()).toBe("18.50");
+    expect(dec("2,220.00 USD")?.toString()).toBe("2220.00");
+    expect(dec("EUR 5")).toBeNull();
+  });
+});

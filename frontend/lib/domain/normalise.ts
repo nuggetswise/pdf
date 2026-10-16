@@ -1,6 +1,6 @@
 // Port of extraction.py normalise(): turns any extractor's raw result into the fixed payload shape and
 // checks every value against the PDF text (D14). Document text is untrusted data throughout.
-import { Dec, PY_WHITESPACE_RUN, pyStrip } from "./money";
+import { PY_WHITESPACE_RUN, dec, pyStrip } from "./money";
 import { type ExtractionPayload, type OrderTerms, termFields } from "./run-state";
 
 export const HEADER_FIELDS = ["customer_name", "customer_id", "supplier", "po_number", "ship_to_id", "order_date",
@@ -47,7 +47,7 @@ function normaliseField(name: string, rawIn: unknown, pages: string[]): Field {
       page = i >= 0 ? i + 1 : null;
     }
   }
-  if (NUMERIC_FIELDS.has(name) && value !== null && Dec.parse(value.replace(/,/g, "")) === null) {
+  if (NUMERIC_FIELDS.has(name) && value !== null && dec(value) === null) {
     notes.push("not a valid decimal number");
   }
   return { value, page, evidence, evidence_verified: verified, notes };

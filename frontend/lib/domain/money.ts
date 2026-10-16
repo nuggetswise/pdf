@@ -169,7 +169,8 @@ export class Dec {
  *  (Python would keep them and then fail later; see DECISIONS.md D33). */
 export function dec(value: string | null | undefined): Dec | null {
   if (value === null || value === undefined || value === "") return null;
-  const d = Dec.parse(value.replace(/,/g, ""));
+  // Amounts printed with their currency ("USD 18.50", "$18.50", "18.50 USD") are the same number (D59).
+  const d = Dec.parse(value.replace(/,/g, "").replace(/^\s*(?:USD|US\$|\$)\s*/i, "").replace(/\s*USD\s*$/i, ""));
   return d instanceof Dec ? d : null;
 }
 
