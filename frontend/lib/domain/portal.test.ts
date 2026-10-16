@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { replayGuidedDemo } from "./__fixtures__/replay";
 import { type EdiParties, FICTIONAL_GLN, MESSAGE_VERSION, buildDesadv, buildInvoic, buildOrdrsp, esc } from "./edifact";
 import { fictionalGln, gs1CheckDigit, sscc } from "./gs1";
-import { deliverySummary, outboundList, portalForOrder, retryOutbound, setEdiFailureMode, submitAsn, submitInvoice } from "./portal";
+import { cancelBackorder, deliverySummary, openQuantities, outboundList, portalForOrder, retryOutbound, setEdiFailureMode, submitAsn, submitInvoice } from "./portal";
 import { RunState } from "./run-state";
 import { Conflict, Forbidden, setDemoSetting } from "./workflow";
 
@@ -131,7 +131,10 @@ describe("ASN", () => {
     expect(() => submitAsn(base(), 3, { lines: [{ lineIndex: 0, shippedQty: "1" }] }, REVIEWER, clock)).toThrow(/delivered to the ERP/);
     expect(() => submitAsn(base(), 1, ship("4", "2", "1"), { actor: "viewer:viewer", role: "viewer" }, clock)).toThrow(Forbidden);
     const once = submitAsn(base(), 1, ship("4", "2", "1"), REVIEWER, clock);
-    expect(() => submitAsn(once, 1, ship("4", "2", "1"), REVIEWER, clock)).toThrow(/already has ASN-00001/);
+    // D52: a second ASN may only ship what is still open (1 of line A), and nothing once all has shipped.
+    expect(() => submitAsn(once, 1, ship("4", "2", "1"), REVIEWER, clock)).toThrow(/line A: shipped 4 is more than the 1 still open/i);
+    const all = submitAsn(base(), 1, ship("5", "2", "1"), REVIEWER, clock);
+    expect(() => submitAsn(all, 1, ship("1", "0", "0"), REVIEWER, clock)).toThrow(/Nothing is left to ship/);
   });
 
   it("shows mixed states honestly and a retry delivers without duplicating", () => {
@@ -202,5 +205,41 @@ describe("invoice", () => {
     expect(() => submitInvoice(s, id, { lines: [{ lineIndex: 0, quantity: "4" }, { lineIndex: 1, quantity: "2" }] }, REVIEWER, clock))
       .toThrow(/one invoice per ASN/);
     expect(outboundList(s)[0].kind).toBe("INVOIC");
+  });
+});
+
+describe("partial shipments and payment terms (D52)", () => {
+  it("ships the rest on a second ASN, each invoiced on its own with terms and a due date", () => {
+    let s = submitAsn(base(), 1, ship("3", "2", "0"), REVIEWER, clock);
+    expect([...openQuantities(s, 1).values()].map((q) => q.toFixedPoint())).toEqual(["2", "0", "1"]);
+    s = submitAsn(s, 1, ship("2", "0", "1"), REVIEWER, clock);
+    const p = portalForOrder(s, 1);
+    expect(p.shipments.map((x) => x.asn.asnNumber)).toEqual(["ASN-00001", "ASN-00002"]);
+    expect(p.shipments[1].asn.lines.map((l) => [l.openQty, l.shippedQty])).toEqual([["2", "2"], ["0", "0"], ["1", "1"]]);
+    expect([...openQuantities(s, 1).values()].every((q) => q.isZero())).toBe(true);
+    s = submitInvoice(s, p.shipments[1].asn.id, { lines: [{ lineIndex: 0, quantity: "2" }, { lineIndex: 2, quantity: "1" }] }, REVIEWER, clock);
+    const inv = portalForOrder(s, 1).shipments[1].invoice!;
+    expect([inv.total, inv.dueDate]).toEqual(["66.00", "2026-11-14"]);
+    expect(inv.terms).toEqual({ discountPercent: "2", discountDays: 10, netDays: 30 });
+    const body = portalForOrder(s, 1).shipments[1].invoiceMessages.find((m) => m.kind === "INVOIC")!.body;
+    expect(body).toContain("ITD*01*3*2**10**30~");
+    expect(body).toContain("DTM*814*20261114~");
+    expect(() => RunState.parse(s)).not.toThrow();
+  });
+
+  it("cancels what is left, tells the ERP once, and refuses another ASN", () => {
+    let s = submitAsn(base(), 1, ship("3", "2", "0"), REVIEWER, clock);
+    expect(() => cancelBackorder(s, 1, "  ", REVIEWER, clock)).toThrow(/Give a reason/);
+    s = cancelBackorder(s, 1, "Item discontinued (fictional)", REVIEWER, clock);
+    expect(portalForOrder(s, 1).cancelled.map((c) => [c.lineIndex, c.quantity])).toEqual([[0, "2"], [2, "1"]]);
+    const change = s.portal!.outbound.filter((m) => m.kind === "ERP_ORDER_CHANGE");
+    expect(change.map((m) => m.status)).toEqual(["delivered"]);
+    expect(() => submitAsn(s, 1, ship("1", "0", "0"), REVIEWER, clock)).toThrow(/Nothing is left to ship/);
+    expect(() => cancelBackorder(s, 1, "again", REVIEWER, clock)).toThrow(/Nothing is left open/);
+    expect(() => RunState.parse(s)).not.toThrow();
+  });
+
+  it("refuses cancelling before anything shipped", () => {
+    expect(() => cancelBackorder(base(), 1, "no stock", REVIEWER, clock)).toThrow(/Ship something first/);
   });
 });

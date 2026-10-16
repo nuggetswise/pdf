@@ -1,4 +1,5 @@
 "use client";
+import { pilotRows, toCsv } from "../lib/domain/pilot";
 import { useState } from "react";
 import { summary as summarise } from "../lib/domain/workflow";
 import { manualRouteTotals } from "../lib/domain/manual-route";
@@ -55,6 +56,18 @@ function App() {
         <Kpi n={totals ? `USD ${totals.exposureAvoided}` : undefined} label="Chargeback exposure avoided (estimate)" tone="ok" />
         {!!summary?.delivery_problems && <Kpi n={summary.delivery_problems} label="Delivery needs attention" tone="bad" />}
       </div>
+      {agent.ready && agent.state.orders.length > 0 && (
+        <div className="btns pilot-export">
+          <button className="ghost" onClick={() => {
+            const blob = new Blob([toCsv(pilotRows(agent.state))], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url; a.download = "order-agent-pilot.csv"; a.click();
+            URL.revokeObjectURL(url);
+          }}>Export pilot measurements (CSV)</button>
+          <span className="muted small">One row per order: time from PDF to ERP and ASN, what a person changed, what the agent caught.</span>
+        </div>
+      )}
       <nav className="tabs" role="tablist" aria-label="Sections">
         {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}
       </nav>

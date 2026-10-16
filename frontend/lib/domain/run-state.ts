@@ -354,7 +354,7 @@ export const Settings = z.strictObject({
 
 // ---------- supplier portal: ASN, invoice and outbound messages (D45, all simulated) ----------
 
-export const OutboundKind = z.enum(["ORDRSP", "DESADV", "INVOIC", "ERP_SHIPMENT", "ERP_INVOICE"]);
+export const OutboundKind = z.enum(["ORDRSP", "DESADV", "INVOIC", "ERP_SHIPMENT", "ERP_INVOICE", "ERP_ORDER_CHANGE"]);
 export const OutboundChannel = z.enum(["retailer_edi_outbox", "supplier_erp"]);
 export const OutboundStatus = z.enum(["pending", "delivered", "failed"]);
 export const EdiFailureMode = z.enum(["none", "fail_next", "hold_next"]);
@@ -369,6 +369,8 @@ export const AsnLine = z.strictObject({
   orderedQty: decimalString,
   shippedQty: decimalString,
   overrideReason: maybe(z.string()),
+  /** D52: quantity still open on the order when this ASN was made (absent = the whole order, first ASN). */
+  openQty: decimalString.optional(),
 });
 
 /** D47 packing: pallets, each holding cartons, each holding quantities of ASN lines. Every unit has an SSCC. */
@@ -391,6 +393,10 @@ export const Asn = z.strictObject({
   /** D47 (optional so earlier runs load): dates as YYYY-MM-DD and the packing hierarchy. */
   despatchDate: z.string().optional(),
   estimatedDelivery: z.string().optional(),
+  /** D51: carrier SCAC, bill of lading and tracking (PRO) number, all optional. */
+  carrierScac: z.string().optional(),
+  bolNumber: z.string().optional(),
+  trackingNumber: z.string().optional(),
   pallets: z.array(Pallet).optional(),
   createdBy: z.string(),
   createdAt: isoTime,
@@ -423,6 +429,13 @@ export const InvoiceAllowance = z.strictObject({
 });
 
 /** Invoice built from a submitted ASN: quantities from the ASN, prices from the delivered order. */
+/** D52: payment terms, as on a US invoice: "2% 10 net 30" = 2% off if paid in 10 days, otherwise due in 30. */
+export const PaymentTerms = z.strictObject({
+  discountPercent: maybe(decimalString),
+  discountDays: maybe(z.number().int().min(0).max(365)),
+  netDays: z.number().int().min(0).max(365),
+});
+
 export const Invoice = z.strictObject({
   id,
   invoiceNumber: z.string().regex(/^INV-\d{5}$/),
@@ -439,6 +452,9 @@ export const Invoice = z.strictObject({
   taxableAmount: decimalString.optional(),
   taxAmount: decimalString.optional(),
   taxByRate: z.array(z.strictObject({ rate: decimalString, taxable: decimalString, tax: decimalString })).optional(),
+  /** D52: payment terms and the due date they give. */
+  terms: PaymentTerms.optional(),
+  dueDate: z.string().optional(),
   createdBy: z.string(),
   createdAt: isoTime,
 });
@@ -494,6 +510,7 @@ export const SupplierSetup = z.strictObject({
   companyPrefix: z.string().regex(/^\d{6,12}$/),
   taxType: TaxType,
   defaultTaxRate: maybe(decimalString),
+  paymentTerms: PaymentTerms.optional(),
   ...setupMeta,
 });
 /** D47: per retailer (customer) EDI setup. Absent means the default for that customer (see partners.ts). */
@@ -520,6 +537,9 @@ export const Portal = z.strictObject({
   partners: z.array(TradingPartner).optional(),
   /** Last SSCC serial reference used in this run. */
   ssccSerial: z.number().int().nonnegative().optional(),
+  /** D52: order quantities the supplier will not ship (backorder cancelled). */
+  cancellations: z.array(z.strictObject({ documentId: id, lineIndex: z.number().int().nonnegative(), quantity: decimalString,
+    reason: z.string(), createdBy: z.string(), createdAt: isoTime })).optional(),
 });
 export const emptyPortal = (): z.infer<typeof Portal> =>
   ({ asns: [], invoices: [], outbound: [], received: [], ediFailureMode: "none" });

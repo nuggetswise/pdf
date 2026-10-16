@@ -21,8 +21,14 @@ const baseCustomers = (s: RunState): { fictional: boolean; customers: RefCustome
 /** The labelled fictional supplier used until a reviewer enters the real one. */
 export const FICTIONAL_SUPPLIER: Omit<SupplierSetup, "updatedBy" | "updatedAt"> = {
   name: "Fictional demo supplier", gln: FICTIONAL_GLN.supplier, vatId: null, companyPrefix: DEMO_COMPANY_PREFIX,
-  taxType: "SALES", defaultTaxRate: "0",
+  taxType: "SALES", defaultTaxRate: "0", paymentTerms: { discountPercent: "2", discountDays: 10, netDays: 30 },
 };
+
+/** "2% 10, net 30" or "Net 30". */
+export function termsText(t: { discountPercent?: string | null; discountDays?: number | null; netDays: number } | undefined): string {
+  if (!t) return "none";
+  return t.discountPercent && t.discountDays != null ? `${t.discountPercent}% ${t.discountDays}, net ${t.netDays}` : `Net ${t.netDays}`;
+}
 
 export function supplierSetup(s: RunState): Omit<SupplierSetup, "updatedBy" | "updatedAt"> & { fictional: boolean } {
   const stored = s.portal?.supplier;
@@ -73,6 +79,7 @@ const glnOrNull = (v: string | null | undefined, what: string): string | null =>
 export interface SupplierInput {
   name?: string | null; gln: string; vatId?: string | null; companyPrefix: string; taxType: "VAT" | "GST" | "SALES";
   defaultTaxRate?: string | null;
+  paymentTerms?: { discountPercent?: string | null; discountDays?: number | null; netDays: number } | null;
 }
 
 export function saveSupplierSetup(state: RunState, input: SupplierInput, who: Who, clock: Clock = systemClock): RunState {
@@ -83,11 +90,20 @@ export function saveSupplierSetup(state: RunState, input: SupplierInput, who: Wh
   if (!isCompanyPrefix(prefix)) throw new Conflict("GS1 company prefix must be 6 to 12 digits");
   const rate = clean(input.defaultTaxRate, 10, "Default tax rate");
   if (rate !== null && !validRate(rate)) throw new Conflict("Default tax rate must be a number from 0 to 100");
+  const t = input.paymentTerms;
+  const disc = t ? clean(t.discountPercent, 10, "Early payment discount") : null;
+  if (disc !== null && !validRate(disc)) throw new Conflict("Early payment discount must be a number from 0 to 100");
+  if (t && (!Number.isInteger(t.netDays) || t.netDays < 0 || t.netDays > 365)) throw new Conflict("Net days must be a whole number from 0 to 365");
+  if (t && disc !== null && (t.discountDays == null || !Number.isInteger(t.discountDays) || t.discountDays < 0 || t.discountDays > t.netDays)) {
+    throw new Conflict("Discount days must be a whole number no larger than the net days");
+  }
   const s = structuredClone(state);
   s.portal ??= emptyPortal();
   const now = clock.now();
   s.portal.supplier = { name: clean(input.name, 70, "Supplier name"), gln, vatId: clean(input.vatId, 35, "Supplier VAT number"),
-    companyPrefix: prefix, taxType: input.taxType, defaultTaxRate: rate, updatedBy: who.actor, updatedAt: now };
+    companyPrefix: prefix, taxType: input.taxType, defaultTaxRate: rate,
+    ...(t ? { paymentTerms: { discountPercent: disc, discountDays: disc !== null ? t.discountDays ?? null : null, netDays: t.netDays } } : {}),
+    updatedBy: who.actor, updatedAt: now };
   s.audit.push({ id: nextId(s.audit), entityType: "system", entityId: 0, event: "supplier_edi_setup_saved", actor: who.actor,
     detail: { gln, company_prefix: prefix }, createdAt: now });
   return s;

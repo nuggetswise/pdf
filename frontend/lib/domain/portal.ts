@@ -15,7 +15,7 @@ import {
 } from "./edifact";
 import { sscc } from "./gs1";
 import { Dec, money } from "./money";
-import { partnerFor, supplierSetup, validRate } from "./partners";
+import { partnerFor, supplierSetup, termsText, validRate } from "./partners";
 import {
   type Asn, type ComplianceSummary, type Invoice, type InvoiceAllowance, type OutboundMessage, type Pallet, type Portal,
   type RunState, decimalString, emptyPortal,
@@ -41,7 +41,7 @@ function act(state: RunState, clock: Clock, fn: (s: Run, now: string) => void): 
 }
 
 const RECEIVER_PREFIX: Record<OutboundMessage["kind"], string> = {
-  ORDRSP: "EDI-OUT", DESADV: "EDI-OUT", INVOIC: "EDI-OUT", ERP_SHIPMENT: "SIM-SHP", ERP_INVOICE: "SIM-INV",
+  ORDRSP: "EDI-OUT", DESADV: "EDI-OUT", INVOIC: "EDI-OUT", ERP_SHIPMENT: "SIM-SHP", ERP_INVOICE: "SIM-INV", ERP_ORDER_CHANGE: "SIM-CHG",
 };
 
 function addMessage(s: Run, now: string, m: Pick<OutboundMessage, "kind" | "channel" | "documentId" | "sourceType"
@@ -152,6 +152,8 @@ const ediLine = (o: OrderRow, lineIndex: number, quantity: string): EdiLine => {
 };
 
 const dateOnly = (iso: string) => iso.slice(0, 10);
+/** YYYY-MM-DD plus n calendar days (UTC). */
+export const addDays = (d: string, n: number) => new Date(Date.parse(`${d}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 const isIsoDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
 
 // ---------- step 1: order confirmation, automatic on ERP delivery ----------
@@ -194,6 +196,10 @@ export interface AsnInput {
   lines: { lineIndex: number; shippedQty: string; overrideReason?: string | null }[];
   despatchDate?: string | null;
   estimatedDelivery?: string | null;
+  /** D51: carrier details for the 856; each optional. */
+  carrierScac?: string | null;
+  bolNumber?: string | null;
+  trackingNumber?: string | null;
   packing?: PackingInput;
 }
 
@@ -237,8 +243,9 @@ export interface AsnDraft { asn: Asn; message: EdiMessage; compliance: Complianc
 export function draftAsn(s: RunState, docId: number, input: AsnInput, actor: string, now: string): AsnDraft {
   const o = orderFor(s, docId);
   if (o.deliveryState !== "erp_created" || !o.erpOrderId) throw new Conflict("An ASN needs an order delivered to the ERP");
-  const prior = s.portal?.asns.find((a) => a.documentId === docId);
-  if (prior) throw new Conflict(`This order already has ${prior.asnNumber}`);
+  const open = openQuantities(s, docId);
+  if (![...open.values()].some((q) => Dec.ZERO.lt(q))) throw new Conflict("Nothing is left to ship on this order");
+  const first = !(s.portal?.asns ?? []).some((a) => a.documentId === docId);
   const orderLines = o.validation.order.lines;
   const given = new Map(input.lines.map((l) => [l.lineIndex, l]));
   if (given.size !== input.lines.length || given.size !== orderLines.length
@@ -253,15 +260,16 @@ export function draftAsn(s: RunState, docId: number, input: AsnInput, actor: str
     }
     if (!l.sku || !l.quantity || !l.unit) throw new Conflict(`Line ${l.source_line_id} has no matched item and quantity`);
     const shipped = Dec.of(g.shippedQty);
-    const ordered = Dec.of(l.quantity);
+    const ordered = open.get(l.line_index) ?? Dec.of(l.quantity);
     const reason = g.overrideReason?.trim() || null;
     if (ordered.lt(shipped) && !reason) {
-      throw new Conflict(`Line ${l.source_line_id}: shipped ${g.shippedQty} is more than the ${l.quantity} ordered. `
+      throw new Conflict(`Line ${l.source_line_id}: shipped ${g.shippedQty} is more than the ${first ? `${l.quantity} ordered` : `${ordered.toFixedPoint()} still open`}. `
         + "Give an override reason to ship more.");
     }
     if (!shipped.isZero()) anyShipped = true;
     return { lineIndex: l.line_index, sourceLineId: l.source_line_id, sku: l.sku, gtin: l.gtin, description: l.description,
-      unit: l.unit, orderedQty: l.quantity, shippedQty: g.shippedQty, overrideReason: ordered.lt(shipped) ? reason : null };
+      unit: l.unit, orderedQty: l.quantity, shippedQty: g.shippedQty, overrideReason: ordered.lt(shipped) ? reason : null,
+      ...(first ? {} : { openQty: ordered.toFixedPoint() }) };
   });
   if (!anyShipped) throw new Conflict("Nothing is shipped: at least one line needs a quantity above zero");
 
@@ -273,18 +281,29 @@ export function draftAsn(s: RunState, docId: number, input: AsnInput, actor: str
     if (v && !isIsoDate(v)) throw new Conflict(`${what} must be a date (YYYY-MM-DD)`);
   }
 
+  const carrierScac = (input.carrierScac ?? "").trim().toUpperCase();
+  if (carrierScac && !/^[A-Z]{2,4}$/.test(carrierScac)) throw new Conflict("Carrier SCAC must be 2 to 4 letters, for example UPSN");
+  const ref = (v: string | null | undefined, what: string) => {
+    const t = (v ?? "").trim();
+    if (t.length > 30 || /[^A-Za-z0-9 -]/.test(t)) throw new Conflict(`${what} may use letters, digits, spaces and dashes, up to 30`);
+    return t;
+  };
+  const bolNumber = ref(input.bolNumber, "Bill of lading number");
+  const trackingNumber = ref(input.trackingNumber, "Tracking number");
+
   const sup = supplierSetup(s);
   const shipped = lines.filter((l) => !Dec.of(l.shippedQty).isZero());
   const { pallets, lastSerial } = packShipment(shipped, input.packing, sup.companyPrefix, s.portal?.ssccSerial ?? 0);
   const id = nextId(s.portal?.asns ?? []);
   const asn: Asn = { id, asnNumber: `ASN-${pad(id)}`, documentId: docId, erpOrderId: o.erpOrderId, lines, despatchDate,
-    ...(estimatedDelivery ? { estimatedDelivery } : {}), pallets, createdBy: actor, createdAt: now };
+    ...(estimatedDelivery ? { estimatedDelivery } : {}),
+    ...(carrierScac ? { carrierScac } : {}), ...(bolNumber ? { bolNumber } : {}), ...(trackingNumber ? { trackingNumber } : {}), pallets, createdBy: actor, createdAt: now };
 
   const ctx = ediContext(s, o);
   const ediPallets: EdiPallet[] = pallets.map((p) => ({ sscc: p.sscc,
     cartons: p.cartons.map((c) => ({ sscc: c.sscc, lines: c.contents.map((x) => ediLine(o, x.lineIndex, x.quantity)) })) }));
   const message = (ctx.profile === "x12_retail" ? buildDesadvX12 : buildDesadv)({ ref: asn.asnNumber, createdAt: now, despatchDate, estimatedDelivery: estimatedDelivery || null,
-    ...ctx.parties }, ediPallets);
+    carrierScac: carrierScac || null, bolNumber: bolNumber || null, trackingNumber: trackingNumber || null, ...ctx.parties }, ediPallets);
   return { asn, message, compliance: checkMessage("DESADV", message.text, ctx.profile), lastSerial };
 }
 
@@ -307,6 +326,7 @@ export function submitAsn(state: RunState, docId: number, input: AsnInput, who: 
       sourceId: asn.asnNumber, idempotencyKey: `ERP-SHIPMENT:${asn.asnNumber}`,
       ...json({ shipment_for: o.erpOrderId, asn: asn.asnNumber, po_number: o.validation.order.po_number,
         despatch_date: asn.despatchDate, estimated_delivery: asn.estimatedDelivery ?? null,
+        carrier_scac: asn.carrierScac ?? null, bol_number: asn.bolNumber ?? null, tracking_number: asn.trackingNumber ?? null,
         lines: shippedLines.map((l) => ({ sku: l.sku, shipped_qty: l.shippedQty, ordered_qty: l.orderedQty, unit: l.unit,
           override_reason: l.overrideReason })),
         pallets: asn.pallets },
@@ -453,10 +473,13 @@ export function draftInvoice(s: RunState, asnId: number, input: InvoiceInput, ac
   const invoice: Invoice = { id, invoiceNumber: `INV-${pad(id)}`, asnId, documentId: asn.documentId,
     currency: o.validation.order.currency ?? "", lines, subtotal: totals.lineTotal, total: totals.invoiceAmount,
     rounding: "ROUND_HALF_UP to 0.01", taxType: sup.taxType, allowances, taxableAmount: totals.taxableAmount,
-    taxAmount: totals.taxAmount, taxByRate: totals.byRate, createdBy: actor, createdAt: now };
+    taxAmount: totals.taxAmount, taxByRate: totals.byRate,
+    ...(sup.paymentTerms ? { terms: sup.paymentTerms, dueDate: addDays(dateOnly(now), sup.paymentTerms.netDays) } : {}),
+    createdBy: actor, createdAt: now };
   const ctx = ediContext(s, o);
   const edi: EdiAllowance[] = allowances.map((a) => ({ ...a }));
   const message = (ctx.profile === "x12_retail" ? buildInvoicX12 : buildInvoic)({ ref: invoice.invoiceNumber, createdAt: now, asnRef: asn.asnNumber, taxType: sup.taxType,
+    orderDate: o.validation.order.order_date, terms: invoice.terms ? { ...invoice.terms, termsText: termsText(invoice.terms), dueDate: invoice.dueDate } : undefined,
     ...ctx.parties }, lines.map((l) => ({ ...l, customerItemCode: o.validation.order.lines.find((x) => x.line_index === l.lineIndex)
     ?.customer_item_code ?? null })), edi, totals);
   return { invoice, message, compliance: checkMessage("INVOIC", message.text, ctx.profile),
@@ -540,15 +563,62 @@ export function deliverySummary(messages: OutboundMessage[]): string {
   }).join(", ");
 }
 
+/** D52: per order line, what is still to ship: ordered, less every ASN's shipped quantity, less cancellations. */
+export function openQuantities(s: RunState, docId: number): Map<number, Dec> {
+  const o = orderFor(s, docId);
+  const p = s.portal ?? emptyPortal();
+  const out = new Map<number, Dec>();
+  for (const l of o.validation.order.lines) {
+    let q = l.quantity && decimalString.safeParse(l.quantity).success ? Dec.of(l.quantity) : Dec.ZERO;
+    for (const a of p.asns) if (a.documentId === docId) for (const x of a.lines) if (x.lineIndex === l.line_index) q = q.add(Dec.of(x.shippedQty).mul(NEG));
+    for (const c of p.cancellations ?? []) if (c.documentId === docId && c.lineIndex === l.line_index) q = q.add(Dec.of(c.quantity).mul(NEG));
+    out.set(l.line_index, q.lt(Dec.ZERO) ? Dec.ZERO : q);
+  }
+  return out;
+}
+
+/** D52: the supplier will not ship what is still open. Recorded, audited and sent to the ERP as an order change. */
+export function cancelBackorder(state: RunState, docId: number, reason: string, who: Who, clock: Clock = systemClock): RunState {
+  requireReviewer(who.role);
+  const why = reason.trim();
+  if (!why) throw new Conflict("Give a reason for cancelling the rest of the order");
+  if (why.length > 200) throw new Conflict("Keep the reason under 200 characters");
+  return act(state, clock, (s, now) => {
+    const o = orderFor(s, docId);
+    if (!s.portal.asns.some((a) => a.documentId === docId)) throw new Conflict("Ship something first; to refuse a whole order, reject it in review");
+    const open = [...openQuantities(s, docId)].filter(([, q]) => Dec.ZERO.lt(q));
+    if (!open.length) throw new Conflict("Nothing is left open on this order");
+    s.portal.cancellations ??= [];
+    for (const [lineIndex, q] of open) {
+      s.portal.cancellations.push({ documentId: docId, lineIndex, quantity: q.toFixedPoint(), reason: why, createdBy: who.actor, createdAt: now });
+    }
+    s.audit.push({ id: nextId(s.audit), entityType: "document", entityId: docId, event: "backorder_cancelled", actor: who.actor,
+      detail: { lines: open.length, reason: why }, createdAt: now });
+    const n = s.portal.cancellations.filter((c) => c.documentId === docId).length;
+    const erp = addMessage(s, now, { kind: "ERP_ORDER_CHANGE", channel: "supplier_erp", documentId: docId, sourceType: "order",
+      sourceId: `CANCEL-${o.erpOrderId}-${n}`, idempotencyKey: `ERP-CANCEL:${o.erpOrderId}:${n}`,
+      ...json({ order_change_for: o.erpOrderId, cancel_open_quantity: open.map(([lineIndex, q]) => ({
+        sku: o.validation.order.lines.find((l) => l.line_index === lineIndex)?.sku ?? null, quantity: q.toFixedPoint() })), reason: why },
+      [{ segment: "cancel_open_quantity", meaning: "Order quantity that will not ship; the ERP closes the backorder" }]) });
+    dispatch(s, now, erp);
+  });
+}
+
 export function portalForOrder(s: RunState, docId: number) {
   const p = s.portal ?? emptyPortal();
   const msgs = (type: OutboundMessage["sourceType"], id: string) =>
     p.outbound.filter((m) => m.sourceType === type && m.sourceId === id).sort((a, b) => a.id - b.id);
-  const asn = p.asns.find((a) => a.documentId === docId) ?? null;
-  const invoice = asn ? p.invoices.find((i) => i.asnId === asn.id) ?? null : null;
+  const shipments = p.asns.filter((a) => a.documentId === docId).sort((a, b) => a.id - b.id).map((a) => {
+    const inv = p.invoices.find((i) => i.asnId === a.id) ?? null;
+    return { asn: a, asnMessages: msgs("asn", a.asnNumber), invoice: inv, invoiceMessages: inv ? msgs("invoice", inv.invoiceNumber) : [] };
+  });
+  // The latest shipment, as before D52 when an order had one ASN.
+  const asn = shipments.at(-1)?.asn ?? null;
+  const invoice = shipments.at(-1)?.invoice ?? null;
   const confirmation = p.outbound.find((m) => m.kind === "ORDRSP" && m.documentId === docId) ?? null;
+  const cancelled = (p.cancellations ?? []).filter((c) => c.documentId === docId);
   return {
-    confirmation,
+    confirmation, shipments, cancelled,
     asn, asnMessages: asn ? msgs("asn", asn.asnNumber) : [],
     invoice, invoiceMessages: invoice ? msgs("invoice", invoice.invoiceNumber) : [],
   };

@@ -11,7 +11,7 @@ import {
   resetDemo, retryDelivery, retryExtraction, setDemoSetting, setPolicy, setRuleState, startExtraction,
 } from "../domain/workflow";
 import { setManualRouteAssumptions } from "../domain/manual-route";
-import { retryOutbound, setEdiFailureMode, submitAsn, submitInvoice } from "../domain/portal";
+import { cancelBackorder, retryOutbound, setEdiFailureMode, submitAsn, submitInvoice } from "../domain/portal";
 import { saveSupplierSetup, saveTradingPartner } from "../domain/partners";
 import { PROFILE_IDS } from "../domain/compliance";
 
@@ -79,9 +79,12 @@ export const Action = z.discriminatedUnion("type", [
     // D47: dates and packing.
     despatchDate: z.string().max(20).nullable().optional(),
     estimatedDelivery: z.string().max(20).nullable().optional(),
+    carrierScac: z.string().max(10).nullable().optional(), bolNumber: z.string().max(40).nullable().optional(),
+    trackingNumber: z.string().max(40).nullable().optional(),
     packing: z.strictObject({ cartonsPerPallet: z.number().int().positive().max(2000).nullable().optional(),
       unitsPerCarton: z.array(z.strictObject({ lineIndex: z.number().int().nonnegative(), units: z.string().max(40) }))
         .max(500).optional() }).optional() }),
+  z.strictObject({ type: z.literal("cancelBackorder"), role: Role, docId, reason: z.string().max(400) }),
   z.strictObject({ type: z.literal("submitInvoice"), role: Role, asnId: docId,
     lines: z.array(z.strictObject({ lineIndex: z.number().int().nonnegative(), quantity: z.string().max(40),
       taxRate: z.string().max(20).nullable().optional() })).min(1).max(500),
@@ -92,7 +95,9 @@ export const Action = z.discriminatedUnion("type", [
   // D47: trading partner EDI setup.
   z.strictObject({ type: z.literal("saveSupplierSetup"), role: Role, name: z.string().max(200).nullable().optional(),
     gln: z.string().max(40), vatId: z.string().max(100).nullable().optional(), companyPrefix: z.string().max(20),
-    taxType: z.enum(["VAT", "GST", "SALES"]), defaultTaxRate: z.string().max(20).nullable().optional() }),
+    taxType: z.enum(["VAT", "GST", "SALES"]), defaultTaxRate: z.string().max(20).nullable().optional(),
+    paymentTerms: z.strictObject({ discountPercent: z.string().max(10).nullable().optional(),
+      discountDays: z.number().int().min(0).max(365).nullable().optional(), netDays: z.number().int().min(0).max(365) }).nullable().optional() }),
   z.strictObject({ type: z.literal("saveTradingPartner"), role: Role, customerId: z.string().max(200),
     profile: z.enum(PROFILE_IDS), buyerGln: z.string().max(40).nullable().optional(),
     buyerVatId: z.string().max(100).nullable().optional(), contractRef: z.string().max(100).nullable().optional(),
@@ -157,7 +162,10 @@ function apply(s: RunState, a: Action): { state: RunState; documentIds?: number[
       return { state: recoverDeliveries(s) };
     case "submitAsn":
       return { state: submitAsn(s, a.docId, { lines: a.lines, despatchDate: a.despatchDate,
-        estimatedDelivery: a.estimatedDelivery, packing: a.packing }, who(a.role)) };
+        estimatedDelivery: a.estimatedDelivery, carrierScac: a.carrierScac, bolNumber: a.bolNumber,
+        trackingNumber: a.trackingNumber, packing: a.packing }, who(a.role)) };
+    case "cancelBackorder":
+      return { state: cancelBackorder(s, a.docId, a.reason, who(a.role)) };
     case "submitInvoice":
       return { state: submitInvoice(s, a.asnId, { lines: a.lines, allowances: a.allowances }, who(a.role)) };
     case "saveSupplierSetup": {

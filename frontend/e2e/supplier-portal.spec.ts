@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
 
 // D45 supplier portal through the real screens: PO -> order confirmation -> ASN with a short shipment ->
 // invoice with the shipped quantity -> EDI tab shows the DESADV and INVOIC. TEST ADAPTER only; all EDI simulated.
@@ -23,8 +24,19 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
   await expect(page.getByRole("button", { name: "Submit ASN" })).toBeDisabled();
   await page.getByLabel("Shipped quantity line B").fill("3");
   await page.getByLabel("Shipped quantity line A").fill("10");
+  await page.getByLabel("Carrier SCAC").fill("DEMO");
+  await page.getByLabel("Bill of lading number").fill("BOL-0001");
+  await expect(page.getByLabel("ASN timing")).toBeVisible();
   await page.getByRole("button", { name: "Submit ASN" }).click();
   await expect(portal.getByLabel("Shipping notice")).toContainText("ASN-00001");
+  await expect(portal.getByLabel("Carrier")).toContainText("Carrier DEMO · BOL BOL-0001");
+  const popup = page.waitForEvent("popup");
+  await portal.getByRole("button", { name: /Print \d+ GS1-128 labels?/ }).click();
+  const labels = await popup;
+  await expect(labels.locator("section.label").first()).toContainText("(00) 0952");
+  await expect(labels.locator("svg[aria-label^='GS1-128 barcode']").first()).toBeVisible();
+  await labels.screenshot({ path: "../docs/screenshots/app-11-gs1-128-labels.png", fullPage: true });
+  await labels.close();
   await expect(portal.getByLabel("Shipping notice").locator(".flowstate")).toHaveText("ERP synced, EDI to retailer delivered");
 
   // Step 3: invoice from the ASN: 10 x 24.00 + 3 x 24.00 = 312.00, not the ordered 360.00, with no sales
@@ -35,7 +47,21 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
   await page.getByRole("button", { name: "Submit invoice" }).click();
   await expect(portal.getByLabel("Invoice")).toContainText("INV-00001");
   await expect(portal.getByLabel("Invoice").locator(".flowstate")).toContainText("ERP synced, EDI to retailer delivered");
+  await expect(portal.getByLabel("Payment terms")).toContainText("Terms 2% 10, net 30 · due ");
+  // The 2 cases of line A not shipped stay open as a backorder until shipped or cancelled.
+  await expect(portal.getByLabel("Backorder")).toContainText("2 CASE line A");
+  await portal.getByRole("button", { name: "Cancel the rest" }).click();
+  await portal.getByLabel("Cancel reason").fill("Out of stock (fictional)");
+  await portal.getByRole("button", { name: "Cancel the rest" }).click();
+  await expect(portal.getByLabel("Backorder")).toContainText("Rest of the order cancelled: 2 CASE line A");
   await expect(page.getByRole("button", { name: /^Send/ })).toHaveCount(0);
+  const csv = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export pilot measurements (CSV)" }).click();
+  const file = await csv;
+  expect(file.suggestedFilename()).toBe("order-agent-pilot.csv");
+  const text = readFileSync(await file.path(), "utf8");
+  expect(text.split("\r\n")[0]).toContain("po_number,customer_id,received_at");
+  expect(text).toMatch(/VIDEO-DEMO-005,DEMO-CUST-01,.*,1,/);
   await page.screenshot({ path: "../docs/screenshots/app-04-supplier-portal.png", fullPage: true });
 
   // The EDI tab lists the messages with raw X12 and a plain-language mapping.
