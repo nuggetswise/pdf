@@ -15,7 +15,7 @@ export type Summary = {
 
 /** Demo-only identity: the role picked on screen travels with each action. Not real authentication. */
 export type Role = "reviewer" | "administrator" | "viewer";
-export const PEOPLE: Record<Role, string> = { reviewer: "Rita (demo reviewer)", administrator: "Alex (demo administrator)", viewer: "Viewer" };
+export const PEOPLE: Record<Role, string> = { reviewer: "Rita, order desk (reviewer)", administrator: "Alex, operations lead", viewer: "Read-only viewer" };
 
 export const ACTION_LABEL: Record<string, string> = {
   one_off_exception: "Allow once (one-off exception)",

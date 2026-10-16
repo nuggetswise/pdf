@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { asRole } from "./helpers";
 
 // D47: a retailer the supplier has not set up yet. Its EDI is held until its GLNs are entered; the ASN and the
 // invoice show the retailer's rule check before submit, and a message that would be rejected cannot be sent.
@@ -7,7 +8,7 @@ test("EDI is held until the retailer is set up, then the ASN and invoice pass it
   test.setTimeout(120_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  await page.getByLabel("Demo role").selectOption("reviewer");
+  await asRole(page, "reviewer");
   const card = (text: string) => page.locator(".issue.open", { hasText: text });
 
   // Onboard the unknown retailer and its two items from the PO (D46), then approve.

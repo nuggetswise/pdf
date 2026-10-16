@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { asRole } from "./helpers";
 
 // D46: a real supplier's first PO from a customer the reference data does not know. The reviewer adds the
 // customer and products for this session; the order clears, and a repeat PO from that customer is clean.
@@ -9,7 +10,7 @@ test("a reviewer onboards an unknown customer and products from a PO", async ({ 
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  await page.getByLabel("Demo role").selectOption("reviewer");
+  await asRole(page, "reviewer");
   const card = (text: string) => page.locator(".issue.open", { hasText: text });
 
   await page.getByLabel("Upload a purchase order").setInputFiles(PDF("ONBOARD-DEMO-001"));

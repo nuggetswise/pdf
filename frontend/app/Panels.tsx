@@ -1,4 +1,5 @@
 "use client";
+import { SAMPLE_LABELS } from "../lib/intake/intake";
 import { useState } from "react";
 import { documentDetail, documentsList, erpOrdersList, rulesList } from "../lib/domain/selectors";
 import { Health, Issue, PROCESS_LABEL, Role } from "./api";
@@ -149,15 +150,15 @@ export function Workspace({ role, health }: { role: Role; health: Health | null 
           <span className="muted small">PDF, or a forwarded email (.eml) with the PDF attached. Drop it here or click to choose. The file is read in your browser; only its text is sent for extraction.</span>
         </label>
         <div className="samples">
-          <span className="muted small">Or try a sample (fictional data):</span>
+          <span className="muted small">No PDF to hand? Try a sample purchase order (fictional):</span>
           <div className="forward">
-            <select value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Demo email">
-              {emails.map((n) => <option key={n}>{n}</option>)}
+            <select value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Sample purchase order">
+              {emails.map((n) => <option key={n} value={n}>{SAMPLE_LABELS[n as keyof typeof SAMPLE_LABELS] ?? n}</option>)}
             </select>
             <button disabled={!pick} onClick={() => wrap(async () => {
               const ids = await agent.forwardDemo(pick);
               setSelected(ids[0]);
-            })}>Forward to agent</button>
+            })}>Open sample</button>
           </div>
         </div>
         {docs?.length === 0 && <p className="placeholder">No orders yet. Upload a PDF purchase order to start.</p>}

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { asRole } from "./helpers";
 import { readFileSync } from "node:fs";
 
 // D45 supplier portal through the real screens: PO -> order confirmation -> ASN with a short shipment ->
@@ -7,7 +8,7 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  await page.getByLabel("Demo role").selectOption("reviewer");
+  await asRole(page, "reviewer");
   await page.getByLabel("Upload a purchase order").setInputFiles("../fixtures/demo/generated/VIDEO-DEMO-005.pdf");
   await page.getByRole("button", { name: "Approve order" }).click();
   await expect(page.locator(".order .erp h3")).toContainText("ERP order SIM-ERP-");
@@ -88,7 +89,7 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
 test("a held EDI message shows the mixed state and a safe retry delivers it", async ({ page }) => {
   test.setTimeout(90_000);
   await page.goto("/");
-  await page.getByLabel("Demo role").selectOption("administrator");
+  await asRole(page, "administrator");
   await page.getByLabel("Retailer EDI outbox next message").selectOption("hold_next");
   await page.getByLabel("Upload a purchase order").setInputFiles("../fixtures/demo/generated/VIDEO-DEMO-005.pdf");
   await page.getByRole("button", { name: "Approve order" }).click();
