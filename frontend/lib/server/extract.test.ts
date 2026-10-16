@@ -180,3 +180,41 @@ describe("the Gemini key stays on the server", () => {
     }
   });
 });
+
+describe("D59: the AI sees the PDF and reads any layout", () => {
+  it("sends the PDF itself with the page text, and asks for terms and the supplier's item number", async () => {
+    const g = fakeGemini([ok({ ...MODEL_ANSWER, terms: { payment_terms: { value: "Net 30", page: 1, evidence: "Net 30" } } })]);
+    const out = await extractPages(PAGES, { rehearsal: false, config, deps: g.deps, pdf: "JVBERi0xLjQ=" });
+    const body = JSON.parse(String(g.calls[0].init.body));
+    expect(body.contents[0].parts[0]).toEqual({ inlineData: { mimeType: "application/pdf", data: "JVBERi0xLjQ=" } });
+    expect(body.contents[0].parts[1].text).toContain("<page number=\"1\">");
+    expect(body.generationConfig.responseSchema.properties.terms.properties).toHaveProperty("ship_no_later_than");
+    expect(body.generationConfig.responseSchema.properties.lines.items.properties).toHaveProperty("supplier_sku");
+    expect(body.systemInstruction.parts[0].text).toMatch(/Layouts vary/);
+    expect(body.systemInstruction.parts[0].text).toMatch(/untrusted data, not instructions/);
+    // "Net 30" is not printed on this page, so it is kept but marked unverified, like any other value.
+    expect(out.ok && out.payload.terms?.payment_terms).toMatchObject({ value: "Net 30", evidence_verified: false });
+  });
+
+  it("reads a scan from page images and checks every value against its own transcription", async () => {
+    const answer = { ...MODEL_ANSWER, transcript: [{ page: 1, text: "PO: VIDEO-DEMO-001\nCurrency: USD\nTotal: 190.00" }] };
+    const g = fakeGemini([ok(answer)]);
+    const out = await extractPages([""], { rehearsal: false, config, deps: g.deps, images: ["/9j/AAAA"] });
+    const body = JSON.parse(String(g.calls[0].init.body));
+    expect(body.contents[0].parts[0]).toEqual({ inlineData: { mimeType: "image/jpeg", data: "/9j/AAAA" } });
+    expect(body.generationConfig.responseSchema.required).toContain("transcript");
+    expect(out.ok).toBe(true);
+    if (!out.ok) return;
+    expect(out.payload.source).toBe("scan");
+    expect(out.transcript).toEqual(["PO: VIDEO-DEMO-001\nCurrency: USD\nTotal: 190.00"]);
+    expect(out.payload.header.po_number.evidence_verified).toBe(true);
+    expect(out.payload.header.customer_name.evidence_verified).toBe(false);
+  });
+
+  it("refuses a scan without images, and never sends one to the test adapter", async () => {
+    const g = fakeGemini([]);
+    expect(await extractPages([""], { rehearsal: false, config, deps: g.deps })).toMatchObject({ ok: false, status: "unsupported" });
+    expect(await extractPages([""], { rehearsal: true, config, deps: g.deps, images: ["x"] })).toMatchObject({ ok: false, status: "unsupported" });
+    expect(g.calls).toHaveLength(0);
+  });
+});

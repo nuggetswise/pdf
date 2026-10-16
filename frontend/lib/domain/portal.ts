@@ -19,7 +19,7 @@ import { Dec, money } from "./money";
 import { partnerFor, supplierSetup, termsText, validRate } from "./partners";
 import {
   type Asn, type ComplianceSummary, type Invoice, type InvoiceAllowance, type OutboundMessage, type Pallet, type Portal,
-  type RunState, decimalString, emptyPortal,
+  type RunState, FulfilmentSettings, decimalString, emptyPortal,
 } from "./run-state";
 import { Conflict, type Clock, Forbidden, type Who, systemClock } from "./workflow";
 import { choose, consumeStock, firstShipOn, freeStock, planFulfilment, stockOf } from "./fulfilment";
@@ -360,6 +360,18 @@ export function setStock(state: RunState, sku: string, input: { onHand: string; 
     s.erpStock = stock;
     s.audit.push({ id: nextId(s.audit), entityType: "system", entityId: 0, event: "stock_updated", actor: who.actor,
       detail: { sku, on_hand: input.onHand, lead_time_days: input.leadTimeDays }, createdAt: now });
+  });
+}
+
+/** D61: an administrator sets packing and transit days and what happens when stock is short. */
+export function setFulfilmentSettings(state: RunState, input: unknown, who: Who, clock: Clock = systemClock): RunState {
+  if (who.role !== "administrator") throw new Forbidden("Only an administrator can change shipping settings");
+  const parsed = FulfilmentSettings.omit({ updatedBy: true, updatedAt: true }).safeParse(input);
+  if (!parsed.success) throw new Conflict("Packing and transit days must be whole numbers from 0 to 30");
+  return act(state, clock, (s, now) => {
+    s.fulfilmentSettings = { ...parsed.data, updatedBy: who.actor, updatedAt: now };
+    s.audit.push({ id: nextId(s.audit), entityType: "system", entityId: 0, event: "shipping_settings_changed", actor: who.actor,
+      detail: { pack_days: parsed.data.packDays, transit_days: parsed.data.transitDays, short_stock: parsed.data.shortStock }, createdAt: now });
   });
 }
 

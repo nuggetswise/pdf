@@ -151,7 +151,7 @@ export function startExtraction(state: RunState, docId: number, clock: Clock = s
 
 export type ExtractionFailure = "unsupported" | "extraction_unavailable" | "extraction_failed";
 export const EXTRACTION_MESSAGES = {
-  unsupported: "No native text found (scanned or image-only PDF). No OCR adapter is configured.",
+  unsupported: "No native text found (scanned or image-only PDF). No OCR adapter is configured: the AI reads scans, the test adapter does not.",
   extraction_unavailable: "Extraction unavailable: no LLM credentials configured. Nothing was simulated.",
 } as const;
 
@@ -283,7 +283,9 @@ function settle(r: Run, docId: number) {
     // D46: an order a reviewer onboarded a customer or product for waits for an explicit approval.
     const onboarded = r.s.audit.some((a) => a.entityType === "document" && a.entityId === docId
       && a.event.startsWith("reference_"));
-    if (policy.mode === "exception_only" && r.decisionsFor(docId).length === 0 && !onboarded) {
+    // D59: a scan was read from images, so a person checks it against the page before it goes anywhere.
+    const scanned = r.s.versions.find((v) => v.documentId === docId && v.version === version)?.payload.source === "scan";
+    if (policy.mode === "exception_only" && r.decisionsFor(docId).length === 0 && !onboarded && !scanned) {
       approveVersion(r, docId, version, "system", `policy:exception_only#${policy.id}`, policy);
       deliverNow = true;
     } else if (order.reviewState !== "ready") {
