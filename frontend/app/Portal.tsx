@@ -8,9 +8,9 @@ import { useMemo, useState } from "react";
 import { type ComplianceResult, PROFILES, PROFILE_IDS, type ProfileId, SOURCES, type SourceId } from "../lib/domain/compliance";
 import { FICTIONAL_LABEL } from "../lib/domain/gs1";
 import { Dec } from "../lib/domain/money";
-import { partnerFor, supplierSetup } from "../lib/domain/partners";
+import { partnerFor, supplierSetup, termsText } from "../lib/domain/partners";
 import {
-  ALLOWANCE_CODES, DEFAULT_SHIP_TO, type InvoiceInput, deliverySummary, draftAsn, draftInvoice, outboundList, portalForOrder,
+  ALLOWANCE_CODES, DEFAULT_SHIP_TO, type InvoiceInput, deliverySummary, draftAsn, draftInvoice, openQuantities, outboundList, portalForOrder,
 } from "../lib/domain/portal";
 import { type Asn, type ComplianceSummary, type OutboundMessage, decimalString } from "../lib/domain/run-state";
 import { Role } from "./api";
@@ -18,7 +18,7 @@ import { useAgent } from "./run/RunProvider";
 
 const KIND_LABEL: Record<OutboundMessage["kind"], string> = {
   ORDRSP: "Order confirmation (EDIFACT ORDRSP)", DESADV: "Shipping notice (EDIFACT DESADV)",
-  INVOIC: "Invoice (EDIFACT INVOIC)", ERP_SHIPMENT: "Shipment record in supplier ERP", ERP_INVOICE: "Invoice record in supplier ERP",
+  INVOIC: "Invoice (EDIFACT INVOIC)", ERP_SHIPMENT: "Shipment record in supplier ERP", ERP_INVOICE: "Invoice record in supplier ERP", ERP_ORDER_CHANGE: "Backorder cancelled in supplier ERP",
 };
 const CHANNEL_LABEL = { retailer_edi_outbox: "Trading Grid, to the retailer (simulated)", supplier_erp: "Supplier ERP simulator" };
 const STATUS_TONE = { delivered: "ok", pending: "warn", failed: "bad" } as const;
@@ -100,10 +100,7 @@ export function OrderPortal({ docId, role }: { docId: number; role: Role }) {
   const p = portalForOrder(agent.state, docId);
   const order = agent.state.orders.find((o) => o.documentId === docId);
   const [asnOpen, setAsnOpen] = useState(false);
-  const [invOpen, setInvOpen] = useState(false);
   if (!order) return null;
-  const desadv = p.asnMessages.find((m) => m.kind === "DESADV");
-  const invoic = p.invoiceMessages.find((m) => m.kind === "INVOIC");
   return (
     <section className="portal" aria-label="Supplier portal">
       <div className="eyebrow">Trading Grid web form, pre-filled by the Order Agent (simulated) · nothing is sent to a real retailer</div>
@@ -114,50 +111,113 @@ export function OrderPortal({ docId, role }: { docId: number; role: Role }) {
           <ul className="outlist"><MessageRow m={p.confirmation} role={role} /></ul>
         </div>
       )}
-      <div className="flow" aria-label="Shipping notice">
-        <h4>Shipping notice (ASN){p.asn && `: ${p.asn.asnNumber}`}</h4>
-        {p.asn ? (
-          <>
-            <p className="flowstate"><b>{deliverySummary(p.asnMessages)}</b></p>
-            {p.asn.pallets && (
-              <p className="muted small" aria-label="Packing">
-                {p.asn.pallets.length} pallet{p.asn.pallets.length === 1 ? "" : "s"}, {p.asn.pallets.reduce((t, x) => t + x.cartons.length, 0)} cartons ·
-                estimated delivery {p.asn.estimatedDelivery ?? "none"} · pallet SSCC {p.asn.pallets.map((x) => x.sscc).join(", ")}
-              </p>
-            )}
-            {(p.asn.carrierScac || p.asn.bolNumber || p.asn.trackingNumber) && (
-              <p className="muted small" aria-label="Carrier">Carrier {p.asn.carrierScac ?? "not given"}{p.asn.bolNumber ? ` · BOL ${p.asn.bolNumber}` : ""}{p.asn.trackingNumber ? ` · PRO ${p.asn.trackingNumber}` : ""}</p>
-            )}
-            <TimingBox timing={asnTiming({ requestedDelivery: order.validation.order.requested_delivery_date, shipDate: p.asn.despatchDate,
-              estimatedDelivery: p.asn.estimatedDelivery, sentOn: p.asn.createdAt.slice(0, 10) })} />
-            {p.asn.pallets && <LabelsButton asn={p.asn} po={order.validation.order.po_number} />}
-            {desadv?.compliance && <ComplianceBox result={desadv.compliance} sent />}
-            <ul className="outlist">{p.asnMessages.map((m) => <MessageRow key={m.id} m={m} role={role} />)}</ul>
-          </>
-        ) : asnOpen ? (
-          <AsnForm docId={docId} role={role} onDone={() => setAsnOpen(false)} />
-        ) : role !== "viewer" ? (
-          <button className="primary" onClick={() => setAsnOpen(true)}>Create ASN</button>
-        ) : <p className="muted small">No ASN yet.</p>}
-      </div>
-      {p.asn && (
-        <div className="flow" aria-label="Invoice">
-          <h4>Invoice{p.invoice && `: ${p.invoice.invoiceNumber}`}</h4>
-          {p.invoice ? (
-            <>
-              <p className="flowstate"><b>{deliverySummary(p.invoiceMessages)}</b> · total <b>{p.invoice.total} {p.invoice.currency}</b>
-                {p.invoice.taxAmount && <span className="muted small"> (lines {p.invoice.subtotal}, tax {p.invoice.taxAmount})</span>}</p>
-              {invoic?.compliance && <ComplianceBox result={invoic.compliance} sent />}
-              <ul className="outlist">{p.invoiceMessages.map((m) => <MessageRow key={m.id} m={m} role={role} />)}</ul>
-            </>
-          ) : invOpen ? (
-            <InvoiceForm docId={docId} role={role} onDone={() => setInvOpen(false)} />
-          ) : role !== "viewer" ? (
-            <button className="primary" onClick={() => setInvOpen(true)}>Create invoice</button>
-          ) : <p className="muted small">No invoice yet.</p>}
+      {p.shipments.map((sh, n) => (
+        <Shipment key={sh.asn.id} n={n} sh={sh} docId={docId} role={role} po={order.validation.order.po_number}
+          requested={order.validation.order.requested_delivery_date} />
+      ))}
+      {p.shipments.length === 0 ? (
+        <div className="flow" aria-label="Shipping notice">
+          <h4>Shipping notice (ASN)</h4>
+          {asnOpen ? <AsnForm docId={docId} role={role} onDone={() => setAsnOpen(false)} />
+            : role !== "viewer" ? <button className="primary" onClick={() => setAsnOpen(true)}>Create ASN</button>
+            : <p className="muted small">No ASN yet.</p>}
         </div>
-      )}
+      ) : <Backorder docId={docId} role={role} />}
     </section>
+  );
+}
+
+type ShipmentView = ReturnType<typeof portalForOrder>["shipments"][number];
+
+/** One ASN and its invoice (D52: an order can ship in several parts, each with its own invoice). */
+function Shipment({ n, sh, docId, role, po, requested }: { n: number; sh: ShipmentView; docId: number; role: Role; po: string | null;
+  requested: string | null }) {
+  const [invOpen, setInvOpen] = useState(false);
+  const { asn, asnMessages, invoice, invoiceMessages } = sh;
+  const desadv = asnMessages.find((m) => m.kind === "DESADV");
+  const invoic = invoiceMessages.find((m) => m.kind === "INVOIC");
+  const suffix = n === 0 ? "" : ` ${n + 1}`;
+  return (
+    <>
+      <div className="flow" aria-label={`Shipping notice${suffix}`}>
+        <h4>Shipping notice (ASN): {asn.asnNumber}{n > 0 && <span className="muted small"> · shipment {n + 1}</span>}</h4>
+        <p className="flowstate"><b>{deliverySummary(asnMessages)}</b></p>
+        <p className="muted small">Shipped {asn.lines.filter((l) => !Dec.of(l.shippedQty).isZero()).map((l) => `${l.shippedQty} ${l.unit} line ${l.sourceLineId}`).join(", ")}</p>
+        {asn.pallets && (
+          <p className="muted small" aria-label={`Packing${suffix}`}>
+            {asn.pallets.length} pallet{asn.pallets.length === 1 ? "" : "s"}, {asn.pallets.reduce((t, x) => t + x.cartons.length, 0)} cartons ·
+            estimated delivery {asn.estimatedDelivery ?? "none"} · pallet SSCC {asn.pallets.map((x) => x.sscc).join(", ")}
+          </p>
+        )}
+        {(asn.carrierScac || asn.bolNumber || asn.trackingNumber) && (
+          <p className="muted small" aria-label={`Carrier${suffix}`}>Carrier {asn.carrierScac ?? "not given"}{asn.bolNumber ? ` · BOL ${asn.bolNumber}` : ""}{asn.trackingNumber ? ` · PRO ${asn.trackingNumber}` : ""}</p>
+        )}
+        <TimingBox timing={asnTiming({ requestedDelivery: requested, shipDate: asn.despatchDate, estimatedDelivery: asn.estimatedDelivery,
+          sentOn: asn.createdAt.slice(0, 10) })} />
+        {asn.pallets && <LabelsButton asn={asn} po={po} />}
+        {desadv?.compliance && <ComplianceBox result={desadv.compliance} sent />}
+        <ul className="outlist">{asnMessages.map((m) => <MessageRow key={m.id} m={m} role={role} />)}</ul>
+      </div>
+      <div className="flow" aria-label={`Invoice${suffix}`}>
+        <h4>Invoice{invoice && `: ${invoice.invoiceNumber}`}{!invoice && ` for ${asn.asnNumber}`}</h4>
+        {invoice ? (
+          <>
+            <p className="flowstate"><b>{deliverySummary(invoiceMessages)}</b> · total <b>{invoice.total} {invoice.currency}</b>
+              {invoice.taxAmount && <span className="muted small"> (lines {invoice.subtotal}, tax {invoice.taxAmount})</span>}</p>
+            {invoice.terms && <p className="muted small" aria-label={`Payment terms${suffix}`}>Terms {termsText(invoice.terms)} · due {invoice.dueDate}</p>}
+            {invoic?.compliance && <ComplianceBox result={invoic.compliance} sent />}
+            <ul className="outlist">{invoiceMessages.map((m) => <MessageRow key={m.id} m={m} role={role} />)}</ul>
+          </>
+        ) : invOpen ? (
+          <InvoiceForm docId={docId} asnId={asn.id} role={role} onDone={() => setInvOpen(false)} />
+        ) : role !== "viewer" ? (
+          <button className="primary" onClick={() => setInvOpen(true)}>Create invoice{n > 0 ? ` for ${asn.asnNumber}` : ""}</button>
+        ) : <p className="muted small">No invoice yet.</p>}
+      </div>
+    </>
+  );
+}
+
+/** D52: what is still open after a short shipment: ship it later, or cancel it. */
+function Backorder({ docId, role }: { docId: number; role: Role }) {
+  const agent = useAgent();
+  const order = agent.state.orders.find((o) => o.documentId === docId)!;
+  const open = openQuantities(agent.state, docId);
+  const p = portalForOrder(agent.state, docId);
+  const [mode, setMode] = useState<"none" | "asn" | "cancel">("none");
+  const [why, setWhy] = useState("");
+  const { error, wrap } = useWrap();
+  const lines = order.validation.order.lines.filter((l) => Dec.ZERO.lt(open.get(l.line_index) ?? Dec.ZERO));
+  if (!lines.length) {
+    return p.cancelled.length ? (
+      <div className="flow" aria-label="Backorder"><h4>Backorder</h4>
+        <p className="muted small">Rest of the order cancelled: {p.cancelled.map((c) => {
+          const l = order.validation.order.lines.find((x) => x.line_index === c.lineIndex);
+          return `${c.quantity} ${l?.unit ?? ""} line ${l?.source_line_id ?? c.lineIndex}`;
+        }).join(", ")} ({p.cancelled[0].reason}).</p></div>
+    ) : null;
+  }
+  return (
+    <div className="flow" aria-label="Backorder">
+      <h4>Backorder: still to ship</h4>
+      <p className="small">{lines.map((l) => `${open.get(l.line_index)!.toFixedPoint()} ${l.unit} line ${l.source_line_id}`).join(", ")}</p>
+      {mode === "asn" ? <AsnForm docId={docId} role={role} onDone={() => setMode("none")} />
+        : mode === "cancel" ? (
+          <form className="portal-form" onSubmit={(e) => { e.preventDefault(); void wrap(async () => {
+            await agent.run({ type: "cancelBackorder", role, docId, reason: why }); setMode("none"); }); }}>
+            <label>Reason the rest will not ship<input aria-label="Cancel reason" value={why} onChange={(e) => setWhy(e.target.value)}
+              placeholder="e.g. item discontinued" /></label>
+            {error && <div className="alert bad" role="alert">{error}</div>}
+            <div className="btns"><button className="primary" type="submit" disabled={!why.trim()}>Cancel the rest</button>
+              <button className="ghost" type="button" onClick={() => setMode("none")}>Back</button></div>
+          </form>
+        ) : role !== "viewer" ? (
+          <div className="btns">
+            <button className="primary" onClick={() => setMode("asn")}>Ship the rest (next ASN)</button>
+            <button className="ghost" onClick={() => setMode("cancel")}>Cancel the rest</button>
+          </div>
+        ) : null}
+    </div>
   );
 }
 
@@ -174,6 +234,8 @@ function EdiSetup({ docId, role }: { docId: number; role: Role }) {
   const [f, setF] = useState(() => ({
     supplierName: sup.name ?? "", supplierGln: sup.gln, supplierVat: sup.vatId ?? "", prefix: sup.companyPrefix,
     taxType: sup.taxType, defaultTaxRate: sup.defaultTaxRate ?? "",
+    discPct: sup.paymentTerms?.discountPercent ?? "", discDays: String(sup.paymentTerms?.discountDays ?? ""),
+    netDays: String(sup.paymentTerms?.netDays ?? "30"),
     profile: partner.profile, buyerGln: partner.buyerGln ?? "", buyerVat: partner.buyerVatId ?? "",
     contractRef: partner.contractRef ?? "", vendorNumber: partner.vendorNumber ?? "", shipToGln: partner.shipToGlns.find((t) => t.shipToId === shipKey)?.gln ?? "",
   }));
@@ -196,7 +258,9 @@ function EdiSetup({ docId, role }: { docId: number; role: Role }) {
           if (role === "viewer") return;
           void wrap(async () => {
             await agent.run({ type: "saveSupplierSetup", role, name: f.supplierName || null, gln: f.supplierGln,
-              vatId: x12 ? sup.vatId : f.supplierVat || null, companyPrefix: f.prefix, taxType: x12 ? "SALES" : f.taxType, defaultTaxRate: f.defaultTaxRate || null });
+              vatId: x12 ? sup.vatId : f.supplierVat || null, companyPrefix: f.prefix, taxType: x12 ? "SALES" : f.taxType, defaultTaxRate: f.defaultTaxRate || null,
+              paymentTerms: /^\d+$/.test(f.netDays) ? { netDays: Number(f.netDays), discountPercent: f.discPct || null,
+                discountDays: /^\d+$/.test(f.discDays) ? Number(f.discDays) : null } : null });
             await agent.run({ type: "saveTradingPartner", role, customerId: ord.customer_id ?? "", profile: f.profile,
               buyerGln: f.buyerGln || null, buyerVatId: x12 ? partner.buyerVatId : f.buyerVat || null, contractRef: x12 ? partner.contractRef : f.contractRef || null,
               vendorNumber: f.vendorNumber || null,
@@ -211,6 +275,9 @@ function EdiSetup({ docId, role }: { docId: number; role: Role }) {
             {!x12 && <label>Supplier VAT number<input value={f.supplierVat} onChange={set("supplierVat")} /></label>}
             <label>GS1 company prefix (for SSCCs)<input value={f.prefix} onChange={set("prefix")} inputMode="numeric" /></label>
             {!x12 && <label>Tax type<select value={f.taxType} onChange={set("taxType")}><option>VAT</option><option>GST</option><option value="SALES">Sales tax</option></select></label>}
+            <label>Early payment discount %<input value={f.discPct} onChange={set("discPct")} inputMode="decimal" placeholder="e.g. 2" /></label>
+            <label>if paid within (days)<input value={f.discDays} onChange={set("discDays")} inputMode="numeric" placeholder="e.g. 10" /></label>
+            <label>Net days (payment due)<input value={f.netDays} onChange={set("netDays")} inputMode="numeric" /></label>
             <label>{x12 ? "Default sales tax %" : "Default tax rate %"}<input value={f.defaultTaxRate} onChange={set("defaultTaxRate")} inputMode="decimal" /></label>
           </fieldset>
           <fieldset><legend>Retailer {ord.customer_id}</legend>
@@ -239,7 +306,8 @@ function AsnForm({ docId, role, onDone }: { docId: number; role: Role; onDone: (
   const order = agent.state.orders.find((o) => o.documentId === docId)!;
   const lines = order.validation.order.lines;
   const requested = order.validation.order.requested_delivery_date ?? "";
-  const [qty, setQty] = useState<Record<number, string>>(Object.fromEntries(lines.map((l) => [l.line_index, l.quantity ?? "0"])));
+  const open = openQuantities(agent.state, docId);
+  const [qty, setQty] = useState<Record<number, string>>(Object.fromEntries(lines.map((l) => [l.line_index, open.get(l.line_index)?.toFixedPoint() ?? l.quantity ?? "0"])));
   const [why, setWhy] = useState<Record<number, string>>({});
   const [perCarton, setPerCarton] = useState<Record<number, string>>({});
   const [perPallet, setPerPallet] = useState("");
@@ -358,12 +426,12 @@ function LabelsButton({ asn, po }: { asn: Asn; po: string | null }) {
 
 type AlcRow = { kind: "allowance" | "charge"; code: string; percent: string; amount: string; taxRate: string };
 
-function InvoiceForm({ docId, role, onDone }: { docId: number; role: Role; onDone: () => void }) {
+function InvoiceForm({ docId, asnId, role, onDone }: { docId: number; asnId: number; role: Role; onDone: () => void }) {
   const agent = useAgent();
   const p = portalForOrder(agent.state, docId);
   const order = agent.state.orders.find((o) => o.documentId === docId)!;
   const sup = supplierSetup(agent.state);
-  const asn = p.asn!;
+  const asn = p.shipments.find((x) => x.asn.id === asnId)!.asn;
   const shipped = asn.lines.filter((l) => !Dec.of(l.shippedQty).isZero());
   const [rates, setRates] = useState<Record<number, string>>(Object.fromEntries(shipped.map((l) => [l.lineIndex, sup.defaultTaxRate ?? ""])));
   const [alc, setAlc] = useState<AlcRow[]>([]);

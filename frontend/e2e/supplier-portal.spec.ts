@@ -46,6 +46,13 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
   await page.getByRole("button", { name: "Submit invoice" }).click();
   await expect(portal.getByLabel("Invoice")).toContainText("INV-00001");
   await expect(portal.getByLabel("Invoice").locator(".flowstate")).toContainText("ERP synced, EDI to retailer delivered");
+  await expect(portal.getByLabel("Payment terms")).toContainText("Terms 2% 10, net 30 · due ");
+  // The 2 cases of line A not shipped stay open as a backorder until shipped or cancelled.
+  await expect(portal.getByLabel("Backorder")).toContainText("2 CASE line A");
+  await portal.getByRole("button", { name: "Cancel the rest" }).click();
+  await portal.getByLabel("Cancel reason").fill("Out of stock (fictional)");
+  await portal.getByRole("button", { name: "Cancel the rest" }).click();
+  await expect(portal.getByLabel("Backorder")).toContainText("Rest of the order cancelled: 2 CASE line A");
   await expect(page.getByRole("button", { name: /^Send/ })).toHaveCount(0);
   await page.screenshot({ path: "../docs/screenshots/app-04-supplier-portal.png", fullPage: true });
 
