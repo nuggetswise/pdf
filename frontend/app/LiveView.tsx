@@ -210,13 +210,17 @@ export function ReplyBox({ o, role }: { o: Order; role: Role }) {
     } finally { setBusy(false); }
   });
   const rows = interp ? replyRows(interp, lines) : [];
+  const l0 = o.validation.order.lines[0];
+  const example = `Example: We can ship ${l0?.quantity ? Math.max(1, Math.floor(Number(l0.quantity) / 2)) : 50} of line ${l0?.source_line_id ?? 1} on Friday. The rest ships in two weeks.`;
   return (
     <div className="reply" aria-label="Reply to the retailer">
       <label>Reply to the retailer, in your own words
         <textarea rows={3} value={text} aria-label="Supplier's reply" placeholder="Enter your reply to the buyer." onChange={(e) => { setText(e.target.value); setInterp(null); }} />
       </label>
       <div className="btns"><button onClick={read} disabled={busy || !text.trim()}>{busy ? "Reading…" : "Read reply"}</button>
+        <button type="button" className="ghost" onClick={() => { setText(example.replace(/^Example: /, "")); setInterp(null); }}>Use example</button>
         <span className="muted small">Only changes to quantity, price or date are applied.</span></div>
+      <p className="muted small" aria-label="Reply example">{example}</p>
       {interp && (
         <div className="reply-read" aria-label="What the agent understood">
           <p className="muted small">{interp.interpreter.isAi ? `Read by AI (${interp.interpreter.name}).` : `${interp.interpreter.name}.`} Each change is tied to the words it came from.</p>

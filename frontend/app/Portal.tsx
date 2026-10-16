@@ -7,6 +7,8 @@ import { labelsFor, ssccBarcodeSvg, ssccText } from "../lib/domain/labels";
 import { useMemo, useState } from "react";
 import { type ComplianceResult, PROFILES, PROFILE_IDS, type ProfileId, SOURCES, type SourceId } from "../lib/domain/compliance";
 import { FICTIONAL_LABEL } from "../lib/domain/gs1";
+import { addWorkdays } from "../lib/domain/dates";
+import { firstShipOn, retailerRules } from "../lib/domain/fulfilment";
 import { Dec } from "../lib/domain/money";
 import { partnerFor, supplierSetup, termsText } from "../lib/domain/partners";
 import {
@@ -118,7 +120,8 @@ export function OrderPortal({ docId, role }: { docId: number; role: Role }) {
       {p.shipments.length === 0 ? (
         <div className="flow" aria-label="Shipping notice">
           <h4>Shipping notice (ASN)</h4>
-          {asnOpen ? <AsnForm docId={docId} role={role} onDone={() => setAsnOpen(false)} />
+          {order.fulfilment?.status === "needs_decision" ? <p className="muted small">Select a shipping option in Stock and ship date to create the ASN.</p>
+            : asnOpen ? <AsnForm docId={docId} role={role} onDone={() => setAsnOpen(false)} />
             : role !== "viewer" ? <button className="primary" onClick={() => setAsnOpen(true)}>Create ASN</button>
             : <p className="muted small">No ASN yet.</p>}
         </div>
@@ -307,15 +310,27 @@ function AsnForm({ docId, role, onDone }: { docId: number; role: Role; onDone: (
   const lines = order.validation.order.lines;
   const requested = order.validation.order.requested_delivery_date ?? "";
   const open = openQuantities(agent.state, docId);
-  const [qty, setQty] = useState<Record<number, string>>(Object.fromEntries(lines.map((l) => [l.line_index, open.get(l.line_index)?.toFixedPoint() ?? l.quantity ?? "0"])));
+  // First shipment: start from the stock check's "ships now" quantities and date. Later shipments: the open quantity.
+  const f = order.fulfilment;
+  const first = portalForOrder(agent.state, docId).shipments.length === 0;
+  const nowQty = (i: number) => f?.parts.filter((x) => x.kind === "now" && x.lineIndex === i).reduce((t, x) => t.add(Dec.of(x.quantity)), Dec.ZERO);
+  const startQty = (i: number, fallback: string) => {
+    const o = open.get(i);
+    const n = first && f ? nowQty(i) : undefined;
+    if (n && o) return (n.lt(o) ? n : o).toFixedPoint();
+    return o?.toFixedPoint() ?? fallback;
+  };
+  const plannedShip = first && f ? firstShipOn(f.parts) : null;
+  const transit = retailerRules(agent.state, order.validation.order.customer_id).transitDays;
+  const [qty, setQty] = useState<Record<number, string>>(Object.fromEntries(lines.map((l) => [l.line_index, startQty(l.line_index, l.quantity ?? "0")])));
   const [why, setWhy] = useState<Record<number, string>>({});
   const [perCarton, setPerCarton] = useState<Record<number, string>>({});
   const [perPallet, setPerPallet] = useState("");
-  const [despatch, setDespatch] = useState(today());
+  const [despatch, setDespatch] = useState(plannedShip ?? today());
   const [scac, setScac] = useState("");
   const [bol, setBol] = useState("");
   const [pro, setPro] = useState("");
-  const [eta, setEta] = useState(/^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : "");
+  const [eta, setEta] = useState(plannedShip ? addWorkdays(plannedShip, transit) : /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : "");
   const { error, wrap } = useWrap();
   const over = (i: number, ordered: string | null) =>
     decimalString.safeParse(qty[i]).success && ordered !== null && Dec.of(ordered).lt(Dec.of(qty[i]));
@@ -337,7 +352,7 @@ function AsnForm({ docId, role, onDone }: { docId: number; role: Role; onDone: (
       e.preventDefault();
       void wrap(async () => { await agent.run({ type: "submitAsn", role, docId, ...input }); onDone(); });
     }}>
-      <p className="muted small">Enter what actually ships and how it is packed. Quantities start at the ordered quantity. Shipping more than ordered needs a reason.</p>
+      <p className="muted small">{plannedShip ? "Quantities and dates come from the stock check. Edit them to match what ships." : "Enter what ships and how it is packed."} Shipping more than ordered requires a reason.</p>
       <div className="row-inline">
         <label>Despatch date<input type="date" aria-label="Despatch date" value={despatch} onChange={(e) => setDespatch(e.target.value)} /></label>
         <label>Estimated delivery<input type="date" aria-label="Estimated delivery date" value={eta} onChange={(e) => setEta(e.target.value)} /></label>
