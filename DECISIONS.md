@@ -107,3 +107,8 @@ D49 Phase 2, Act 1 (owner plan 2026-10-16): every order shows "If you retyped th
 - The fictional US supplier uses tax type SALES at 0% (wholesale for resale). EANCOM output maps SALES to UNCL 5153 "LOC".
 - Setup form: VAT numbers, tax type and EDI agreement reference show only for EANCOM profiles; a new optional vendor number goes out as REF*IA.
 - X12 rules are our own reading of 004010 (basis "inferred"). No independent X12 parser is installed (only the owner may name packages), so verification is structural tests in x12.test.ts plus committed samples in fixtures/edi-samples/*.x12. Reversible: switch a retailer back to EANCOM in its EDI setup.
+
+## D51 Carton labels, carrier details and the ASN clock (2026-10-16)
+- After an ASN is sent, "Print GS1-128 labels" opens a print-ready page with one 4x6 label per pallet and carton: supplier, PO, ASN, carrier, contents and a GS1-128 barcode of (00) + SSCC. Code 128 set C with FNC1; the bar table is copied from ReportLab and a test checks our symbol values against ReportLab's encoder for GS1's published SSCC example. Labels are marked fictional.
+- The ASN form takes an optional carrier SCAC (2-4 letters), bill of lading and tracking (PRO) number; they go on the 856 as TD5, REF*BM and REF*CN and into the ERP shipment record.
+- ASN clock (inferred rules, not one retailer's routing guide): "late" when the goods left before the day the ASN goes out; a warning when estimated delivery is after the PO's delivery date or missing. Shown while filling the ASN and on the sent ASN. The PO's requested delivery date is the only date PDFs carry today, so a separate ship window is not modelled.

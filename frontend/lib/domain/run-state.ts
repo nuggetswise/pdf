@@ -391,6 +391,10 @@ export const Asn = z.strictObject({
   /** D47 (optional so earlier runs load): dates as YYYY-MM-DD and the packing hierarchy. */
   despatchDate: z.string().optional(),
   estimatedDelivery: z.string().optional(),
+  /** D51: carrier SCAC, bill of lading and tracking (PRO) number, all optional. */
+  carrierScac: z.string().optional(),
+  bolNumber: z.string().optional(),
+  trackingNumber: z.string().optional(),
   pallets: z.array(Pallet).optional(),
   createdBy: z.string(),
   createdAt: isoTime,

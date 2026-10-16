@@ -23,8 +23,19 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
   await expect(page.getByRole("button", { name: "Submit ASN" })).toBeDisabled();
   await page.getByLabel("Shipped quantity line B").fill("3");
   await page.getByLabel("Shipped quantity line A").fill("10");
+  await page.getByLabel("Carrier SCAC").fill("DEMO");
+  await page.getByLabel("Bill of lading number").fill("BOL-0001");
+  await expect(page.getByLabel("ASN timing")).toBeVisible();
   await page.getByRole("button", { name: "Submit ASN" }).click();
   await expect(portal.getByLabel("Shipping notice")).toContainText("ASN-00001");
+  await expect(portal.getByLabel("Carrier")).toContainText("Carrier DEMO · BOL BOL-0001");
+  const popup = page.waitForEvent("popup");
+  await portal.getByRole("button", { name: /Print \d+ GS1-128 labels?/ }).click();
+  const labels = await popup;
+  await expect(labels.locator("section.label").first()).toContainText("(00) 0952");
+  await expect(labels.locator("svg[aria-label^='GS1-128 barcode']").first()).toBeVisible();
+  await labels.screenshot({ path: "../docs/screenshots/app-11-gs1-128-labels.png", fullPage: true });
+  await labels.close();
   await expect(portal.getByLabel("Shipping notice").locator(".flowstate")).toHaveText("ERP synced, EDI to retailer delivered");
 
   // Step 3: invoice from the ASN: 10 x 24.00 + 3 x 24.00 = 312.00, not the ordered 360.00, with no sales

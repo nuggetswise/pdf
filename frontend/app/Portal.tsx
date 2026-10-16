@@ -2,6 +2,8 @@
 // Supplier portal screens (D45, D47): EDI setup, order confirmation, ASN with packing, invoice with tax and
 // allowances, the retailer compliance check before every send, and the EDI tab.
 // Everything here is simulated: the "Retailer EDI outbox" and the supplier ERP live in this browser tab.
+import { asnTiming, type AsnTiming } from "../lib/domain/asn-timing";
+import { labelsFor, ssccBarcodeSvg, ssccText } from "../lib/domain/labels";
 import { useMemo, useState } from "react";
 import { type ComplianceResult, PROFILES, PROFILE_IDS, type ProfileId, SOURCES, type SourceId } from "../lib/domain/compliance";
 import { FICTIONAL_LABEL } from "../lib/domain/gs1";
@@ -10,7 +12,7 @@ import { partnerFor, supplierSetup } from "../lib/domain/partners";
 import {
   ALLOWANCE_CODES, DEFAULT_SHIP_TO, type InvoiceInput, deliverySummary, draftAsn, draftInvoice, outboundList, portalForOrder,
 } from "../lib/domain/portal";
-import { type ComplianceSummary, type OutboundMessage, decimalString } from "../lib/domain/run-state";
+import { type Asn, type ComplianceSummary, type OutboundMessage, decimalString } from "../lib/domain/run-state";
 import { Role } from "./api";
 import { useAgent } from "./run/RunProvider";
 
@@ -123,6 +125,12 @@ export function OrderPortal({ docId, role }: { docId: number; role: Role }) {
                 estimated delivery {p.asn.estimatedDelivery ?? "none"} · pallet SSCC {p.asn.pallets.map((x) => x.sscc).join(", ")}
               </p>
             )}
+            {(p.asn.carrierScac || p.asn.bolNumber || p.asn.trackingNumber) && (
+              <p className="muted small" aria-label="Carrier">Carrier {p.asn.carrierScac ?? "not given"}{p.asn.bolNumber ? ` · BOL ${p.asn.bolNumber}` : ""}{p.asn.trackingNumber ? ` · PRO ${p.asn.trackingNumber}` : ""}</p>
+            )}
+            <TimingBox timing={asnTiming({ requestedDelivery: order.validation.order.requested_delivery_date, shipDate: p.asn.despatchDate,
+              estimatedDelivery: p.asn.estimatedDelivery, sentOn: p.asn.createdAt.slice(0, 10) })} />
+            {p.asn.pallets && <LabelsButton asn={p.asn} po={order.validation.order.po_number} />}
             {desadv?.compliance && <ComplianceBox result={desadv.compliance} sent />}
             <ul className="outlist">{p.asnMessages.map((m) => <MessageRow key={m.id} m={m} role={role} />)}</ul>
           </>
@@ -236,6 +244,9 @@ function AsnForm({ docId, role, onDone }: { docId: number; role: Role; onDone: (
   const [perCarton, setPerCarton] = useState<Record<number, string>>({});
   const [perPallet, setPerPallet] = useState("");
   const [despatch, setDespatch] = useState(today());
+  const [scac, setScac] = useState("");
+  const [bol, setBol] = useState("");
+  const [pro, setPro] = useState("");
   const [eta, setEta] = useState(/^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : "");
   const { error, wrap } = useWrap();
   const over = (i: number, ordered: string | null) =>
@@ -243,6 +254,7 @@ function AsnForm({ docId, role, onDone }: { docId: number; role: Role; onDone: (
   const input = {
     lines: lines.map((l) => ({ lineIndex: l.line_index, shippedQty: qty[l.line_index].trim(), overrideReason: why[l.line_index]?.trim() || null })),
     despatchDate: despatch || null, estimatedDelivery: eta || null,
+    carrierScac: scac || null, bolNumber: bol || null, trackingNumber: pro || null,
     packing: { cartonsPerPallet: /^\d+$/.test(perPallet) ? Number.parseInt(perPallet, 10) : null,
       unitsPerCarton: Object.entries(perCarton).filter(([, u]) => u.trim()).map(([i, units]) => ({ lineIndex: Number.parseInt(i, 10), units })) },
   };
@@ -251,6 +263,7 @@ function AsnForm({ docId, role, onDone }: { docId: number; role: Role; onDone: (
     [agent.state, docId, JSON.stringify(input)]);
   const blocked = !draft.value || draft.value.compliance.findings.some((f) => f.severity === "block");
   const pallets = draft.value?.asn.pallets ?? [];
+  const timing = asnTiming({ requestedDelivery: requested, shipDate: despatch, estimatedDelivery: eta, sentOn: today() });
   return (
     <form className="portal-form" onSubmit={(e) => {
       e.preventDefault();
@@ -260,6 +273,9 @@ function AsnForm({ docId, role, onDone }: { docId: number; role: Role; onDone: (
       <div className="row-inline">
         <label>Despatch date<input type="date" aria-label="Despatch date" value={despatch} onChange={(e) => setDespatch(e.target.value)} /></label>
         <label>Estimated delivery<input type="date" aria-label="Estimated delivery date" value={eta} onChange={(e) => setEta(e.target.value)} /></label>
+        <label>Carrier SCAC<input className="qty" aria-label="Carrier SCAC" placeholder="e.g. UPSN" value={scac} onChange={(e) => setScac(e.target.value)} /></label>
+        <label>Bill of lading<input aria-label="Bill of lading number" value={bol} onChange={(e) => setBol(e.target.value)} /></label>
+        <label>Tracking (PRO) number<input aria-label="Tracking number" value={pro} onChange={(e) => setPro(e.target.value)} /></label>
         <label>Cartons per pallet<input className="qty" inputMode="numeric" aria-label="Cartons per pallet" placeholder="all on one" value={perPallet} onChange={(e) => setPerPallet(e.target.value)} /></label>
       </div>
       <table className="lines">
@@ -284,6 +300,7 @@ function AsnForm({ docId, role, onDone }: { docId: number; role: Role; onDone: (
           ))}
         </tbody>
       </table>
+      <TimingBox timing={timing} />
       {draft.problem && <div className="alert warn" role="status">{draft.problem}</div>}
       {draft.value && (
         <>
@@ -302,6 +319,41 @@ function AsnForm({ docId, role, onDone }: { docId: number; role: Role; onDone: (
       <p className="muted small">Submit sends the ship notice to the retailer through Trading Grid and records the shipment in the ERP simulator. No second step.</p>
     </form>
   );
+}
+
+/** The ASN clock (D51): sent before the freight leaves, arriving by the PO date. */
+function TimingBox({ timing }: { timing: AsnTiming }) {
+  return (
+    <div className={`timing ${timing.onTime ? (timing.checks.length ? "warn" : "ok") : "bad"}`} aria-label="ASN timing">
+      <b>{timing.onTime ? (timing.checks.length ? "ASN timing: check" : "ASN timing: on time") : "ASN timing: late"}</b>
+      {timing.deliverBy && <span> · PO delivery date {timing.deliverBy}</span>}
+      {timing.checks.map((c) => <p key={c.key} className="small">{c.text}</p>)}
+    </div>
+  );
+}
+
+/** GS1-128 carton and pallet labels for printing (D51). Opens a print-ready page; nothing leaves the browser. */
+function LabelsButton({ asn, po }: { asn: Asn; po: string | null }) {
+  const agent = useAgent();
+  const open = () => {
+    const sup = supplierSetup(agent.state);
+    const esc = (v: string | null | undefined) => (v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+    const body = labelsFor(agent.state, asn).map((l) => `<section class="label"><div class="row"><b>FROM</b> ${esc(sup.name)}<br>GLN ${esc(sup.gln)}</div>
+      <div class="row"><b>PO</b> ${esc(po)} · <b>ASN</b> ${esc(asn.asnNumber)}${asn.carrierScac ? ` · <b>CARRIER</b> ${esc(asn.carrierScac)}` : ""}${asn.bolNumber ? ` · <b>BOL</b> ${esc(asn.bolNumber)}` : ""}</div>
+      <div class="row"><b>${l.kind === "pallet" ? "PALLET" : "CARTON"}</b> ${esc(l.index)}</div>
+      <div class="row small">${l.contents.map((c) => `${esc(c.quantity)} ${esc(c.unit)} ${esc(c.sku)} GTIN ${esc(c.gtin)}`).join("<br>")}</div>
+      <div class="bc">${ssccBarcodeSvg(l.sscc)}</div><div class="hr">${esc(ssccText(l.sscc))}</div>
+      <div class="note">FICTIONAL DEMO LABEL · not for real shipments</div></section>`).join("");
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(`<!doctype html><meta charset="utf-8"><title>Labels ${esc(asn.asnNumber)}</title><style>
+      body{font:12px system-ui,sans-serif;margin:0}.label{width:4in;height:6in;box-sizing:border-box;border:1px solid #000;padding:.15in;margin:.1in;display:inline-flex;flex-direction:column;gap:6px;page-break-after:always}
+      .row{border-bottom:1px solid #000;padding-bottom:4px}.small{font-size:10px}.bc svg{width:100%;height:1.3in}.hr{text-align:center;font:600 14px monospace}.note{margin-top:auto;font-size:9px;text-align:center}
+      @media print{.label{margin:0;border:none}}</style>${body}`);
+    w.document.close();
+  };
+  const n = (asn.pallets ?? []).reduce((t, p) => t + 1 + p.cartons.length, 0);
+  return <button className="ghost" type="button" onClick={open}>Print {n} GS1-128 label{n === 1 ? "" : "s"}</button>;
 }
 
 type AlcRow = { kind: "allowance" | "charge"; code: string; percent: string; amount: string; taxRate: string };

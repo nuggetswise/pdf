@@ -194,6 +194,10 @@ export interface AsnInput {
   lines: { lineIndex: number; shippedQty: string; overrideReason?: string | null }[];
   despatchDate?: string | null;
   estimatedDelivery?: string | null;
+  /** D51: carrier details for the 856; each optional. */
+  carrierScac?: string | null;
+  bolNumber?: string | null;
+  trackingNumber?: string | null;
   packing?: PackingInput;
 }
 
@@ -273,18 +277,29 @@ export function draftAsn(s: RunState, docId: number, input: AsnInput, actor: str
     if (v && !isIsoDate(v)) throw new Conflict(`${what} must be a date (YYYY-MM-DD)`);
   }
 
+  const carrierScac = (input.carrierScac ?? "").trim().toUpperCase();
+  if (carrierScac && !/^[A-Z]{2,4}$/.test(carrierScac)) throw new Conflict("Carrier SCAC must be 2 to 4 letters, for example UPSN");
+  const ref = (v: string | null | undefined, what: string) => {
+    const t = (v ?? "").trim();
+    if (t.length > 30 || /[^A-Za-z0-9 -]/.test(t)) throw new Conflict(`${what} may use letters, digits, spaces and dashes, up to 30`);
+    return t;
+  };
+  const bolNumber = ref(input.bolNumber, "Bill of lading number");
+  const trackingNumber = ref(input.trackingNumber, "Tracking number");
+
   const sup = supplierSetup(s);
   const shipped = lines.filter((l) => !Dec.of(l.shippedQty).isZero());
   const { pallets, lastSerial } = packShipment(shipped, input.packing, sup.companyPrefix, s.portal?.ssccSerial ?? 0);
   const id = nextId(s.portal?.asns ?? []);
   const asn: Asn = { id, asnNumber: `ASN-${pad(id)}`, documentId: docId, erpOrderId: o.erpOrderId, lines, despatchDate,
-    ...(estimatedDelivery ? { estimatedDelivery } : {}), pallets, createdBy: actor, createdAt: now };
+    ...(estimatedDelivery ? { estimatedDelivery } : {}),
+    ...(carrierScac ? { carrierScac } : {}), ...(bolNumber ? { bolNumber } : {}), ...(trackingNumber ? { trackingNumber } : {}), pallets, createdBy: actor, createdAt: now };
 
   const ctx = ediContext(s, o);
   const ediPallets: EdiPallet[] = pallets.map((p) => ({ sscc: p.sscc,
     cartons: p.cartons.map((c) => ({ sscc: c.sscc, lines: c.contents.map((x) => ediLine(o, x.lineIndex, x.quantity)) })) }));
   const message = (ctx.profile === "x12_retail" ? buildDesadvX12 : buildDesadv)({ ref: asn.asnNumber, createdAt: now, despatchDate, estimatedDelivery: estimatedDelivery || null,
-    ...ctx.parties }, ediPallets);
+    carrierScac: carrierScac || null, bolNumber: bolNumber || null, trackingNumber: trackingNumber || null, ...ctx.parties }, ediPallets);
   return { asn, message, compliance: checkMessage("DESADV", message.text, ctx.profile), lastSerial };
 }
 
@@ -307,6 +322,7 @@ export function submitAsn(state: RunState, docId: number, input: AsnInput, who: 
       sourceId: asn.asnNumber, idempotencyKey: `ERP-SHIPMENT:${asn.asnNumber}`,
       ...json({ shipment_for: o.erpOrderId, asn: asn.asnNumber, po_number: o.validation.order.po_number,
         despatch_date: asn.despatchDate, estimated_delivery: asn.estimatedDelivery ?? null,
+        carrier_scac: asn.carrierScac ?? null, bol_number: asn.bolNumber ?? null, tracking_number: asn.trackingNumber ?? null,
         lines: shippedLines.map((l) => ({ sku: l.sku, shipped_qty: l.shippedQty, ordered_qty: l.orderedQty, unit: l.unit,
           override_reason: l.overrideReason })),
         pallets: asn.pallets },
