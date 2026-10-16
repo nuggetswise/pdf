@@ -4,6 +4,7 @@ import { documentDetail, documentsList, erpOrdersList, rulesList } from "../lib/
 import { Health, Issue, PROCESS_LABEL, Role } from "./api";
 import { OrderView } from "./OrderView";
 import { EdiSetting } from "./Portal";
+import { ManualRouteSetting } from "./ManualRoute";
 import { DEMO_EMAILS, useAgent } from "./run/RunProvider";
 
 const who = (actor: string | null) => (actor ? actor.split(":")[1] ?? actor : "—");
@@ -212,6 +213,7 @@ function AdminSettings({ health, onError }: { health: Health; onError: (e: strin
           <option value="none">Succeeds</option><option value="fail_next">Fails</option><option value="timeout_next">Times out after creating</option>
         </select>
       </label>
+      <ManualRouteSetting onError={onError} />
       <EdiSetting onError={onError} />
       <button className="ghost danger" onClick={async () => {
         if (!confirm("Reset the demo? The run in this browser tab is cleared.")) return;

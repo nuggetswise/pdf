@@ -5,6 +5,8 @@ reference-data.v1.json, like a real retailer the supplier has not set up yet. Li
 customer ID and no ship-to ID.
   ONBOARD-DEMO-001.pdf  first order: unknown customer and two unknown products
   ONBOARD-DEMO-002.pdf  repeat order from the same customer with the same products (clean once onboarded)
+  ONBOARD-DEMO-003.pdf  D47: "Fernhill Demo Electronics", a second invented retailer whose items carry valid GTINs on
+                        the GS1 demonstration prefix 952, for the retailer-compliant ASN and invoice
 
 Usage (from the repository root):
   backend/.venv/bin/python scripts/onboarding_fixtures.py
@@ -32,6 +34,11 @@ ORDERS = [
         ["1", "FICT-GTIN-7001", "Demo maple cookies 300g", "10", "CASE", "12.50", "125.00"],
         ["2", "FICT-GTIN-7002", "Demo apple chips 150g", "5", "CASE", "9.80", "49.00"],
     ], "subtotal": "174.00", "tax": "22.62", "shipping": "0.00", "total": "196.62"},
+    {"file": "ONBOARD-DEMO-003", "po": "FH-DEMO-7001", "date": "2026-10-15", "customer": "Fernhill Demo Electronics",
+     "currency": "EUR", "lines": [
+        ["1", "9520000002015", "Demo USB-C cable 1m", "24", "EA", "4.20", "100.80"],
+        ["2", "9520000002022", "Demo phone stand", "6", "EA", "11.50", "69.00"],
+    ], "subtotal": "169.80", "tax": "32.26", "shipping": "0.00", "total": "202.06"},
 ]
 
 
@@ -45,9 +52,9 @@ def write(order: dict, path: Path) -> None:
     c.drawString(40, y, "PURCHASE ORDER")
     y -= 28
     c.setFont("Helvetica", 11)
-    for label, value in [("PO", order["po"]), ("Customer", "Birchwood Demo Market"),
+    for label, value in [("PO", order["po"]), ("Customer", order.get("customer", "Birchwood Demo Market")),
                          ("Supplier", "Marlow Demo Foods"), ("Order date", order["date"]),
-                         ("Requested delivery date", "2026-10-28"), ("Currency", "CAD")]:
+                         ("Requested delivery date", "2026-10-28"), ("Currency", order.get("currency", "USD"))]:
         c.drawString(40, y, f"{label}: {value}")
         y -= 16
     y -= 12

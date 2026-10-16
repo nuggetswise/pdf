@@ -6,7 +6,7 @@ Supplier: Marlow Demo Foods
 Ship-to: DEMO-DC-01
 Order date: 2026-10-14
 Requested delivery date: 2026-10-21
-Currency: CAD
+Currency: USD
 Line | Customer item | Description | Quantity | Unit | Unit price | Amount
 1 | NF-OAT | Oat snack case | 10 | CASE | 24.00 | 240.00
 2 | NF-JUICE | Juice bottles | 24 | EA | 2.00 | 48.00

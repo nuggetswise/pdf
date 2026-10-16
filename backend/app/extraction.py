@@ -116,7 +116,7 @@ SYSTEM_INSTRUCTION = (
     "If a field is not printed, return null for its value. For every value give the 1-based page "
     "number and the exact source text snippet it came from as evidence. "
     "Fields: customer_name, customer_id, supplier, po_number, ship_to_id, order_date, "
-    "requested_delivery_date, currency (as printed, e.g. CAD), subtotal, tax, shipping, total; "
+    "requested_delivery_date, currency (as printed, e.g. USD), subtotal, tax, shipping, total; "
     "per line: source_line_id (printed line number or letter), gtin (printed GTIN or product identifier), "
     "customer_item_code, description, quantity, unit, unit_price, line_amount."
 )

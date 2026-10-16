@@ -147,7 +147,9 @@ describe("supplier portal actions (D45)", () => {
     const asnId = s.portal!.asns[0].id;
     s = must(applyAction(s, { type: "submitInvoice", role: "reviewer", asnId,
       lines: [{ lineIndex: 0, quantity: "4" }, { lineIndex: 1, quantity: "2" }, { lineIndex: 2, quantity: "1" }] }));
-    expect(s.portal!.invoices[0].total).toBe("166.00");
+    // Lines 166.00; the fictional US demo supplier charges no sales tax by default.
+    expect([s.portal!.invoices[0].subtotal, s.portal!.invoices[0].total]).toStrictEqual(["166.00", "166.00"]);
+    expect(s.portal!.outbound.find((m) => m.kind === "DESADV")!.body).toMatch(/^MAN\*GM\*\d{18}~$/m);
   });
   it("refuses extra fields, a number instead of a decimal string, and an over-shipment without a reason", () => {
     const run = replayGuidedDemo();
@@ -158,5 +160,18 @@ describe("supplier portal actions (D45)", () => {
     expect(applyAction(run, { type: "submitAsn", role: "reviewer", docId: 1,
       lines: [{ lineIndex: 0, shippedQty: "9" }, ...lines.slice(1)] })).toMatchObject({ ok: false, status: 409 });
     expect(applyAction(run, { type: "submitAsn", role: "viewer", docId: 1, lines })).toMatchObject({ ok: false, status: 403 });
+  });
+  it("saves the EDI setup (D47) and refuses a bad GLN or a viewer", () => {
+    const run = replayGuidedDemo();
+    const sup = { type: "saveSupplierSetup", role: "reviewer", gln: "9520000005559", companyPrefix: "9520000", taxType: "VAT",
+      defaultTaxRate: "19" };
+    const s = must(applyAction(run, sup));
+    expect(s.portal!.supplier).toMatchObject({ gln: "9520000005559", taxType: "VAT", updatedBy: "reviewer:rita" });
+    expect(applyAction(run, { ...sup, gln: "9520000005558" })).toMatchObject({ ok: false, status: 409 });
+    expect(applyAction(run, { ...sup, role: "viewer" })).toMatchObject({ ok: false, status: 403 });
+    const partner = { type: "saveTradingPartner", role: "reviewer", customerId: "DEMO-CUST-01", profile: "eancom2002",
+      buyerGln: "9520010007772", shipToGlns: [{ shipToId: "DEMO-DC-01", gln: "9520020007779" }] };
+    expect(must(applyAction(s, partner)).portal!.partners).toHaveLength(1);
+    expect(applyAction(s, { ...partner, profile: "made_up" })).toMatchObject({ ok: false, status: 400 });
   });
 });

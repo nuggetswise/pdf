@@ -1,7 +1,7 @@
 {
   "fictional": true,
   "po_number": "DEMO-PO-001",
-  "currency": "CAD",
+  "currency": "USD",
   "subtotal": "378.00",
   "tax": "0.00",
   "shipping": "0.00",

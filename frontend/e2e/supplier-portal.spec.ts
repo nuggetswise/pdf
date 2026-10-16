@@ -13,7 +13,7 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
 
   // Step 1: the order confirmation went out by itself, with its own status.
   const portal = page.getByLabel("Supplier portal");
-  await expect(portal.getByLabel("Order confirmation")).toContainText("Order confirmation (EDIFACT ORDRSP)");
+  await expect(portal.getByLabel("Order confirmation")).toContainText("Order acknowledgement (X12 855)");
   await expect(portal.getByLabel("Order confirmation").locator(".pill.ok")).toHaveText("Delivered");
 
   // Step 2: ASN. Over-shipping is blocked without a reason; ship 10 of the 12 ordered on line A.
@@ -27,32 +27,35 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
   await expect(portal.getByLabel("Shipping notice")).toContainText("ASN-00001");
   await expect(portal.getByLabel("Shipping notice").locator(".flowstate")).toHaveText("ERP synced, EDI to retailer delivered");
 
-  // Step 3: invoice from the ASN: 10 x 24.00 + 3 x 24.00 = 312.00, not the ordered 360.00.
+  // Step 3: invoice from the ASN: 10 x 24.00 + 3 x 24.00 = 312.00, not the ordered 360.00, with no sales
+  // tax by default for the fictional US demo supplier (wholesale for resale).
   await portal.getByRole("button", { name: "Create invoice" }).click();
-  await expect(page.locator(".invtotal")).toContainText("312.00");
+  await expect(page.getByLabel("Amounts", { exact: true })).toContainText("Lines 312.00");
+  await expect(page.locator(".invtotal")).toContainText("312.00 USD");
   await page.getByRole("button", { name: "Submit invoice" }).click();
   await expect(portal.getByLabel("Invoice")).toContainText("INV-00001");
   await expect(portal.getByLabel("Invoice").locator(".flowstate")).toContainText("ERP synced, EDI to retailer delivered");
   await expect(page.getByRole("button", { name: /^Send/ })).toHaveCount(0);
   await page.screenshot({ path: "../docs/screenshots/app-04-supplier-portal.png", fullPage: true });
 
-  // The EDI tab lists the messages with raw EDIFACT and a plain-language mapping.
-  await page.getByRole("tab", { name: "EDI" }).click();
+  // The EDI tab lists the messages with raw X12 and a plain-language mapping.
+  await page.getByRole("tab", { name: "Trading Grid outbox" }).click();
   await expect(page.locator(".edi-card[data-kind=DESADV]")).toHaveCount(1);
   await expect(page.locator(".edi-card[data-kind=INVOIC]")).toHaveCount(1);
   await expect(page.locator(".edi-card[data-kind=ORDRSP]")).toHaveCount(1);
-  await expect(page.getByText(/FICTIONAL GLN/)).toBeVisible();
+  await expect(page.getByText(/FICTIONAL identifiers \(GS1 demo prefix 952\)/)).toBeVisible();
   const desadv = page.locator(".edi-card[data-kind=DESADV]");
   await desadv.getByRole("button", { name: "Show message" }).click();
-  await expect(desadv.getByLabel("Raw message")).toContainText("QTY+12:10:");
+  await expect(desadv.getByLabel("Raw message")).toContainText(/SN1\*\*10\*[A-Z]{2}~/);
+  await expect(desadv.getByLabel("Raw message")).toContainText("ST*856*0001~");
   const invoic = page.locator(".edi-card[data-kind=INVOIC]");
   await invoic.getByRole("button", { name: "Show message" }).click();
-  await expect(invoic.getByLabel("Raw message")).toContainText("QTY+47:10:");
-  await expect(invoic.getByLabel("Raw message")).toContainText("MOA+86:312.00'");
-  await expect(invoic.getByLabel("Field mapping")).toContainText("Invoiced quantity 10");
+  await expect(invoic.getByLabel("Raw message")).toContainText(/IT1\*1\*10\*[A-Z]{2}\*24\.00\*\*/);
+  await expect(invoic.getByLabel("Raw message")).toContainText("TDS*31200~");
+  await expect(invoic.getByLabel("Field mapping")).toContainText("Line 1 (PO line A): 10 CASE at 24.00 = 240.00");
   const dl = page.waitForEvent("download");
   await invoic.getByRole("button", { name: "Download" }).click();
-  expect((await dl).suggestedFilename()).toBe("INVOIC-INV-00001.edi");
+  expect((await dl).suggestedFilename()).toBe("INVOIC-INV-00001.x12");
   await page.screenshot({ path: "../docs/screenshots/app-05-edi-tab.png", fullPage: true });
 });
 

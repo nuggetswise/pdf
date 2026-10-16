@@ -22,7 +22,7 @@ Customer ID: {cust}
 Ship-to: {ship}
 Currency: {cur}
 Line | GTIN | Description | Quantity | Unit | Unit price | Amount
-A | DEMO-GTIN-A01 | Demo granola case | 10 | CASE | 24.00 | 240.00
+A | 614141000012 | Demo granola case | 10 | CASE | 24.00 | 240.00
 Subtotal: 240.00
 Tax amount: 0.00
 Shipping amount: 0.00
@@ -79,7 +79,7 @@ def test_video_demo_001_has_exactly_moq_price_and_gtin_issues(make_client):
     price = issue(d, "price_mismatch")
     assert (price["printed_value"], price["reference_value"]) == ("26.00", "24.00")  # P20
     gtin = issue(d, "outdated_identifier")
-    assert gtin["printed_value"] == "OLD-DEMO-003" and gtin["reference_value"] == "NEW-DEMO-003"  # P21
+    assert gtin["printed_value"] == "614141000043" and gtin["reference_value"] == "614141000036"  # P21
     lines = d["order"]["validation"]["order"]["lines"]
     assert lines[0]["quantity"] == "5" and lines[1]["printed_unit_price"] == "26.00"
     assert lines[2]["sku"] is None  # no mapping applied without a decision
@@ -115,7 +115,7 @@ def test_regression_sample_produces_three_golden_issues(make_client):
 
 
 def test_p03_unknown_customer_blocks_and_is_never_reassigned():
-    r = run_validate(SAMPLE.format(po="X1", cust="DEMO-CUST-99", ship="DEMO-DC-01", cur="CAD", total="240.00"))
+    r = run_validate(SAMPLE.format(po="X1", cust="DEMO-CUST-99", ship="DEMO-DC-01", cur="USD", total="240.00"))
     assert "unknown_customer" in codes(r)
     assert r["order"]["customer_id"] is None
 
@@ -127,7 +127,7 @@ def test_p12_missing_currency_stays_unknown_and_blocks():
 
 
 def test_p13_and_p27_totals_use_decimal_and_keep_printed_values():
-    r = run_validate(SAMPLE.format(po="X1", cust="DEMO-CUST-01", ship="DEMO-DC-01", cur="CAD", total="250.00"))
+    r = run_validate(SAMPLE.format(po="X1", cust="DEMO-CUST-01", ship="DEMO-DC-01", cur="USD", total="250.00"))
     t = r["order"]["totals"]
     assert t["printed_total"] == "250.00" and t["computed_total"] == "240.00"
     assert "total_mismatch" in codes(r)
@@ -137,7 +137,7 @@ def test_p13_and_p27_totals_use_decimal_and_keep_printed_values():
 
 
 def test_unknown_ship_to_blocks():
-    r = run_validate(SAMPLE.format(po="X1", cust="DEMO-CUST-01", ship="DEMO-DC-99", cur="CAD", total="240.00"))
+    r = run_validate(SAMPLE.format(po="X1", cust="DEMO-CUST-01", ship="DEMO-DC-99", cur="USD", total="240.00"))
     assert codes(r) == ["unknown_ship_to"]
 
 
@@ -193,7 +193,7 @@ def test_p23_and_p14_final_exception_approval_starts_delivery_and_is_audited(mak
     assert [l["quantity"] for l in order["lines"]] == ["5", "2", "1"]
     assert order["lines"][1]["unit_price"] == "26.00"
     assert order["totals"]["computed_total"] == "190.00" == order["totals"]["printed_total"]
-    assert order["lines"][2]["sku"] == "DEMO-SKU-C" and order["lines"][2]["printed_gtin"] == "OLD-DEMO-003"
+    assert order["lines"][2]["sku"] == "DEMO-SKU-C" and order["lines"][2]["printed_gtin"] == "614141000043"
     assert "decision" in order["lines"][2]["resolved_by"]["text"]
     events = [t["event"] for t in state(client, doc_id)["timeline"]]
     for e in ("extracted", "needs_review", "decision_recorded", "approved", "delivery_queued",
@@ -323,9 +323,9 @@ def test_p25_p26_memory_rule_lifecycle_and_scope(make_client):
     assert [i["code"] for i in d3["order"]["validation"]["issues"]] == ["outdated_identifier"]
     # Revoked: not applied to later orders
     client.post(f"/api/memory-rules/{rule['id']}/state", json={"state": "revoked", "reason": "test"}, headers=ADMIN)
-    line_c = "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00"
-    text = SAMPLE.format(po="X1", cust="DEMO-CUST-01", ship="DEMO-DC-01", cur="CAD", total="18.00")
-    text = text.replace("A | DEMO-GTIN-A01 | Demo granola case | 10 | CASE | 24.00 | 240.00", line_c)
+    line_c = "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00"
+    text = SAMPLE.format(po="X1", cust="DEMO-CUST-01", ship="DEMO-DC-01", cur="USD", total="18.00")
+    text = text.replace("A | 614141000012 | Demo granola case | 10 | CASE | 24.00 | 240.00", line_c)
     r = run_validate(text.replace("Subtotal: 240.00", "Subtotal: 18.00"), rules=client.get("/api/memory-rules").json())
     assert codes(r) == ["outdated_identifier"]
 

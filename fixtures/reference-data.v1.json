@@ -4,24 +4,24 @@
   "reference_version": "REF-2026-10-v1",
   "policy_version": "POLICY-v1",
   "customers": [
-    {"customer_id": "DEMO-CUST-01", "name": "Northfield Demo Retail", "currency": "CAD",
+    {"customer_id": "DEMO-CUST-01", "name": "Northfield Demo Retail", "currency": "USD",
      "ship_tos": [{"ship_to_id": "DEMO-DC-01", "name": "Northfield Demo DC 1"}]},
-    {"customer_id": "DEMO-CUST-02", "name": "Lakeshore Demo Grocers", "currency": "CAD",
+    {"customer_id": "DEMO-CUST-02", "name": "Lakeshore Demo Grocers", "currency": "USD",
      "ship_tos": [{"ship_to_id": "DEMO-DC-02", "name": "Lakeshore Demo DC 2"}]}
   ],
   "products": [
-    {"sku": "DEMO-SKU-A", "description": "Demo granola case", "gtin": "DEMO-GTIN-A01", "unit": "CASE", "status": "active"},
-    {"sku": "DEMO-SKU-B", "description": "Demo cracker case", "gtin": "DEMO-GTIN-B02", "unit": "CASE", "status": "active"},
-    {"sku": "DEMO-SKU-C", "description": "Demo trail mix case", "gtin": "NEW-DEMO-003", "unit": "CASE", "status": "active"},
+    {"sku": "DEMO-SKU-A", "description": "Demo granola case", "gtin": "614141000012", "unit": "CASE", "status": "active"},
+    {"sku": "DEMO-SKU-B", "description": "Demo cracker case", "gtin": "614141000029", "unit": "CASE", "status": "active"},
+    {"sku": "DEMO-SKU-C", "description": "Demo trail mix case", "gtin": "614141000036", "unit": "CASE", "status": "active"},
     {"sku": "OAT-CASE", "description": "Oat snack case", "gtin": null, "unit": "CASE", "status": "active"},
     {"sku": "JUICE-CASE", "description": "Juice bottles case of 12", "gtin": null, "unit": "CASE", "status": "active"},
     {"sku": "NEW-CASE", "description": "New snack case", "gtin": null, "unit": "CASE", "status": "active"}
   ],
   "obsolete_identifiers": [
-    {"identifier": "OLD-DEMO-003", "note": "Retired fictional identifier. Not a GS1 GTIN."}
+    {"identifier": "614141000043", "note": "Retired fictional item GTIN (GS1 example company prefix 0614141)."}
   ],
   "proposed_identifier_mappings": [
-    {"mapping_id": "MAP-PROP-001", "obsolete_identifier": "OLD-DEMO-003", "replacement_identifier": "NEW-DEMO-003",
+    {"mapping_id": "MAP-PROP-001", "obsolete_identifier": "614141000043", "replacement_identifier": "614141000036",
      "replacement_sku": "DEMO-SKU-C", "source": "supplier product notice (fictional)", "state": "proposed",
      "note": "Proposal only. Requires an approved review decision before use."}
   ],
@@ -33,13 +33,13 @@
     {"sku": "JUICE-CASE", "from_unit": "EA", "to_unit": "CASE", "factor": "12", "direction": "divide", "approved": true}
   ],
   "reference_prices": [
-    {"customer_id": "DEMO-CUST-01", "sku": "DEMO-SKU-A", "currency": "CAD", "unit": "CASE", "price": "24.00"},
-    {"customer_id": "DEMO-CUST-01", "sku": "DEMO-SKU-B", "currency": "CAD", "unit": "CASE", "price": "24.00"},
-    {"customer_id": "DEMO-CUST-01", "sku": "DEMO-SKU-C", "currency": "CAD", "unit": "CASE", "price": "18.00"},
-    {"customer_id": "DEMO-CUST-02", "sku": "DEMO-SKU-C", "currency": "CAD", "unit": "CASE", "price": "18.00"},
-    {"customer_id": "DEMO-CUST-01", "sku": "OAT-CASE", "currency": "CAD", "unit": "CASE", "price": "23.00"},
-    {"customer_id": "DEMO-CUST-01", "sku": "JUICE-CASE", "currency": "CAD", "unit": "CASE", "price": "24.00"},
-    {"customer_id": "DEMO-CUST-01", "sku": "NEW-CASE", "currency": "CAD", "unit": "CASE", "price": "18.00"}
+    {"customer_id": "DEMO-CUST-01", "sku": "DEMO-SKU-A", "currency": "USD", "unit": "CASE", "price": "24.00"},
+    {"customer_id": "DEMO-CUST-01", "sku": "DEMO-SKU-B", "currency": "USD", "unit": "CASE", "price": "24.00"},
+    {"customer_id": "DEMO-CUST-01", "sku": "DEMO-SKU-C", "currency": "USD", "unit": "CASE", "price": "18.00"},
+    {"customer_id": "DEMO-CUST-02", "sku": "DEMO-SKU-C", "currency": "USD", "unit": "CASE", "price": "18.00"},
+    {"customer_id": "DEMO-CUST-01", "sku": "OAT-CASE", "currency": "USD", "unit": "CASE", "price": "23.00"},
+    {"customer_id": "DEMO-CUST-01", "sku": "JUICE-CASE", "currency": "USD", "unit": "CASE", "price": "24.00"},
+    {"customer_id": "DEMO-CUST-01", "sku": "NEW-CASE", "currency": "USD", "unit": "CASE", "price": "18.00"}
   ],
   "moq_rules": [
     {"rule_id": "MOQ-001", "customer_id": "DEMO-CUST-01", "sku": "DEMO-SKU-A", "minimum": "10", "unit": "CASE", "version": "MOQ-v1"}

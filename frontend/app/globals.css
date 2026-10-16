@@ -177,3 +177,43 @@ iframe { width: 100%; height: 640px; border: 1px solid var(--line); border-radiu
 .onboard .row input, .onboard .row select { flex: 1 1 140px; min-width: 0; }
 .onboard .row input.short { flex: 0 0 72px; }
 .additions table { width: 100%; }
+
+/* Retailer compliance, EDI setup, packing and invoice tax (D47) */
+.compliance { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 14px; display: grid; gap: 6px; }
+.compliance.ok { background: var(--ok-soft); border-color: #8fd1ab; }
+.compliance.warn { background: var(--warn-soft); border-color: #f0c674; }
+.compliance.bad { background: var(--bad-soft); border-color: #f2a59c; }
+.compliance .findings { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.compliance a { color: var(--accent); }
+.edi-setup h4 button { margin-left: 8px; font-size: 13px; }
+.setup-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.setup-grid fieldset { border: 1px solid var(--line); border-radius: 10px; display: grid; gap: 6px; margin: 0; }
+.setup-grid label { display: grid; gap: 2px; font-size: 13px; }
+.setup-grid > p, .setup-grid > div { grid-column: 1 / -1; }
+.row-inline { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.row-inline label { display: grid; gap: 2px; font-size: 13px; }
+.allowances { display: grid; gap: 6px; }
+.review-grid > * { min-width: 0; }
+.portal, .portal .flow, .portal-form { min-width: 0; }
+.portal-form { overflow-x: auto; }
+.allowances .row-inline select { max-width: 100%; }
+.portal-form table.lines { font-size: 13px; }
+.portal-form td input.qty { width: 4.5em; }
+.row-inline > * { min-width: 0; }
+.allowances .row-inline select { flex: 1 1 180px; }
+
+/* Act 1 (D49): the manual-route cost panel */
+.manual-route { border: 1px solid var(--line); border-left: 5px solid var(--bad); border-radius: 12px; padding: 14px 16px; margin: 12px 0; background: var(--panel); }
+.manual-route header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.manual-route h4 { margin: 2px 0 10px; font-size: 18px; }
+.mr-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.mr-tiles div { display: flex; flex-direction: column; gap: 2px; }
+.mr-tiles b { font-size: 22px; } .mr-tiles span { color: var(--muted); font-size: 13px; }
+.mr-tiles .bad b { color: var(--bad); }
+.mr-detail table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+.mr-detail th { text-align: left; white-space: nowrap; padding: 6px 10px 6px 0; vertical-align: top; }
+.mr-detail td { padding: 6px 0; border-top: 1px solid var(--line); vertical-align: top; }
+.mr-detail td.num { text-align: right; white-space: nowrap; padding-left: 12px; font-variant-numeric: tabular-nums; }
+.risk-line { color: var(--bad); font-size: 14px !important; }
+.mr-settings { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 10px; }
+.mr-settings h4 { margin: 4px 0; }

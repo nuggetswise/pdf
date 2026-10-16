@@ -26,6 +26,12 @@ test("a user runs the order desk end to end", async ({ page }) => {
   await upload("VIDEO-DEMO-001");
   await expect(page.locator(".issue.open")).toHaveCount(3);
   await expect(page.locator(".mail").first()).toContainText("VIDEO-DEMO-001.pdf");
+  // Act 1 (D49): what retyping this PDF would have cost, from the errors the agent caught.
+  const manual = page.getByRole("region", { name: "If you retyped this order" });
+  await expect(manual).toContainText("30");
+  await expect(manual).toContainText("USD 54.38");
+  await expect(card("Price differs")).toContainText("Manual route: USD 4.00 at risk.");
+  await page.screenshot({ path: "../docs/screenshots/app-00-manual-route-cost.png", fullPage: true });
   await card("Below minimum order quantity").getByLabel("Reason").fill("Trial quantity agreed (fictional)");
   await card("Below minimum order quantity").getByRole("button", { name: "Allow once (one-off exception)" }).click();
   await card("Price differs").getByLabel("Reason").fill("Promotion (fictional)");

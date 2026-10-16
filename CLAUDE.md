@@ -27,7 +27,9 @@
 - Regenerate the FastAPI read-endpoint answers the selectors are compared with: `backend/.venv/bin/python scripts/read_models.py`
 - Regenerate the edge-case intake PDFs (encrypted, text-free): `backend/.venv/bin/python scripts/intake_fixtures.py`
 - Export SQLite state as RunState JSON: `backend/.venv/bin/python scripts/export_run_state.py <sqlite> <out.json>`
-- Single verify command: `scripts/verify.sh` (backend tests, Vitest, typecheck, build, Playwright e2e incl. the full app flow)
+- Independent EDIFACT syntax check (pydifact): `backend/.venv/bin/python scripts/edi_syntax_check.py`
+- Regenerate the EDI samples it reads: `cd frontend && UPDATE_EDI_SAMPLES=1 npx vitest run edifact-independent`
+- Single verify command: `scripts/verify.sh` (backend tests, Vitest, typecheck, build, pydifact EDI check, Playwright e2e incl. the full app flow)
 
 ## Invariants
 - No binary floats for money. Keep currencies, units, original values and versions explicit.
@@ -52,5 +54,6 @@
 - Implement Review-all and explicitly enabled Exception-only modes.
 - No second mandatory Send click after approval. No live Outlook dependency.
 - Learning means approved scoped rule reuse, not autonomous model retraining.
+- EDI mapping and retailer rules: docs/08-edi-mapping.md (provisional).
 - Read docs/07-demo-scenario.md for the video-aligned fictional demonstration.
 - New session? Read HANDOFF.md first.

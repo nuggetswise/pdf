@@ -468,7 +468,7 @@ export function addCustomer(state: RunState, docId: number, input: CustomerInput
     const name = input.name?.trim() || printedName || printedId;
     if (!name) throw new Conflict("Enter a name for the new customer");
     const currency = (input.currency?.trim() || header(r, docId, "currency") || "").toUpperCase();
-    if (!/^[A-Z]{3}$/.test(currency)) throw new Conflict("Enter the customer's currency as a three-letter code, e.g. CAD");
+    if (!/^[A-Z]{3}$/.test(currency)) throw new Conflict("Enter the customer's currency as a three-letter code, e.g. USD");
     const ref = r.reference();
     const ov = overlay(r);
     let customerId = printedId;

@@ -8,16 +8,16 @@
     "receivedAt": "2026-10-14T08:30:00+00:00",
     "subjectMetadata": "Fwd: PO DEMO-PO-001 [FICTIONAL TEST DATA]",
     "intakeMode": "local_forward_demo",
-    "rawSha256": "8a8da5a14900a23c75c8b8ef12fc9d465549db4e0c86986d7d5d4409abe0a46f"
+    "rawSha256": "504e654573a0a7735fc0821eb2f4d9a01ec4dd27cfd44b708431b4ca2afe85b3"
    },
    "attachments": [
     {
      "originalFilename": "DEMO-PO-001.pdf",
-     "sha256": "b20abeb463a8347c19facba0f31ffa9e1bed061ca9e263e7e02bc25878714c92",
+     "sha256": "b4dbc618b00b20251caa27c1ba79ba326d1142db56a0595782dcf164aee5cce8",
      "sizeBytes": 2156,
      "pageCount": 1,
      "pageText": [
-      "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST PURCHASE ORDER - NOT A REAL CUSTOMER ORDER\nPO: DEMO-PO-001\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-14\nRequested delivery date: 2026-10-21\nCurrency: CAD\nLine | Customer item | Description | Quantity | Unit | Unit price | Amount\n1 | NF-OAT | Oat snack case | 10 | CASE | 24.00 | 240.00\n2 | NF-JUICE | Juice bottles | 24 | EA | 2.00 | 48.00\n3 | NF-NEW | New snack case | 5 | CASE | 18.00 | 90.00\nSubtotal: 378.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 378.00\nAll organisations, identifiers and commercial values are fictional test data.\n"
+      "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST PURCHASE ORDER - NOT A REAL CUSTOMER ORDER\nPO: DEMO-PO-001\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-14\nRequested delivery date: 2026-10-21\nCurrency: USD\nLine | Customer item | Description | Quantity | Unit | Unit price | Amount\n1 | NF-OAT | Oat snack case | 10 | CASE | 24.00 | 240.00\n2 | NF-JUICE | Juice bottles | 24 | EA | 2.00 | 48.00\n3 | NF-NEW | New snack case | 5 | CASE | 18.00 | 90.00\nSubtotal: 378.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 378.00\nAll organisations, identifiers and commercial values are fictional test data.\n"
      ]
     }
    ]
@@ -29,16 +29,16 @@
     "receivedAt": "2026-10-14T09:12:00+00:00",
     "subjectMetadata": "Fwd: PO VIDEO-DEMO-001 [FICTIONAL TEST DATA]",
     "intakeMode": "local_forward_demo",
-    "rawSha256": "82af2a3fdde66ac4c124d2ff45bf83dc8ba8e01449a148f1ffebd7e714fc65fc"
+    "rawSha256": "af187e4d30743693496320909708bcf33d1dda949558ee90c7ec39480870d66a"
    },
    "attachments": [
     {
      "originalFilename": "VIDEO-DEMO-001.pdf",
-     "sha256": "79aed17df0ff5a8b10407bd3698648deefac8c2666a66a46d80bd8d809087004",
-     "sizeBytes": 2412,
+     "sha256": "99fe4efc6cfd7819b7c5746aa07361b16dd9721e58550d639d140f8f7a81f0db",
+     "sizeBytes": 2421,
      "pageCount": 1,
      "pageText": [
-      "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-001\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-14\nRequested delivery date: 2026-10-21\nCurrency: CAD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nA | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00\nB | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00\nC | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00\nSubtotal: 190.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 190.00\nAll organisations, identifiers and commercial values are fictional test data.\nIdentifiers such as OLD-DEMO-003 are intentionally not valid GS1 GTINs.\n"
+      "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-001\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-14\nRequested delivery date: 2026-10-21\nCurrency: USD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nA | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00\nB | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00\nC | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00\nSubtotal: 190.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 190.00\nAll organisations, identifiers and commercial values are fictional test data.\nItem GTINs use GS1 example company prefix 0614141; 614141000043 is a retired item.\n"
      ]
     }
    ]
@@ -50,16 +50,16 @@
     "receivedAt": "2026-10-15T09:40:00+00:00",
     "subjectMetadata": "Fwd: PO VIDEO-DEMO-002 [FICTIONAL TEST DATA]",
     "intakeMode": "local_forward_demo",
-    "rawSha256": "4167e20956c12f3282166044c6197f8c1e434554f9438ca04d024ab6bdbb9b95"
+    "rawSha256": "e5cda242830a4394df61fefd2c356af5f8ebd2b3052891caa5c907b872f80595"
    },
    "attachments": [
     {
      "originalFilename": "VIDEO-DEMO-002.pdf",
-     "sha256": "96cc465e0026d9961cc1f783c961f22c1945a799af698852a40cda553de347e0",
-     "sizeBytes": 2412,
+     "sha256": "3e79b918d01725d90cc762b914134c4ee3ff2d1bfd9f1bfb7c5a8d892082907b",
+     "sizeBytes": 2422,
      "pageCount": 1,
      "pageText": [
-      "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-002\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-15\nRequested delivery date: 2026-10-22\nCurrency: CAD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nA | DEMO-GTIN-A01 | Demo granola case | 10 | CASE | 24.00 | 240.00\nB | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 24.00 | 48.00\nC | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00\nSubtotal: 306.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 306.00\nAll organisations, identifiers and commercial values are fictional test data.\nIdentifiers such as OLD-DEMO-003 are intentionally not valid GS1 GTINs.\n"
+      "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-002\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-15\nRequested delivery date: 2026-10-22\nCurrency: USD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nA | 614141000012 | Demo granola case | 10 | CASE | 24.00 | 240.00\nB | 614141000029 | Demo cracker case | 2 | CASE | 24.00 | 48.00\nC | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00\nSubtotal: 306.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 306.00\nAll organisations, identifiers and commercial values are fictional test data.\nItem GTINs use GS1 example company prefix 0614141; 614141000043 is a retired item.\n"
      ]
     }
    ]
@@ -71,16 +71,16 @@
     "receivedAt": "2026-10-15T10:05:00+00:00",
     "subjectMetadata": "Fwd: PO VIDEO-DEMO-003 [FICTIONAL TEST DATA]",
     "intakeMode": "local_forward_demo",
-    "rawSha256": "81ad6c67844a3ee43285ae3c7f6b31feca9fa8776c0f531e7fc54c60ca9aecbe"
+    "rawSha256": "bd91471ea1e54abca3e225d907ac5c869456c7806838b70ca3e9c060bc6dd91f"
    },
    "attachments": [
     {
      "originalFilename": "VIDEO-DEMO-003.pdf",
-     "sha256": "b5dc95601e0829abe4179220c3b0bcf0d3199eadf077b733c6e0cbdac813f721",
-     "sizeBytes": 2333,
+     "sha256": "8d67b9234d7cafb9f9e2830994f01e8d7f85616967a252b1a674e1d17944c6a3",
+     "sizeBytes": 2353,
      "pageCount": 1,
      "pageText": [
-      "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-003\nCustomer: Lakeshore Demo Grocers\nCustomer ID: DEMO-CUST-02\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-02\nOrder date: 2026-10-15\nRequested delivery date: 2026-10-23\nCurrency: CAD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nC | OLD-DEMO-003 | Demo trail mix case | 3 | CASE | 18.00 | 54.00\nSubtotal: 54.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 54.00\nAll organisations, identifiers and commercial values are fictional test data.\nIdentifiers such as OLD-DEMO-003 are intentionally not valid GS1 GTINs.\n"
+      "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-003\nCustomer: Lakeshore Demo Grocers\nCustomer ID: DEMO-CUST-02\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-02\nOrder date: 2026-10-15\nRequested delivery date: 2026-10-23\nCurrency: USD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nC | 614141000043 | Demo trail mix case | 3 | CASE | 18.00 | 54.00\nSubtotal: 54.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 54.00\nAll organisations, identifiers and commercial values are fictional test data.\nItem GTINs use GS1 example company prefix 0614141; 614141000043 is a retired item.\n"
      ]
     }
    ]
@@ -92,16 +92,16 @@
     "receivedAt": "2026-10-16T08:50:00+00:00",
     "subjectMetadata": "Fwd: PO VIDEO-DEMO-004 [FICTIONAL TEST DATA]",
     "intakeMode": "local_forward_demo",
-    "rawSha256": "0ca0e6f82bfc73f8d327ec5d9381b7a6f86b0a14227e907fe7579e9f265f26e9"
+    "rawSha256": "5f548680e776d2884f0bdda0429faf010f8b3a1d86ac0f7a1e92e77241728858"
    },
    "attachments": [
     {
      "originalFilename": "VIDEO-DEMO-004.pdf",
-     "sha256": "722364728577187071f099d539d53019cfb80b2d21970ca2a0e9abb9d71f985d",
-     "sizeBytes": 2333,
+     "sha256": "193b20a5a751a687a1e1830f7f8cc8d7b16a6191cd4de81848c8a8b90a755e00",
+     "sizeBytes": 2351,
      "pageCount": 1,
      "pageText": [
-      "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-004\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-16\nRequested delivery date: 2026-10-23\nCurrency: CAD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nC | OLD-DEMO-003 | Demo trail mix case | 2 | CASE | 18.00 | 36.00\nSubtotal: 36.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 36.00\nAll organisations, identifiers and commercial values are fictional test data.\nIdentifiers such as OLD-DEMO-003 are intentionally not valid GS1 GTINs.\n"
+      "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-004\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-16\nRequested delivery date: 2026-10-23\nCurrency: USD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nC | 614141000043 | Demo trail mix case | 2 | CASE | 18.00 | 36.00\nSubtotal: 36.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 36.00\nAll organisations, identifiers and commercial values are fictional test data.\nItem GTINs use GS1 example company prefix 0614141; 614141000043 is a retired item.\n"
      ]
     }
    ]
@@ -113,16 +113,16 @@
     "receivedAt": "2026-10-16T09:20:00+00:00",
     "subjectMetadata": "Fwd: PO VIDEO-DEMO-005 [FICTIONAL TEST DATA]",
     "intakeMode": "local_forward_demo",
-    "rawSha256": "a0a5f6380df001fbac798949040fdd9e0bd70a9d8bb5cd5e985fedee97b8f2b4"
+    "rawSha256": "5e8d649bd9d9af95c3a13013c277569cd9af2d58efeeae735151e40d785de109"
    },
    "attachments": [
     {
      "originalFilename": "VIDEO-DEMO-005.pdf",
-     "sha256": "99ed457a1a0dfd65bbd7e9acbf1342238ba3a729272462eec64e63aae0bfb375",
-     "sizeBytes": 2377,
+     "sha256": "e00238a6645c147231a363fa185bf0adb4ba47ba4ca65babcc244339ebf510d8",
+     "sizeBytes": 2388,
      "pageCount": 1,
      "pageText": [
-      "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-005\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-16\nRequested delivery date: 2026-10-24\nCurrency: CAD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nA | DEMO-GTIN-A01 | Demo granola case | 12 | CASE | 24.00 | 288.00\nB | DEMO-GTIN-B02 | Demo cracker case | 3 | CASE | 24.00 | 72.00\nSubtotal: 360.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 360.00\nAll organisations, identifiers and commercial values are fictional test data.\nIdentifiers such as OLD-DEMO-003 are intentionally not valid GS1 GTINs.\n"
+      "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-005\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-16\nRequested delivery date: 2026-10-24\nCurrency: USD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nA | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00\nB | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\nSubtotal: 360.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 360.00\nAll organisations, identifiers and commercial values are fictional test data.\nItem GTINs use GS1 example company prefix 0614141; 614141000043 is a retired item.\n"
      ]
     }
    ]

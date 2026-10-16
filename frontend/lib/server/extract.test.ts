@@ -12,9 +12,9 @@ import { extractPages } from "./extract/run";
 const FAKE_KEY = "AIza" + "FAKEKEYFORTESTONLY0000000000000000";
 const PAGES = EMAILS["VIDEO-DEMO-001"].attachments[0].pageText;
 const MODEL_ANSWER = { header: { po_number: { value: "VIDEO-DEMO-001", page: 1, evidence: "PO: VIDEO-DEMO-001" },
-  currency: { value: "CAD", page: 1, evidence: "Currency: CAD" }, total: { value: "190.00", page: 1, evidence: "Total: 190.00" },
+  currency: { value: "USD", page: 1, evidence: "Currency: USD" }, total: { value: "190.00", page: 1, evidence: "Total: 190.00" },
   customer_name: { value: "Northfield Demo Retail", page: 1, evidence: "Customer: Northfield Demo Retail" } },
-lines: [{ gtin: { value: "OLD-DEMO-003", page: 1, evidence: "C | OLD-DEMO-003" }, supplier: { value: "Marlow" } }] };
+lines: [{ gtin: { value: "614141000043", page: 1, evidence: "C | 614141000043" }, supplier: { value: "Marlow" } }] };
 
 const ok = (body: unknown) => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(body) }] } }] }),
   { status: 200, headers: { "content-type": "application/json" } });
@@ -150,7 +150,7 @@ describe("extraction on the server", () => {
     const text = [...g.logs, ...consoleLines].join("\n");
     expect(g.logs.length).toBeGreaterThan(0);
     expect(text).not.toContain("AIzaFAKEKEY");
-    for (const content of ["Northfield", "VIDEO-DEMO-001", "OLD-DEMO-003", "190.00", "Marlow"]) {
+    for (const content of ["Northfield", "VIDEO-DEMO-001", "614141000043", "190.00", "Marlow"]) {
       expect(text).not.toContain(content);
     }
   });
