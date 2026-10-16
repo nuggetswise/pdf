@@ -107,7 +107,7 @@ function StockTable({ role }: { role: Role }) {
   return (
     <section aria-label="Stock">
       <h3>Stock</h3>
-      <p className="muted small">The agent checks every order against these records when it reaches the ERP. Fictional stock.</p>
+      <p className="muted small">Stock used for order availability checks. Fictional data.</p>
       {error && <div className="alert bad" role="alert">{error}</div>}
       <div className="scroll">
         <table className="lines stock">
@@ -206,7 +206,7 @@ export function Workspace({ role, focus = null }: { role: Role; focus?: number |
       </aside>
       <section className="main">
         {error && <div className="alert bad" role="alert">{error}</div>}
-        {!detail ? <div className="placeholder">Upload a purchase order, or select one in the inbox to see how the agent handled it.</div> : (
+        {!detail ? <div className="placeholder">Upload a purchase order or select one from the inbox.</div> : (
           <>
             {detail.document.status === "extraction_failed" || detail.document.status === "extraction_unavailable" ? (
               <button onClick={() => wrap(() => agent.retryExtraction(detail.document.id))}>Retry extraction</button>
@@ -303,7 +303,7 @@ function ShippingSettings({ onError }: { onError: (e: string | null) => void }) 
         </select>
       </label>
       <button onClick={save}>Save shipping settings</button>
-      <p className="muted small">Applies to orders that reach the ERP from now on.</p>
+      <p className="muted small">Applies to new orders.</p>
     </fieldset>
   );
 }

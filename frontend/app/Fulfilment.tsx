@@ -15,9 +15,9 @@ import { useAgent } from "./run/RunProvider";
 type Order = RunState["orders"][number];
 type Choice = "ship_complete" | "split" | "ship_available";
 const CHOICE_TEXT: Record<Choice, [string, string]> = {
-  ship_complete: ["Hold and ship complete", "Everything leaves together once the short stock is in."],
-  split: ["Ship now, backorder the rest", "What is in stock leaves now; the rest follows when it arrives."],
-  ship_available: ["Ship now, cancel the rest", "What is in stock leaves now; the retailer is told the rest will not ship."],
+  ship_complete: ["Hold and ship complete", "All lines ship together when stock arrives."],
+  split: ["Ship now, backorder the rest", "Available stock ships now. Remaining quantity ships when stock arrives."],
+  ship_available: ["Ship now, cancel the rest", "Available stock ships now. Remaining quantity is cancelled."],
 };
 
 function useWrap() {
@@ -67,7 +67,7 @@ export function FulfilmentPanel({ docId, role }: { docId: number; role: Role }) 
         <h4><PackageCheck size={18} aria-hidden /> Stock and ship date</h4>
         <span className={`pill ${deciding ? "warn" : "ok"}`}>{deciding ? "Needs your choice" : `Ships ${showDate(firstShipOn(f.parts))}`}</span>
       </header>
-      <p className="muted small">Checked against your ERP stock on {showDate(f.checkedOn)}. Stock other open orders hold is set aside first.</p>
+      <p className="muted small">Checked against ERP stock on {showDate(f.checkedOn)}. Stock reserved for open orders is excluded.</p>
       <div className="scroll">
         <table className="lines" aria-label="Stock check">
           <thead><tr><th>Item</th><th>Ordered</th><th>Free now</th><th>Short</th><th>Short stock ready</th><th>{deciding ? "Plan" : "Retailer told"}</th></tr></thead>
@@ -103,7 +103,7 @@ export function FulfilmentPanel({ docId, role }: { docId: number; role: Role }) 
 
       {deciding && (
         <div className="stock-decide" aria-label="Choose how to ship">
-          <p><b>Stock is short.</b> The retailer has not been told anything yet. Choose how this order ships.</p>
+          <p><b>Stock is short.</b> Select a shipping option. The acknowledgement is held until you confirm.</p>
           <div className="choices" role="radiogroup" aria-label="Shipping choice">
             {(["ship_complete", "split", "ship_available"] as Choice[]).filter((c) => f.options[c]).map((c) => {
               const opt = f.options[c]!;
@@ -121,7 +121,7 @@ export function FulfilmentPanel({ docId, role }: { docId: number; role: Role }) 
             })}
           </div>
           {f.recommended === "ship_complete" && f.options.ship_complete.late && (
-            <p className="muted small">Recommended because the PO asks to ship complete. Tell the buyer if the date does not work for them.</p>
+            <p className="muted small">Recommended: the PO requests complete shipments.</p>
           )}
           {role !== "viewer" && (
             <div className="btns">
@@ -130,7 +130,7 @@ export function FulfilmentPanel({ docId, role }: { docId: number; role: Role }) 
               </label>
               <button className="primary" onClick={() => wrap(() => agent.run({ type: "decideFulfilment", role, docId, choice: pick,
                 shipOn: shipOn && shipOn !== earliest ? shipOn : null }))}>Confirm to the retailer</button>
-              <span className="muted small">Updates your ERP order and sends the confirmation with each line's dates.</span>
+              <span className="muted small">Updates the ERP order and sends the acknowledgement with line-level dates.</span>
             </div>
           )}
         </div>
@@ -145,16 +145,16 @@ export function FulfilmentPanel({ docId, role }: { docId: number; role: Role }) 
 
       {!deciding && left && role !== "viewer" && (
         <div className="ship" aria-label="Mark shipped">
-          <h5><Truck size={16} aria-hidden /> When the goods leave</h5>
+          <h5><Truck size={16} aria-hidden /> Shipment</h5>
           {canShip ? (
             <div className="btns">
               <input className="qty" aria-label="Carrier SCAC" placeholder="Carrier code" value={scac} onChange={(e) => setScac(e.target.value.toUpperCase())} />
               <input aria-label="Tracking number" placeholder="Tracking number" value={track} onChange={(e) => setTrack(e.target.value)} />
               <button className="primary" disabled={!scac.trim() || !track.trim()}
                 onClick={() => wrap(() => agent.run({ type: "shipFromErp", role, docId, carrierScac: scac.trim(), trackingNumber: track.trim() }))}>Mark shipped in ERP</button>
-              <span className="muted small">Ships what your ERP has in stock for this order; the agent sends the ship notice and the invoice.</span>
+              <span className="muted small">Ships available stock. The ship notice and invoice are sent automatically.</span>
             </div>
-          ) : <p className="muted small"><PackageX size={14} aria-hidden /> Nothing to ship yet: the stock has not arrived. Receive it in ERP records.</p>}
+          ) : <p className="muted small"><PackageX size={14} aria-hidden /> Nothing to ship yet. Receive incoming stock in ERP records.</p>}
         </div>
       )}
       {error && <div className="alert bad" role="alert">{error}</div>}

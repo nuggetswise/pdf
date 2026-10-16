@@ -68,12 +68,12 @@ export function SupplierToday({ role, onOpen }: { role: Role; onOpen: (docId: nu
         <section className="panel forward-panel" aria-label="Forward a purchase order">
           <header className="panel-head"><h3>New purchase order</h3></header>
           <Forward />
-          <p className="muted small">In production, the supplier's mailbox forwards retailer POs here automatically.</p>
+          <p className="muted small">Production mailboxes forward retailer POs automatically.</p>
         </section>
       </div>
       <section className="panel" aria-label="Handled by the agent">
         <header className="panel-head"><h3>Handled by the agent</h3><span className="count muted">{rest.length}</span></header>
-        {rest.length === 0 && <p className="empty">Orders the agent read, checked and put in your ERP appear here.</p>}
+        {rest.length === 0 && <p className="empty">Processed orders appear here.</p>}
         {s && rest.map((d) => <SupplierCard key={d.id} s={s} docId={d.id} role={role} onOpen={onOpen} />)}
       </section>
     </div>
@@ -88,7 +88,7 @@ export function RetailerInbox() {
   return (
     <section className="panel" aria-label="Documents received">
       <header className="panel-head"><h3>Documents received</h3><span className="count">{msgs.length}</span></header>
-      {msgs.length === 0 && <p className="empty">Nothing received yet. Switch to the supplier view and forward a purchase order.</p>}
+      {msgs.length === 0 && <p className="empty">No documents received.</p>}
       <div className="rlist">{msgs.map((m) => <RetailerCard key={m.id} m={m} s={s!} />)}</div>
     </section>
   );
@@ -213,14 +213,14 @@ export function ReplyBox({ o, role }: { o: Order; role: Role }) {
   return (
     <div className="reply" aria-label="Reply to the retailer">
       <label>Reply to the retailer, in your own words
-        <textarea rows={3} value={text} aria-label="Supplier's reply" placeholder="Paste or type what you would tell the buyer, in your own words." onChange={(e) => { setText(e.target.value); setInterp(null); }} />
+        <textarea rows={3} value={text} aria-label="Supplier's reply" placeholder="Enter your reply to the buyer." onChange={(e) => { setText(e.target.value); setInterp(null); }} />
       </label>
       <div className="btns"><button onClick={read} disabled={busy || !text.trim()}>{busy ? "Reading…" : "Read reply"}</button>
-        <span className="muted small">Only the changes are taken; a clean order needs no reply.</span></div>
+        <span className="muted small">Only changes to quantity, price or date are applied.</span></div>
       {interp && (
         <div className="reply-read" aria-label="What the agent understood">
           <p className="muted small">{interp.interpreter.isAi ? `Read by AI (${interp.interpreter.name}).` : `${interp.interpreter.name}.`} Each change is tied to the words it came from.</p>
-          {rows.length === 0 ? <p>No changes found. The order stands as acknowledged.</p> : (
+          {rows.length === 0 ? <p>No changes found.</p> : (
             <table className="lines"><tbody>
               {rows.map((r, i) => <tr key={i}><th>{r.label}</th><td>{r.from} → <b>{r.to}</b></td><td className="mono small">“{r.evidence}”</td></tr>)}
             </tbody></table>

@@ -83,7 +83,7 @@ export function PdfPage({ docId, targets, focus, onPick, pageText, scanned }: {
   if (missing) {
     return (
       <div className="pdfview" aria-label="Purchase order">
-        <p className="muted small">The original PDF is not stored in this browser, so its printed text is shown instead.</p>
+        <p className="muted small">Original PDF unavailable in this browser. Showing extracted text.</p>
         <div className="pagetext">{(pageText ?? []).map((t, i) => <pre key={i}>{t}</pre>)}</div>
       </div>
     );
@@ -92,7 +92,7 @@ export function PdfPage({ docId, targets, focus, onPick, pageText, scanned }: {
   const found = new Set(boxes.map((b) => b.id));
   return (
     <div className="pdfview" ref={wrap} aria-label="Purchase order">
-      {scanned && <p className="scan-note">Scanned PDF: the agent read this page as an image. Check each value against the page before approving.</p>}
+      {scanned && <p className="scan-note">Scanned PDF. Verify each value against the page before approval.</p>}
       {!scanned && <p className="muted small legend"><span className="key value" /> read by the agent <span className="key issue" /> needs a decision
         {targets.length > found.size && <> · {targets.length - found.size} value{targets.length - found.size === 1 ? "" : "s"} not printed as text</>}</p>}
       {pages.map((p, i) => (

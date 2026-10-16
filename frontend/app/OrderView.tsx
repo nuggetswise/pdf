@@ -255,7 +255,7 @@ function OrderTerms({ d, onPick }: { d: DocDetail; onPick: (id: string) => void 
       {(t.instructions ?? []).length > 0 && (
         <ul className="notes">{t.instructions!.map((n, i) => <li key={i} onClick={() => onPick(`t:instructions:${i}`)}>{n.value}</li>)}</ul>
       )}
-      <p className="muted small">Notes are shown as printed for you to act on. The agent never takes them as instructions.</p>
+      <p className="muted small">Notes are displayed as printed and are not executed.</p>
     </section>
   );
 }
@@ -323,7 +323,7 @@ export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight
             )}
             {o.review_state === "ready" && (
               <div className="approve">
-                <p>Review-all mode: this clean order waits for a person. Approving it sends it to the ERP automatically.</p>
+                <p>All checks passed. Approval sends the order to the ERP.</p>
                 {onApprove && role !== "viewer" && <button className="primary big" onClick={onApprove}>Approve order</button>}
               </div>
             )}
