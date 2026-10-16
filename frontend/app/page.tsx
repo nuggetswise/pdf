@@ -4,12 +4,12 @@ import { useState } from "react";
 import { summary as summarise } from "../lib/domain/workflow";
 import { manualRouteTotals } from "../lib/domain/manual-route";
 import { PEOPLE, Role } from "./api";
-import { ErpView, MemoryView, Workspace } from "./Panels";
+import { ErpView, MemoryView, SettingsView, Workspace } from "./Panels";
 import { EdiView } from "./Portal";
 import { RunProvider, useAgent, useHealth } from "./run/RunProvider";
 
-type Tab = "work" | "memory" | "erp" | "edi";
-const TABS: [Tab, string][] = [["work", "Inbox & review"], ["memory", "Agent memory"], ["erp", "ERP records"], ["edi", "Trading Grid outbox"]];
+type Tab = "work" | "memory" | "erp" | "edi" | "settings";
+const TABS: [Tab, string][] = [["work", "Inbox & review"], ["memory", "Agent memory"], ["erp", "ERP records"], ["edi", "Trading Grid outbox"], ["settings", "Settings"]];
 
 export default function Page() {
   return <RunProvider><App /></RunProvider>;
@@ -29,6 +29,19 @@ function App() {
   const exceptionOnly = health?.policy.mode === "exception_only";
   const extraction = !health ? "…" : health.rehearsal_mode || health.extractor_mode === "test"
     ? "Rehearsal: TEST ADAPTER (not AI)" : health.extraction === "available" ? `AI extraction: ${health.model}` : "AI extraction unavailable";
+
+  const pilot = agent.ready && agent.state.orders.length > 0 && (
+        <div className="btns pilot-export">
+          <button className="ghost" onClick={() => {
+            const blob = new Blob([toCsv(pilotRows(agent.state))], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url; a.download = "order-agent-pilot.csv"; a.click();
+            URL.revokeObjectURL(url);
+          }}>Export pilot measurements (CSV)</button>
+          <span className="muted small">One row per order: time from PDF to ERP and ASN, what a person changed, what the agent caught.</span>
+        </div>
+      );
 
   return (
     <>
@@ -54,33 +67,19 @@ function App() {
       <div className="kpis" aria-label="Executive summary">
         <Kpi n={summary?.orders_received} label="Orders received" />
         <Kpi n={summary?.delivered_to_erp} label="Delivered to ERP" tone="ok" />
-        <Kpi n={summary?.auto_approved_by_policy} label="Approved by policy, no human touch" tone="ok" />
-        <Kpi n={summary?.held_for_review} label="Held for a person" tone="warn" />
-        <Kpi n={summary?.resolved_by_memory} label="Lines fixed by agent memory" tone="memory" />
-        <Kpi n={totals?.fieldsNotRetyped} label="Fields not retyped" tone="ok" />
+        <Kpi n={summary?.held_for_review} label="Waiting on a person" tone="warn" />
         <Kpi n={totals ? `USD ${totals.exposureAvoided}` : undefined} label="Chargeback exposure avoided (estimate)" tone="ok" />
         {!!summary?.delivery_problems && <Kpi n={summary.delivery_problems} label="Delivery needs attention" tone="bad" />}
       </div>
-      {agent.ready && agent.state.orders.length > 0 && (
-        <div className="btns pilot-export">
-          <button className="ghost" onClick={() => {
-            const blob = new Blob([toCsv(pilotRows(agent.state))], { type: "text/csv" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url; a.download = "order-agent-pilot.csv"; a.click();
-            URL.revokeObjectURL(url);
-          }}>Export pilot measurements (CSV)</button>
-          <span className="muted small">One row per order: time from PDF to ERP and ASN, what a person changed, what the agent caught.</span>
-        </div>
-      )}
       <nav className="tabs" role="tablist" aria-label="Sections">
         {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}
       </nav>
       <main>
-        {tab === "work" && <Workspace role={role} health={health} />}
+        {tab === "work" && <Workspace role={role} />}
         {tab === "memory" && <MemoryView role={role} />}
         {tab === "erp" && <ErpView />}
         {tab === "edi" && <EdiView role={role} />}
+        {tab === "settings" && <SettingsView role={role} health={health} pilot={pilot} />}
       </main>
     </>
   );

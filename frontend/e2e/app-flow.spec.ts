@@ -19,7 +19,9 @@ test("a user runs the order desk end to end", async ({ page }) => {
 
   // Administrator switches on Exception-only.
   await role("administrator");
+  await page.getByRole("tab", { name: "Settings" }).click();
   await page.getByLabel("Automation mode").selectOption("exception_only");
+  await page.getByRole("tab", { name: "Inbox & review" }).click();
   await expect(page.locator(".mode")).toHaveText("Exception-only mode");
 
   // A reviewer uploads a PDF; three exceptions are held, resolved, and the order goes to the ERP by itself.
@@ -32,6 +34,12 @@ test("a user runs the order desk end to end", async ({ page }) => {
   await expect(manual).toContainText("30");
   await expect(manual).toContainText("USD 54.38");
   await expect(card("Price differs")).toContainText("Manual route: USD 4.00 at risk.");
+  // The agent's own steps, from this run's data, beside the manual cost; the maths is one click away.
+  const work = page.getByRole("region", { name: "What the Order Agent did" });
+  await expect(work).toContainText("found 3 problems");
+  await expect(work).toContainText("0 fields typed by hand, instead of 30");
+  await manual.getByRole("button", { name: "Show the maths" }).click();
+  await expect(manual).toContainText("30 fields × 20 s = 10.0 min");
   await page.screenshot({ path: "../docs/screenshots/app-00-manual-route-cost.png", fullPage: true });
   await card("Below minimum order quantity").getByLabel("Reason").fill("Trial quantity agreed (fictional)");
   await card("Below minimum order quantity").getByRole("button", { name: "Allow once (one-off exception)" }).click();
@@ -68,8 +76,10 @@ test("a user runs the order desk end to end", async ({ page }) => {
   await expect(page.locator(".issue.open")).toHaveCount(1);
 
   // Review-all: a clean order waits; one approval sends it; the ERP times out; a safe retry reconciles.
+  await page.getByRole("tab", { name: "Settings" }).click();
   await page.getByLabel("Automation mode").selectOption("review_all");
   await page.getByLabel("ERP simulator next call").selectOption("timeout_next");
+  await page.getByRole("tab", { name: "Inbox & review" }).click();
   await upload("VIDEO-DEMO-005");
   await expect(page.locator(".approve")).toBeVisible();
   await role("reviewer");
@@ -89,9 +99,7 @@ test("a user runs the order desk end to end", async ({ page }) => {
   const kpi = (i: number) => page.locator(".kpi b").nth(i);
   await expect(kpi(0)).toHaveText("6");
   await expect(kpi(1)).toHaveText("3");
-  await expect(kpi(2)).toHaveText("1");
-  await expect(kpi(3)).toHaveText("2");
-  await expect(kpi(4)).toHaveText("1");
+  await expect(kpi(2)).toHaveText("2");
 });
 
 test("a file that is not a PDF is refused with a reason", async ({ page }) => {

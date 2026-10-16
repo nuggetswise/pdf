@@ -23,6 +23,11 @@ export type ManualRoute = {
   chargebackExposure: string;
   orderValue: string;
   currency: string;
+  /** The two assumptions behind the keying cost, so the screen can show the arithmetic. */
+  secondsPerField: string;
+  hourlyRate: string;
+  lateAsnChancePercent: string;
+  lateAsnPenaltyPercent: string;
 };
 
 const HUNDRED = Dec.of("100");
@@ -108,6 +113,10 @@ export function manualRoute(s: RunState, docId: number): ManualRoute | null {
     chargebackExposure: money(exposure),
     orderValue: money(value),
     currency: latest.order.currency ?? "USD",
+    secondsPerField: a.secondsPerField,
+    hourlyRate: a.hourlyRate,
+    lateAsnChancePercent: a.lateAsnChancePercent,
+    lateAsnPenaltyPercent: a.lateAsnPenaltyPercent,
   };
 }
 

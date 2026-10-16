@@ -232,3 +232,14 @@ iframe { width: 100%; height: 640px; border: 1px solid var(--line); border-radiu
 .samples .forward { flex-wrap: wrap; }
 .samples .forward select { flex: 1 1 100%; min-width: 0; }
 .pilot-export { margin: 4px 24px 0; align-items: center; }
+
+/* With the agent vs. retyping, side by side */
+.before-after { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 12px; margin: 12px 0; align-items: start; }
+.before-after .manual-route { margin: 0; }
+.agent-work { border: 1px solid var(--line); border-left: 5px solid var(--ok); border-radius: 12px; padding: 14px 16px; background: var(--panel); }
+.agent-work h4 { margin: 2px 0 8px; font-size: 18px; }
+.agent-work ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; }
+.aw-sum { margin: 10px 0 0; font-size: 15px; }
+.mr-detail .calc { margin: 8px 0 0; font-size: 14px; }
+.mr-detail tr.total th, .mr-detail tr.total td { border-top: 2px solid var(--line); }
+.settings { max-width: 760px; padding: 16px 24px; display: grid; gap: 16px; }

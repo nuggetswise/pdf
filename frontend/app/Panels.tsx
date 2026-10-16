@@ -1,4 +1,5 @@
 "use client";
+import type React from "react";
 import { SAMPLE_LABELS } from "../lib/intake/intake";
 import { useState } from "react";
 import { documentDetail, documentsList, erpOrdersList, rulesList } from "../lib/domain/selectors";
@@ -115,7 +116,7 @@ export function ErpView() {
   );
 }
 
-export function Workspace({ role, health }: { role: Role; health: Health | null }) {
+export function Workspace({ role }: { role: Role }) {
   const agent = useAgent();
   const docs = agent.ready ? documentsList(agent.state) : null;
   const emails: readonly string[] = DEMO_EMAILS;
@@ -168,7 +169,6 @@ export function Workspace({ role, health }: { role: Role; health: Health | null 
             <span className="meta"><span>{d.sender}</span><span className={`pill ${PROCESS_LABEL[d.status]?.[1] ?? "info"}`}>{PROCESS_LABEL[d.status]?.[0] ?? d.status}</span></span>
           </button>
         ))}
-        {role === "administrator" && health && <AdminSettings health={health} onError={setError} />}
       </aside>
       <section className="main">
         {error && <div className="alert bad" role="alert">{error}</div>}
@@ -185,6 +185,19 @@ export function Workspace({ role, health }: { role: Role; health: Health | null 
         )}
       </section>
     </div>
+  );
+}
+
+/** Settings live on their own tab so the inbox shows only what a supplier needs to process an order. */
+export function SettingsView({ role, health, pilot }: { role: Role; health: Health | null; pilot?: React.ReactNode }) {
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <section className="settings" aria-label="Settings">
+      {error && <div className="alert bad" role="alert">{error}</div>}
+      {pilot}
+      {role !== "administrator" ? <p className="placeholder">Only an administrator can change settings.</p>
+        : health ? <AdminSettings health={health} onError={setError} /> : <p className="placeholder">Loading…</p>}
+    </section>
   );
 }
 

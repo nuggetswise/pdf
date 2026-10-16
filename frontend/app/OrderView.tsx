@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useAgent } from "./run/RunProvider";
 import { OrderPortal } from "./Portal";
-import { IssueRiskLine, ManualRoutePanel, useManualRoute } from "./ManualRoute";
+import { AgentWorkPanel, IssueRiskLine, ManualRoutePanel, useManualRoute } from "./ManualRoute";
 import type { ManualRisk } from "../lib/domain/manual-route";
 import type { Action } from "../lib/server/run-action";
 import bundledReferenceJson from "../lib/domain/reference-data.v1.json";
@@ -274,7 +274,7 @@ export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight
       {d.document.status_detail && <div className={`alert ${d.document.status === "duplicate" ? "warn" : "bad"}`}>{d.document.status_detail}</div>}
       {IN_FLIGHT.has(d.document.status) && <div className="alert info pulse">The agent is working on this order…</div>}
 
-      {o && <ManualRoutePanel docId={d.document.id} />}
+      {o && <div className="before-after"><AgentWorkPanel d={d} /><ManualRoutePanel docId={d.document.id} /></div>}
       {o && (
         <div className="review-grid">
           <div>
