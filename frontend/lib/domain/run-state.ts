@@ -9,6 +9,7 @@
 // Money and quantities are always strings. A JSON number in any of those fields is rejected, so a
 // binary float can never enter the run.
 import { z } from "zod";
+import { ManualRouteAssumptions } from "./manual-route-schema";
 import { PROFILE_IDS } from "./compliance";
 
 // ---------- primitives ----------
@@ -560,6 +561,8 @@ export const RunState = z.strictObject({
   portal: Portal.optional(),
   /** Added by D46. Optional for the same reason; absent means no session additions. */
   referenceOverlay: ReferenceOverlay.optional(),
+  /** Added by D49: the administrator's Act 1 assumptions. Optional; absent means the labelled defaults. */
+  manualRoute: ManualRouteAssumptions.optional(),
 });
 
 export type RunState = z.infer<typeof RunState>;

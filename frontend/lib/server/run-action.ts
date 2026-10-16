@@ -10,6 +10,7 @@ import {
   Conflict, Forbidden, type Who, addCustomer, addProduct, addShipTo, approve, assignCustomer, decide, failExtraction, receive, recordExtraction, recoverDeliveries,
   resetDemo, retryDelivery, retryExtraction, setDemoSetting, setPolicy, setRuleState, startExtraction,
 } from "../domain/workflow";
+import { setManualRouteAssumptions } from "../domain/manual-route";
 import { retryOutbound, setEdiFailureMode, submitAsn, submitInvoice } from "../domain/portal";
 import { saveSupplierSetup, saveTradingPartner } from "../domain/partners";
 import { PROFILE_IDS } from "../domain/compliance";
@@ -98,6 +99,9 @@ export const Action = z.discriminatedUnion("type", [
     shipToGlns: z.array(z.strictObject({ shipToId: z.string().max(200), gln: z.string().max(40) })).max(50) }),
   z.strictObject({ type: z.literal("retryOutbound"), role: Role, messageId: docId }),
   z.strictObject({ type: z.literal("setEdiFailureMode"), role: Role, value: z.enum(["none", "fail_next", "hold_next"]) }),
+  // D49: Act 1 assumptions (checked in full by setManualRouteAssumptions).
+  z.strictObject({ type: z.literal("setManualRouteAssumptions"), role: Role,
+    values: z.record(z.string().max(40), z.string().max(20)) }),
 ]);
 export type Action = z.infer<typeof Action>;
 
@@ -167,6 +171,8 @@ function apply(s: RunState, a: Action): { state: RunState; documentIds?: number[
       return { state: retryOutbound(s, a.messageId, who(a.role)) };
     case "setEdiFailureMode":
       return { state: setEdiFailureMode(s, a.value, who(a.role)) };
+    case "setManualRouteAssumptions":
+      return { state: setManualRouteAssumptions(s, a.values, who(a.role)) };
   }
 }
 

@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { summary as summarise } from "../lib/domain/workflow";
+import { manualRouteTotals } from "../lib/domain/manual-route";
 import { PEOPLE, Role } from "./api";
 import { ErpView, MemoryView, Workspace } from "./Panels";
 import { EdiView } from "./Portal";
@@ -19,6 +20,7 @@ function App() {
   const agent = useAgent();
   const health = useHealth();
   const summary = agent.ready ? summarise(agent.state) : null;
+  const totals = agent.ready ? manualRouteTotals(agent.state) : null;
   const error = agent.serverError;
 
   const exceptionOnly = health?.policy.mode === "exception_only";
@@ -49,6 +51,8 @@ function App() {
         <Kpi n={summary?.auto_approved_by_policy} label="Approved by policy, no human touch" tone="ok" />
         <Kpi n={summary?.held_for_review} label="Held for a person" tone="warn" />
         <Kpi n={summary?.resolved_by_memory} label="Lines fixed by agent memory" tone="memory" />
+        <Kpi n={totals?.fieldsNotRetyped} label="Fields not retyped" tone="ok" />
+        <Kpi n={totals ? `USD ${totals.exposureAvoided}` : undefined} label="Chargeback exposure avoided (estimate)" tone="ok" />
         {!!summary?.delivery_problems && <Kpi n={summary.delivery_problems} label="Delivery needs attention" tone="bad" />}
       </div>
       <nav className="tabs" role="tablist" aria-label="Sections">
@@ -64,6 +68,6 @@ function App() {
   );
 }
 
-function Kpi({ n, label, tone }: { n?: number; label: string; tone?: string }) {
+function Kpi({ n, label, tone }: { n?: number | string; label: string; tone?: string }) {
   return <div className={`kpi ${tone ?? ""}`}><b>{n ?? "–"}</b><span>{label}</span></div>;
 }
