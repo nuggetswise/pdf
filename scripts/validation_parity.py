@@ -72,8 +72,8 @@ Tax amount: {tax}
 Shipping amount: 0.00
 Total: {total}
 """
-BASE = dict(po="EDGE-1", name="Northfield Demo Retail", cust="DEMO-CUST-01", ship="DEMO-DC-01", cur="CAD",
-            lines="A | DEMO-GTIN-A01 |  | Demo granola case | 10 | CASE | 24.00 | 240.00",
+BASE = dict(po="EDGE-1", name="Northfield Demo Retail", cust="DEMO-CUST-01", ship="DEMO-DC-01", cur="USD",
+            lines="A | 614141000012 |  | Demo granola case | 10 | CASE | 24.00 | 240.00",
             subtotal="240.00", tax="0.00", total="240.00")
 
 
@@ -96,23 +96,23 @@ EDGE_TEXTS = {
     "missing total": sample(total="DROP"),
     "unreadable total": sample(total="n/a"),
     "tax and shipping": sample(tax="12.50", total="252.50"),
-    "line amount mismatch": sample(lines="A | DEMO-GTIN-A01 |  | Demo granola case | 10 | CASE | 24.00 | 250.00"),
-    "decimal quantity": sample(lines="A | DEMO-GTIN-A01 |  | Demo granola case | 12.50 | CASE | 24.00 | 300.00",
+    "line amount mismatch": sample(lines="A | 614141000012 |  | Demo granola case | 10 | CASE | 24.00 | 250.00"),
+    "decimal quantity": sample(lines="A | 614141000012 |  | Demo granola case | 12.50 | CASE | 24.00 | 300.00",
                                subtotal="300.00", total="300.00"),
     "half-even vs half-up price": sample(
-        lines="A | DEMO-GTIN-A01 |  | Demo granola case | 10 | CASE | 24.005 | 240.05",
+        lines="A | 614141000012 |  | Demo granola case | 10 | CASE | 24.005 | 240.05",
         subtotal="240.05", total="240.05"),
     "half-even vs half-up price 2": sample(
-        lines="A | DEMO-GTIN-A01 |  | Demo granola case | 10 | CASE | 23.995 | 239.95",
+        lines="A | 614141000012 |  | Demo granola case | 10 | CASE | 23.995 | 239.95",
         subtotal="239.95", total="239.95"),
-    "thousands separator": sample(lines="A | DEMO-GTIN-A01 |  | Demo granola case | 100 | CASE | 24.00 | 2,400.00",
+    "thousands separator": sample(lines="A | 614141000012 |  | Demo granola case | 100 | CASE | 24.00 | 2,400.00",
                                   subtotal="2,400.00", total="2,400.00"),
-    "exponent quantity": sample(lines="A | DEMO-GTIN-A01 |  | Demo granola case | 1e1 | CASE | 24.00 | 240.00"),
-    "unreadable quantity": sample(lines="A | DEMO-GTIN-A01 |  | Demo granola case | ten | CASE | 24.00 | 240.00"),
-    "missing unit": sample(lines="A | DEMO-GTIN-A01 |  | Demo granola case | 10 |  | 24.00 | 240.00"),
-    "negative quantity": sample(lines="A | DEMO-GTIN-A01 |  | Demo granola case | -3 | CASE | 24.00 | -72.00",
+    "exponent quantity": sample(lines="A | 614141000012 |  | Demo granola case | 1e1 | CASE | 24.00 | 240.00"),
+    "unreadable quantity": sample(lines="A | 614141000012 |  | Demo granola case | ten | CASE | 24.00 | 240.00"),
+    "missing unit": sample(lines="A | 614141000012 |  | Demo granola case | 10 |  | 24.00 | 240.00"),
+    "negative quantity": sample(lines="A | 614141000012 |  | Demo granola case | -3 | CASE | 24.00 | -72.00",
                                 subtotal="-72.00", total="-72.00"),
-    "unknown unit": sample(lines="A | DEMO-GTIN-A01 |  | Demo granola case | 10 | EA | 2.00 | 20.00",
+    "unknown unit": sample(lines="A | 614141000012 |  | Demo granola case | 10 | EA | 2.00 | 20.00",
                            subtotal="20.00", total="20.00"),
     "conversion exact": sample(lines="1 |  | NF-JUICE | Juice bottles | 24 | EA | 2.00 | 48.00",
                                subtotal="48.00", total="48.00"),
@@ -126,14 +126,14 @@ EDGE_TEXTS = {
                             subtotal="90.00", total="90.00"),
     "no identifier": sample(lines="3 |  |  | Mystery case | 5 | CASE | 18.00 | 90.00", subtotal="90.00",
                             total="90.00"),
-    "MOQ met": sample(lines="A | DEMO-GTIN-A01 |  | Demo granola case | 10 | CASE | 24.00 | 240.00"),
+    "MOQ met": sample(lines="A | 614141000012 |  | Demo granola case | 10 | CASE | 24.00 | 240.00"),
     "obsolete without proposal": sample(
-        lines="A | OLD-DEMO-003 |  | Demo trail mix case | 1 | CASE | 18.00 | 18.00", subtotal="18.00",
+        lines="A | 614141000043 |  | Demo trail mix case | 1 | CASE | 18.00 | 18.00", subtotal="18.00",
         total="18.00"),
     "multi lines": sample(lines="\n".join([
-        "A | DEMO-GTIN-A01 |  | Demo granola case | 5 | CASE | 24.00 | 120.00",
-        "B | DEMO-GTIN-B02 |  | Demo cracker case | 2 | CASE | 26.00 | 52.00",
-        "C | OLD-DEMO-003 |  | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+        "A | 614141000012 |  | Demo granola case | 5 | CASE | 24.00 | 120.00",
+        "B | 614141000029 |  | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+        "C | 614141000043 |  | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
         "D |  | NF-OAT | Oat snack case | 3 | CASE | 23.00 | 69.00"]), subtotal="259.00", total="259.00"),
     "non-ascii text": sample(name="Northfield Démo Retail — été", cust="DROP"),
 }
@@ -150,7 +150,7 @@ RAW_RESULTS = {
         "po_number": {"value": "RAW-2", "page": 1},
         "subtotal": {"value": "twelve", "page": 7},
         "tax": {"value": "", "page": 1},
-        "currency": "CAD",
+        "currency": "USD",
         "customer_name": None}, "lines": [
         {"quantity": {"value": "abc", "page": 1}, "unit_price": "1,200.00"}, None, {}]},
     "empty result": {},
@@ -174,8 +174,8 @@ def normalise_cases() -> tuple[list[dict], dict[str, dict]]:
 # ---------- validation ----------
 
 def rule(**kw) -> dict:
-    base = {"id": 7, "kind": "identifier_mapping", "customer_id": "DEMO-CUST-01", "obsolete_identifier": "OLD-DEMO-003",
-            "replacement_identifier": "NEW-DEMO-003", "replacement_sku": "DEMO-SKU-C",
+    base = {"id": 7, "kind": "identifier_mapping", "customer_id": "DEMO-CUST-01", "obsolete_identifier": "614141000043",
+            "replacement_identifier": "614141000036", "replacement_sku": "DEMO-SKU-C",
             "reference_version": REF["reference_version"], "state": "active", "source_document_id": 1,
             "source_decision_id": 3, "evidence": None, "created_by": "reviewer:rita",
             "created_at": "2026-10-15T10:00:00.000+00:00", "activated_by": "administrator:alex",
@@ -194,7 +194,7 @@ SCENARIOS = {
     "rule without activator": {"rules": [rule(activated_by=None, activated_at=None)]},
     "rule with bare actor": {"rules": [rule(activated_by="alex")]},
     "reviewer mapping": {"overrides": {"outdated_identifier:2": {
-        "replacement_sku": "DEMO-SKU-C", "text": "Mapping OLD-DEMO-003 -> NEW-DEMO-003 approved by rita (decision #3)"}}},
+        "replacement_sku": "DEMO-SKU-C", "text": "Mapping 614141000043 -> 614141000036 approved by rita (decision #3)"}}},
     "revalidation with reviewer mapping": {"rules": [rule()], "ref": REF_V2, "overrides": {"outdated_identifier:2": {
         "replacement_sku": "DEMO-SKU-C", "text": "Mapped again by rita (decision #9)"}}},
     "item mapped by reviewer": {"overrides": {"unknown_item:2": {"sku": "NEW-CASE", "text": "Mapped to NEW-CASE by rita"},

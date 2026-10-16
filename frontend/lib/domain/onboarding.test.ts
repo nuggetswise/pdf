@@ -14,7 +14,7 @@ PURCHASE ORDER
 PO: ${po}
 Customer: ${opts.customer ?? "Birchwood Demo Market"}
 ${opts.shipTo ? `Ship-to: ${opts.shipTo}\n` : ""}Supplier: Marlow Demo Foods
-Currency: CAD
+Currency: USD
 Line | ${opts.itemCodes ? "Customer item" : "GTIN"} | Description | Quantity | Unit | Unit price | Amount
 ${lines.join("\n")}
 Subtotal: ${totals[0]}
@@ -50,7 +50,7 @@ describe("session onboarding (D46)", () => {
     s = addCustomer(s, docId, {}, REVIEWER, clock);
     expect(codes(s, docId)).toEqual(["unknown_item", "unknown_item"]);
     expect(s.referenceOverlay!.customers[0]).toMatchObject({ customerId: "SESSION-CUST-01",
-      name: "Birchwood Demo Market", currency: "CAD", shipToIds: [], addedBy: "reviewer:rita", sourceDocumentId: docId });
+      name: "Birchwood Demo Market", currency: "USD", shipToIds: [], addedBy: "reviewer:rita", sourceDocumentId: docId });
     expect(order(s, docId).customerId).toBe("SESSION-CUST-01");
 
     s = addProduct(s, docId, "unknown_item:0", {}, REVIEWER, clock);
@@ -58,8 +58,8 @@ describe("session onboarding (D46)", () => {
     expect(open(s, docId)).toEqual([]);
     const p = s.referenceOverlay!.products;
     expect(p.map((x) => [x.sku, x.gtin, x.unit, x.price, x.currency, x.moq])).toEqual([
-      ["FICT-GTIN-7001", "FICT-GTIN-7001", "CASE", "12.50", "CAD", "1"],
-      ["FICT-GTIN-7002", "FICT-GTIN-7002", "CASE", "9.80", "CAD", "5"]]);
+      ["FICT-GTIN-7001", "FICT-GTIN-7001", "CASE", "12.50", "USD", "1"],
+      ["FICT-GTIN-7002", "FICT-GTIN-7002", "CASE", "9.80", "USD", "5"]]);
     for (const x of p) expect(typeof x.price).toBe("string");
     expect(order(s, docId).validation.order.reference_version).toBe("REF-2026-10-v1 + session additions");
     expect(order(s, docId).reviewState).toBe("ready");
@@ -108,7 +108,7 @@ describe("session onboarding (D46)", () => {
 
   it("assigns a printed name to an existing customer, and a printed ship-to can be added", () => {
     const clock = tickClock();
-    const text = PO("NF-ALT-1", ["A | DEMO-GTIN-A01 | Demo granola case | 10 | CASE | 24.00 | 240.00"],
+    const text = PO("NF-ALT-1", ["A | 614141000012 | Demo granola case | 10 | CASE | 24.00 | 240.00"],
       ["240.00", "0.00", "0.00", "240.00"], { customer: "Northfield Retail (head office)", shipTo: "NF-STORE-77" });
     let { state: s, docId } = upload(emptyRunState(clock.now()), text, clock);
     expect(codes(s, docId)).toEqual(["unknown_customer"]);

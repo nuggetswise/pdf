@@ -22,7 +22,7 @@ describe("GS1 keys", () => {
     expect(sscc("0614141", 123456789, "1")).toBe("106141411234567897"); // GS1's published SSCC example
     expect(isSscc(sscc("9520000", 42))).toBe(true);
     expect(isGln(fictionalGln("buyer", 1))).toBe(true);
-    expect(isGtin("DEMO-GTIN-A01")).toBe(false);
+    expect(isGtin("614141000012")).toBe(true); // demo item GTIN-12 on GS1 example prefix 0614141
   });
 
   it("cites a source for every sourced rule and every source is used", () => {
@@ -36,12 +36,11 @@ describe("GS1 keys", () => {
 });
 
 describe("fictional demo partner", () => {
-  it("passes every blocking rule; the made-up demo item numbers are warnings", () => {
+  it("passes every rule, including valid item GTINs", () => {
     const s = submitAsn(replayGuidedDemo(), 1, { lines: [{ lineIndex: 0, shippedQty: "4" }, { lineIndex: 1, shippedQty: "2" },
       { lineIndex: 2, shippedQty: "1" }], estimatedDelivery: "2026-10-20" }, REVIEWER, clock);
     const desadv = portalForOrder(s, 1).asnMessages.find((m) => m.kind === "DESADV")!;
-    expect(desadv.compliance!.findings.map((f) => [f.ruleId, f.severity])).toEqual([
-      ["ITEM-GTIN", "warn"], ["ITEM-GTIN", "warn"], ["ITEM-GTIN", "warn"]]);
+    expect(desadv.compliance!.findings.map((f) => [f.ruleId, f.severity])).toEqual([]);
     expect(partnerFor(s, "DEMO-CUST-01")).toMatchObject({ profile: "fictional_demo", isDefault: true, fictional: true });
   });
 

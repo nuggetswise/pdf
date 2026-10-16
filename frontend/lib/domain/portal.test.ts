@@ -10,7 +10,7 @@ import { Conflict, Forbidden, setDemoSetting } from "./workflow";
 const REVIEWER = { actor: "reviewer:rita", role: "reviewer" };
 const ADMIN = { actor: "administrator:alex", role: "administrator" };
 const clock = { now: () => "2026-10-15T09:30:00.000Z" };
-// Document 1 (VIDEO-DEMO-001) is delivered as SIM-ERP-100001: lines A 5 x 24.00, B 2 x 26.00, C 1 x 18.00, CAD.
+// Document 1 (VIDEO-DEMO-001) is delivered as SIM-ERP-100001: lines A 5 x 24.00, B 2 x 26.00, C 1 x 18.00, USD.
 const base = () => replayGuidedDemo();
 const ship = (a: string, b: string, c: string) => ({ lines: [
   { lineIndex: 0, shippedQty: a }, { lineIndex: 1, shippedQty: b }, { lineIndex: 2, shippedQty: c }],
@@ -36,7 +36,7 @@ function segmentsUnhToUnt(text: string): { count: number; unt: number } {
 }
 
 describe("EDIFACT builders", () => {
-  const parties: EdiParties = { poNumber: "PO+1:'?", currency: "CAD",
+  const parties: EdiParties = { poNumber: "PO+1:'?", currency: "USD",
     supplier: { gln: FICTIONAL_GLN.supplier }, buyer: { gln: FICTIONAL_GLN.retailer, name: "Shop 'A'" },
     deliveryParty: { gln: fictionalGln("ship_to", 1), printedId: "ST-1" } };
   const line = { sourceLineId: "A", gtin: GTIN_A, sku: "SKU-1", description: "Nuts + bolts: 'big'? yes\nnext",
@@ -178,7 +178,7 @@ describe("invoice", () => {
     expect(invoice?.lines.map((l) => [l.quantity, l.unitPrice, l.lineAmount])).toStrictEqual([["4", "24.00", "96.00"], ["2", "26.00", "52.00"]]);
     // Fictional demo supplier default: GST 5%. 148.00 + 7.40 = 155.40.
     expect([invoice?.subtotal, invoice?.taxAmount, invoice?.total]).toStrictEqual(["148.00", "7.40", "155.40"]);
-    expect(invoice?.currency).toBe("CAD");
+    expect(invoice?.currency).toBe("USD");
     const invoic = invoiceMessages.find((m) => m.kind === "INVOIC")!;
     expect(invoic.body).toContain("QTY+47:4'");
     expect(invoic.body).not.toContain("QTY+47:5");

@@ -96,7 +96,7 @@ def write_order_pdf(order: dict, path: Path) -> None:
     y -= 20
     c.setFont("Helvetica-Oblique", 9)
     c.drawString(40, y, "All organisations, identifiers and commercial values are fictional test data.")
-    c.drawString(40, y - 12, "Identifiers such as OLD-DEMO-003 are intentionally not valid GS1 GTINs.")
+    c.drawString(40, y - 12, "Item GTINs use GS1 example company prefix 0614141; 614141000043 is a retired item.")
     c.showPage()
     c.save()
 

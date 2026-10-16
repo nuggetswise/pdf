@@ -58,4 +58,5 @@ export function maskTimes<T>(value: T): T {
 
 /** EDIFACT bodies (D45) carry the action's date and time in their own format; mask those too. */
 const maskEdi = (v: string) =>
-  v.replace(/(UNB\+[^']*?\+)\d{6}:\d{4}/g, "$1<edi-time>").replace(/(DTM\+\d+:)\d{8}/g, "$1<edi-date>");
+  v.replace(/(UNB\+[^']*?\+)\d{6}:\d{4}/g, "$1<edi-time>").replace(/(DTM\+\d+:)\d{8}/g, "$1<edi-date>")
+    .replace(/^((?:Response|Document|Invoice|Despatch advice) date )\d{8}$/, "$1<edi-date>");

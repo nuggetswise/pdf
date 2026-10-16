@@ -54,7 +54,7 @@ def write(order: dict, path: Path) -> None:
     c.setFont("Helvetica", 11)
     for label, value in [("PO", order["po"]), ("Customer", order.get("customer", "Birchwood Demo Market")),
                          ("Supplier", "Marlow Demo Foods"), ("Order date", order["date"]),
-                         ("Requested delivery date", "2026-10-28"), ("Currency", order.get("currency", "CAD"))]:
+                         ("Requested delivery date", "2026-10-28"), ("Currency", order.get("currency", "USD"))]:
         c.drawString(40, y, f"{label}: {value}")
         y -= 16
     y -= 12

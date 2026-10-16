@@ -36,7 +36,7 @@ The ask was one real retailer. MediaMarktSaturn (MMS) is the only large retailer
 |---|---|---|
 | `eancom2002` | Any customer added from a real PO (default) | The GS1 EANCOM 2002 baseline rules below |
 | `mediamarktsaturn` | Chosen in EDI setup | Baseline plus RFF+VA for buyer and supplier and RFF+CT on the invoice, both from the MMS INVOIC guide 3.3 |
-| `fictional_demo` | Only the bundled fictional customers | Baseline, but ITEM-GTIN is a warning, because the demo catalogue uses made-up item numbers such as DEMO-GTIN-A01 |
+| `fictional_demo` | Only the bundled fictional customers | Baseline, but ITEM-GTIN is a warning, because the demo catalogue uses made-up item numbers such as 614141000012 |
 
 What is not covered from the MMS guides: the full rule set (only the parts quoted in search summaries were seen), the MMS statement that it does not yet accept SSCC-18 for break-bulk cross-dock deliveries (MGL), and its requirement that the delivery note number equals the invoice number in some flows. The profile is named "public guides, partial" on screen for that reason.
 

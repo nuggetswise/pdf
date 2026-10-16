@@ -47,10 +47,10 @@ def test_p01_typed_fields_with_traceable_evidence(make_client):
     payload = detail["latest_version"]["payload"]
     h = header(detail)
     assert h["po_number"] == "VIDEO-DEMO-001"
-    assert h["currency"] == "CAD"
+    assert h["currency"] == "USD"
     assert h["total"] == "190.00"
     assert [l["unit_price"]["value"] for l in payload["lines"]] == ["24.00", "26.00", "18.00"]
-    assert payload["lines"][2]["gtin"]["value"] == "OLD-DEMO-003"
+    assert payload["lines"][2]["gtin"]["value"] == "614141000043"
     for field in payload["header"].values():
         if field["value"] is not None:
             assert field["evidence_verified"] and field["page"] == 1 and field["evidence"]
@@ -158,7 +158,7 @@ def test_p28_subject_is_metadata_only(make_client):
     detail = client.get(f"/api/documents/{resp.json()['document_ids'][0]}").json()
     assert detail["envelope"]["subject_metadata"].startswith("PO HACKED-999")
     h = header(detail)
-    assert h["po_number"] == "VIDEO-DEMO-001" and h["currency"] == "CAD"
+    assert h["po_number"] == "VIDEO-DEMO-001" and h["currency"] == "USD"
 
 
 def test_identical_file_marked_duplicate_and_not_reprocessed(make_client):
@@ -209,7 +209,7 @@ def test_p16_logs_contain_no_document_content_or_key(make_client, caplog):
     # fixture file name in the URL; that is a file name, not document content.)
     app_text = "\n".join(r.getMessage() for r in caplog.records if r.name.startswith("order_agent"))
     assert app_text
-    for content in ("Northfield", "VIDEO-DEMO-001", "OLD-DEMO-003", "190.00", "Marlow"):
+    for content in ("Northfield", "VIDEO-DEMO-001", "614141000043", "190.00", "Marlow"):
         assert content not in app_text
 
 

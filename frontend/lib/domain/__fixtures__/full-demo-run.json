@@ -8,8 +8,8 @@
    "receivedAt": "2026-10-14T09:12:00+00:00",
    "subjectMetadata": "Fwd: PO VIDEO-DEMO-001 [FICTIONAL TEST DATA]",
    "intakeMode": "local_forward_demo",
-   "rawSha256": "82af2a3fdde66ac4c124d2ff45bf83dc8ba8e01449a148f1ffebd7e714fc65fc",
-   "createdAt": "2026-10-15T15:02:12.542+00:00"
+   "rawSha256": "af187e4d30743693496320909708bcf33d1dda949558ee90c7ec39480870d66a",
+   "createdAt": "2026-10-16T01:15:01.418+00:00"
   },
   {
    "id": 2,
@@ -18,8 +18,8 @@
    "receivedAt": "2026-10-15T09:40:00+00:00",
    "subjectMetadata": "Fwd: PO VIDEO-DEMO-002 [FICTIONAL TEST DATA]",
    "intakeMode": "local_forward_demo",
-   "rawSha256": "4167e20956c12f3282166044c6197f8c1e434554f9438ca04d024ab6bdbb9b95",
-   "createdAt": "2026-10-15T15:02:17.349+00:00"
+   "rawSha256": "e5cda242830a4394df61fefd2c356af5f8ebd2b3052891caa5c907b872f80595",
+   "createdAt": "2026-10-16T01:15:01.489+00:00"
   },
   {
    "id": 3,
@@ -28,8 +28,8 @@
    "receivedAt": "2026-10-15T10:05:00+00:00",
    "subjectMetadata": "Fwd: PO VIDEO-DEMO-003 [FICTIONAL TEST DATA]",
    "intakeMode": "local_forward_demo",
-   "rawSha256": "81ad6c67844a3ee43285ae3c7f6b31feca9fa8776c0f531e7fc54c60ca9aecbe",
-   "createdAt": "2026-10-15T15:02:18.440+00:00"
+   "rawSha256": "bd91471ea1e54abca3e225d907ac5c869456c7806838b70ca3e9c060bc6dd91f",
+   "createdAt": "2026-10-16T01:15:01.522+00:00"
   },
   {
    "id": 4,
@@ -38,8 +38,8 @@
    "receivedAt": "2026-10-16T08:50:00+00:00",
    "subjectMetadata": "Fwd: PO VIDEO-DEMO-004 [FICTIONAL TEST DATA]",
    "intakeMode": "local_forward_demo",
-   "rawSha256": "0ca0e6f82bfc73f8d327ec5d9381b7a6f86b0a14227e907fe7579e9f265f26e9",
-   "createdAt": "2026-10-15T15:02:19.545+00:00"
+   "rawSha256": "5f548680e776d2884f0bdda0429faf010f8b3a1d86ac0f7a1e92e77241728858",
+   "createdAt": "2026-10-16T01:15:01.550+00:00"
   },
   {
    "id": 5,
@@ -48,8 +48,8 @@
    "receivedAt": "2026-10-16T09:20:00+00:00",
    "subjectMetadata": "Fwd: PO VIDEO-DEMO-005 [FICTIONAL TEST DATA]",
    "intakeMode": "local_forward_demo",
-   "rawSha256": "a0a5f6380df001fbac798949040fdd9e0bd70a9d8bb5cd5e985fedee97b8f2b4",
-   "createdAt": "2026-10-15T15:02:20.602+00:00"
+   "rawSha256": "5e8d649bd9d9af95c3a13013c277569cd9af2d58efeeae735151e40d785de109",
+   "createdAt": "2026-10-16T01:15:01.576+00:00"
   },
   {
    "id": 6,
@@ -58,8 +58,8 @@
    "receivedAt": "2026-10-16T09:20:00+00:00",
    "subjectMetadata": "Fwd: PO VIDEO-DEMO-005 [FICTIONAL TEST DATA]",
    "intakeMode": "local_forward_demo",
-   "rawSha256": "a0a5f6380df001fbac798949040fdd9e0bd70a9d8bb5cd5e985fedee97b8f2b4",
-   "createdAt": "2026-10-15T15:02:22.070+00:00"
+   "rawSha256": "5e8d649bd9d9af95c3a13013c277569cd9af2d58efeeae735151e40d785de109",
+   "createdAt": "2026-10-16T01:15:01.636+00:00"
   }
  ],
  "documents": [
@@ -67,97 +67,97 @@
    "id": 1,
    "envelopeId": 1,
    "originalFilename": "VIDEO-DEMO-001.pdf",
-   "sha256": "79aed17df0ff5a8b10407bd3698648deefac8c2666a66a46d80bd8d809087004",
-   "sizeBytes": 2412,
+   "sha256": "99fe4efc6cfd7819b7c5746aa07361b16dd9721e58550d639d140f8f7a81f0db",
+   "sizeBytes": 2421,
    "pageCount": 1,
    "pageText": [
-    "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-001\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-14\nRequested delivery date: 2026-10-21\nCurrency: CAD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nA | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00\nB | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00\nC | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00\nSubtotal: 190.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 190.00\nAll organisations, identifiers and commercial values are fictional test data.\nIdentifiers such as OLD-DEMO-003 are intentionally not valid GS1 GTINs.\n"
+    "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-001\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-14\nRequested delivery date: 2026-10-21\nCurrency: USD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nA | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00\nB | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00\nC | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00\nSubtotal: 190.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 190.00\nAll organisations, identifiers and commercial values are fictional test data.\nItem GTINs use GS1 example company prefix 0614141; 614141000043 is a retired item.\n"
    ],
    "status": "approved",
    "statusDetail": null,
    "duplicateOf": null,
-   "createdAt": "2026-10-15T15:02:12.544+00:00",
-   "updatedAt": "2026-10-15T15:02:14.802+00:00"
+   "createdAt": "2026-10-16T01:15:01.418+00:00",
+   "updatedAt": "2026-10-16T01:15:01.460+00:00"
   },
   {
    "id": 2,
    "envelopeId": 2,
    "originalFilename": "VIDEO-DEMO-002.pdf",
-   "sha256": "96cc465e0026d9961cc1f783c961f22c1945a799af698852a40cda553de347e0",
-   "sizeBytes": 2412,
+   "sha256": "3e79b918d01725d90cc762b914134c4ee3ff2d1bfd9f1bfb7c5a8d892082907b",
+   "sizeBytes": 2422,
    "pageCount": 1,
    "pageText": [
-    "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-002\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-15\nRequested delivery date: 2026-10-22\nCurrency: CAD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nA | DEMO-GTIN-A01 | Demo granola case | 10 | CASE | 24.00 | 240.00\nB | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 24.00 | 48.00\nC | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00\nSubtotal: 306.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 306.00\nAll organisations, identifiers and commercial values are fictional test data.\nIdentifiers such as OLD-DEMO-003 are intentionally not valid GS1 GTINs.\n"
+    "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-002\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-15\nRequested delivery date: 2026-10-22\nCurrency: USD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nA | 614141000012 | Demo granola case | 10 | CASE | 24.00 | 240.00\nB | 614141000029 | Demo cracker case | 2 | CASE | 24.00 | 48.00\nC | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00\nSubtotal: 306.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 306.00\nAll organisations, identifiers and commercial values are fictional test data.\nItem GTINs use GS1 example company prefix 0614141; 614141000043 is a retired item.\n"
    ],
    "status": "approved",
    "statusDetail": null,
    "duplicateOf": null,
-   "createdAt": "2026-10-15T15:02:17.349+00:00",
-   "updatedAt": "2026-10-15T15:02:17.382+00:00"
+   "createdAt": "2026-10-16T01:15:01.489+00:00",
+   "updatedAt": "2026-10-16T01:15:01.506+00:00"
   },
   {
    "id": 3,
    "envelopeId": 3,
    "originalFilename": "VIDEO-DEMO-003.pdf",
-   "sha256": "b5dc95601e0829abe4179220c3b0bcf0d3199eadf077b733c6e0cbdac813f721",
-   "sizeBytes": 2333,
+   "sha256": "8d67b9234d7cafb9f9e2830994f01e8d7f85616967a252b1a674e1d17944c6a3",
+   "sizeBytes": 2353,
    "pageCount": 1,
    "pageText": [
-    "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-003\nCustomer: Lakeshore Demo Grocers\nCustomer ID: DEMO-CUST-02\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-02\nOrder date: 2026-10-15\nRequested delivery date: 2026-10-23\nCurrency: CAD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nC | OLD-DEMO-003 | Demo trail mix case | 3 | CASE | 18.00 | 54.00\nSubtotal: 54.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 54.00\nAll organisations, identifiers and commercial values are fictional test data.\nIdentifiers such as OLD-DEMO-003 are intentionally not valid GS1 GTINs.\n"
+    "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-003\nCustomer: Lakeshore Demo Grocers\nCustomer ID: DEMO-CUST-02\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-02\nOrder date: 2026-10-15\nRequested delivery date: 2026-10-23\nCurrency: USD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nC | 614141000043 | Demo trail mix case | 3 | CASE | 18.00 | 54.00\nSubtotal: 54.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 54.00\nAll organisations, identifiers and commercial values are fictional test data.\nItem GTINs use GS1 example company prefix 0614141; 614141000043 is a retired item.\n"
    ],
    "status": "needs_review",
    "statusDetail": null,
    "duplicateOf": null,
-   "createdAt": "2026-10-15T15:02:18.440+00:00",
-   "updatedAt": "2026-10-15T15:02:18.459+00:00"
+   "createdAt": "2026-10-16T01:15:01.523+00:00",
+   "updatedAt": "2026-10-16T01:15:01.538+00:00"
   },
   {
    "id": 4,
    "envelopeId": 4,
    "originalFilename": "VIDEO-DEMO-004.pdf",
-   "sha256": "722364728577187071f099d539d53019cfb80b2d21970ca2a0e9abb9d71f985d",
-   "sizeBytes": 2333,
+   "sha256": "193b20a5a751a687a1e1830f7f8cc8d7b16a6191cd4de81848c8a8b90a755e00",
+   "sizeBytes": 2351,
    "pageCount": 1,
    "pageText": [
-    "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-004\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-16\nRequested delivery date: 2026-10-23\nCurrency: CAD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nC | OLD-DEMO-003 | Demo trail mix case | 2 | CASE | 18.00 | 36.00\nSubtotal: 36.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 36.00\nAll organisations, identifiers and commercial values are fictional test data.\nIdentifiers such as OLD-DEMO-003 are intentionally not valid GS1 GTINs.\n"
+    "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-004\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-16\nRequested delivery date: 2026-10-23\nCurrency: USD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nC | 614141000043 | Demo trail mix case | 2 | CASE | 18.00 | 36.00\nSubtotal: 36.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 36.00\nAll organisations, identifiers and commercial values are fictional test data.\nItem GTINs use GS1 example company prefix 0614141; 614141000043 is a retired item.\n"
    ],
    "status": "needs_review",
    "statusDetail": null,
    "duplicateOf": null,
-   "createdAt": "2026-10-15T15:02:19.545+00:00",
-   "updatedAt": "2026-10-15T15:02:19.565+00:00"
+   "createdAt": "2026-10-16T01:15:01.550+00:00",
+   "updatedAt": "2026-10-16T01:15:01.565+00:00"
   },
   {
    "id": 5,
    "envelopeId": 5,
    "originalFilename": "VIDEO-DEMO-005.pdf",
-   "sha256": "99ed457a1a0dfd65bbd7e9acbf1342238ba3a729272462eec64e63aae0bfb375",
-   "sizeBytes": 2377,
+   "sha256": "e00238a6645c147231a363fa185bf0adb4ba47ba4ca65babcc244339ebf510d8",
+   "sizeBytes": 2388,
    "pageCount": 1,
    "pageText": [
-    "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-005\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-16\nRequested delivery date: 2026-10-24\nCurrency: CAD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nA | DEMO-GTIN-A01 | Demo granola case | 12 | CASE | 24.00 | 288.00\nB | DEMO-GTIN-B02 | Demo cracker case | 3 | CASE | 24.00 | 72.00\nSubtotal: 360.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 360.00\nAll organisations, identifiers and commercial values are fictional test data.\nIdentifiers such as OLD-DEMO-003 are intentionally not valid GS1 GTINs.\n"
+    "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-005\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-16\nRequested delivery date: 2026-10-24\nCurrency: USD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nA | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00\nB | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\nSubtotal: 360.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 360.00\nAll organisations, identifiers and commercial values are fictional test data.\nItem GTINs use GS1 example company prefix 0614141; 614141000043 is a retired item.\n"
    ],
    "status": "approved",
    "statusDetail": null,
    "duplicateOf": null,
-   "createdAt": "2026-10-15T15:02:20.603+00:00",
-   "updatedAt": "2026-10-15T15:02:21.666+00:00"
+   "createdAt": "2026-10-16T01:15:01.576+00:00",
+   "updatedAt": "2026-10-16T01:15:01.604+00:00"
   },
   {
    "id": 6,
    "envelopeId": 6,
    "originalFilename": "VIDEO-DEMO-005.pdf",
-   "sha256": "99ed457a1a0dfd65bbd7e9acbf1342238ba3a729272462eec64e63aae0bfb375",
-   "sizeBytes": 2377,
+   "sha256": "e00238a6645c147231a363fa185bf0adb4ba47ba4ca65babcc244339ebf510d8",
+   "sizeBytes": 2388,
    "pageCount": 1,
    "pageText": [
-    "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-005\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-16\nRequested delivery date: 2026-10-24\nCurrency: CAD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nA | DEMO-GTIN-A01 | Demo granola case | 12 | CASE | 24.00 | 288.00\nB | DEMO-GTIN-B02 | Demo cracker case | 3 | CASE | 24.00 | 72.00\nSubtotal: 360.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 360.00\nAll organisations, identifiers and commercial values are fictional test data.\nIdentifiers such as OLD-DEMO-003 are intentionally not valid GS1 GTINs.\n"
+    "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-005\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-16\nRequested delivery date: 2026-10-24\nCurrency: USD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nA | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00\nB | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\nSubtotal: 360.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 360.00\nAll organisations, identifiers and commercial values are fictional test data.\nItem GTINs use GS1 example company prefix 0614141; 614141000043 is a retired item.\n"
    ],
    "status": "duplicate",
    "statusDetail": "Identical to document 5",
    "duplicateOf": 5,
-   "createdAt": "2026-10-15T15:02:22.071+00:00",
-   "updatedAt": "2026-10-15T15:02:22.071+00:00"
+   "createdAt": "2026-10-16T01:15:01.636+00:00",
+   "updatedAt": "2026-10-16T01:15:01.636+00:00"
   }
  ],
  "versions": [
@@ -224,9 +224,9 @@
       "notes": []
      },
      "currency": {
-      "value": "CAD",
+      "value": "USD",
       "page": 1,
-      "evidence": "Currency: CAD",
+      "evidence": "Currency: USD",
       "evidence_verified": true,
       "notes": []
      },
@@ -264,14 +264,14 @@
       "source_line_id": {
        "value": "A",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "gtin": {
-       "value": "DEMO-GTIN-A01",
+       "value": "614141000012",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
@@ -285,35 +285,35 @@
       "description": {
        "value": "Demo granola case",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "quantity": {
        "value": "5",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit": {
        "value": "CASE",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit_price": {
        "value": "24.00",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "line_amount": {
        "value": "120.00",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       }
@@ -322,14 +322,14 @@
       "source_line_id": {
        "value": "B",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "gtin": {
-       "value": "DEMO-GTIN-B02",
+       "value": "614141000029",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
@@ -343,35 +343,35 @@
       "description": {
        "value": "Demo cracker case",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "quantity": {
        "value": "2",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit": {
        "value": "CASE",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit_price": {
        "value": "26.00",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "line_amount": {
        "value": "52.00",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       }
@@ -380,14 +380,14 @@
       "source_line_id": {
        "value": "C",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "gtin": {
-       "value": "OLD-DEMO-003",
+       "value": "614141000043",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
@@ -401,35 +401,35 @@
       "description": {
        "value": "Demo trail mix case",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "quantity": {
        "value": "1",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit": {
        "value": "CASE",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit_price": {
        "value": "18.00",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "line_amount": {
        "value": "18.00",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       }
@@ -437,7 +437,7 @@
     ]
    },
    "createdBy": "system:order-agent",
-   "createdAt": "2026-10-15T15:02:12.558+00:00"
+   "createdAt": "2026-10-16T01:15:01.428+00:00"
   },
   {
    "id": 2,
@@ -502,9 +502,9 @@
       "notes": []
      },
      "currency": {
-      "value": "CAD",
+      "value": "USD",
       "page": 1,
-      "evidence": "Currency: CAD",
+      "evidence": "Currency: USD",
       "evidence_verified": true,
       "notes": []
      },
@@ -542,14 +542,14 @@
       "source_line_id": {
        "value": "A",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "gtin": {
-       "value": "DEMO-GTIN-A01",
+       "value": "614141000012",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
@@ -563,35 +563,35 @@
       "description": {
        "value": "Demo granola case",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "quantity": {
        "value": "5",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit": {
        "value": "CASE",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit_price": {
        "value": "24.00",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "line_amount": {
        "value": "120.00",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       }
@@ -600,14 +600,14 @@
       "source_line_id": {
        "value": "B",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "gtin": {
-       "value": "DEMO-GTIN-B02",
+       "value": "614141000029",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
@@ -621,35 +621,35 @@
       "description": {
        "value": "Demo cracker case",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "quantity": {
        "value": "2",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit": {
        "value": "CASE",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit_price": {
        "value": "26.00",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "line_amount": {
        "value": "52.00",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       }
@@ -658,14 +658,14 @@
       "source_line_id": {
        "value": "C",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "gtin": {
-       "value": "OLD-DEMO-003",
+       "value": "614141000043",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
@@ -679,35 +679,35 @@
       "description": {
        "value": "Demo trail mix case",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "quantity": {
        "value": "1",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit": {
        "value": "CASE",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit_price": {
        "value": "18.00",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "line_amount": {
        "value": "18.00",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       }
@@ -718,7 +718,7 @@
     ]
    },
    "createdBy": "reviewer:rita",
-   "createdAt": "2026-10-15T15:02:14.067+00:00"
+   "createdAt": "2026-10-16T01:15:01.442+00:00"
   },
   {
    "id": 3,
@@ -783,9 +783,9 @@
       "notes": []
      },
      "currency": {
-      "value": "CAD",
+      "value": "USD",
       "page": 1,
-      "evidence": "Currency: CAD",
+      "evidence": "Currency: USD",
       "evidence_verified": true,
       "notes": []
      },
@@ -823,14 +823,14 @@
       "source_line_id": {
        "value": "A",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "gtin": {
-       "value": "DEMO-GTIN-A01",
+       "value": "614141000012",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
@@ -844,35 +844,35 @@
       "description": {
        "value": "Demo granola case",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "quantity": {
        "value": "5",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit": {
        "value": "CASE",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit_price": {
        "value": "24.00",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "line_amount": {
        "value": "120.00",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       }
@@ -881,14 +881,14 @@
       "source_line_id": {
        "value": "B",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "gtin": {
-       "value": "DEMO-GTIN-B02",
+       "value": "614141000029",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
@@ -902,35 +902,35 @@
       "description": {
        "value": "Demo cracker case",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "quantity": {
        "value": "2",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit": {
        "value": "CASE",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit_price": {
        "value": "26.00",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "line_amount": {
        "value": "52.00",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       }
@@ -939,14 +939,14 @@
       "source_line_id": {
        "value": "C",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "gtin": {
-       "value": "OLD-DEMO-003",
+       "value": "614141000043",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
@@ -960,35 +960,35 @@
       "description": {
        "value": "Demo trail mix case",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "quantity": {
        "value": "1",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit": {
        "value": "CASE",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit_price": {
        "value": "18.00",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "line_amount": {
        "value": "18.00",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       }
@@ -1000,7 +1000,7 @@
     ]
    },
    "createdBy": "reviewer:rita",
-   "createdAt": "2026-10-15T15:02:14.432+00:00"
+   "createdAt": "2026-10-16T01:15:01.450+00:00"
   },
   {
    "id": 4,
@@ -1065,9 +1065,9 @@
       "notes": []
      },
      "currency": {
-      "value": "CAD",
+      "value": "USD",
       "page": 1,
-      "evidence": "Currency: CAD",
+      "evidence": "Currency: USD",
       "evidence_verified": true,
       "notes": []
      },
@@ -1105,14 +1105,14 @@
       "source_line_id": {
        "value": "A",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "gtin": {
-       "value": "DEMO-GTIN-A01",
+       "value": "614141000012",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
@@ -1126,35 +1126,35 @@
       "description": {
        "value": "Demo granola case",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "quantity": {
        "value": "5",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit": {
        "value": "CASE",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit_price": {
        "value": "24.00",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       },
       "line_amount": {
        "value": "120.00",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "evidence_verified": true,
        "notes": []
       }
@@ -1163,14 +1163,14 @@
       "source_line_id": {
        "value": "B",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "gtin": {
-       "value": "DEMO-GTIN-B02",
+       "value": "614141000029",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
@@ -1184,35 +1184,35 @@
       "description": {
        "value": "Demo cracker case",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "quantity": {
        "value": "2",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit": {
        "value": "CASE",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit_price": {
        "value": "26.00",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       },
       "line_amount": {
        "value": "52.00",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "evidence_verified": true,
        "notes": []
       }
@@ -1221,14 +1221,14 @@
       "source_line_id": {
        "value": "C",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "gtin": {
-       "value": "OLD-DEMO-003",
+       "value": "614141000043",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
@@ -1242,35 +1242,35 @@
       "description": {
        "value": "Demo trail mix case",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "quantity": {
        "value": "1",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit": {
        "value": "CASE",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit_price": {
        "value": "18.00",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "line_amount": {
        "value": "18.00",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       }
@@ -1283,7 +1283,7 @@
     ]
    },
    "createdBy": "reviewer:rita",
-   "createdAt": "2026-10-15T15:02:14.799+00:00"
+   "createdAt": "2026-10-16T01:15:01.458+00:00"
   },
   {
    "id": 5,
@@ -1348,9 +1348,9 @@
       "notes": []
      },
      "currency": {
-      "value": "CAD",
+      "value": "USD",
       "page": 1,
-      "evidence": "Currency: CAD",
+      "evidence": "Currency: USD",
       "evidence_verified": true,
       "notes": []
      },
@@ -1388,14 +1388,14 @@
       "source_line_id": {
        "value": "A",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 10 | CASE | 24.00 | 240.00",
+       "evidence": "A | 614141000012 | Demo granola case | 10 | CASE | 24.00 | 240.00",
        "evidence_verified": true,
        "notes": []
       },
       "gtin": {
-       "value": "DEMO-GTIN-A01",
+       "value": "614141000012",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 10 | CASE | 24.00 | 240.00",
+       "evidence": "A | 614141000012 | Demo granola case | 10 | CASE | 24.00 | 240.00",
        "evidence_verified": true,
        "notes": []
       },
@@ -1409,35 +1409,35 @@
       "description": {
        "value": "Demo granola case",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 10 | CASE | 24.00 | 240.00",
+       "evidence": "A | 614141000012 | Demo granola case | 10 | CASE | 24.00 | 240.00",
        "evidence_verified": true,
        "notes": []
       },
       "quantity": {
        "value": "10",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 10 | CASE | 24.00 | 240.00",
+       "evidence": "A | 614141000012 | Demo granola case | 10 | CASE | 24.00 | 240.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit": {
        "value": "CASE",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 10 | CASE | 24.00 | 240.00",
+       "evidence": "A | 614141000012 | Demo granola case | 10 | CASE | 24.00 | 240.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit_price": {
        "value": "24.00",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 10 | CASE | 24.00 | 240.00",
+       "evidence": "A | 614141000012 | Demo granola case | 10 | CASE | 24.00 | 240.00",
        "evidence_verified": true,
        "notes": []
       },
       "line_amount": {
        "value": "240.00",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 10 | CASE | 24.00 | 240.00",
+       "evidence": "A | 614141000012 | Demo granola case | 10 | CASE | 24.00 | 240.00",
        "evidence_verified": true,
        "notes": []
       }
@@ -1446,14 +1446,14 @@
       "source_line_id": {
        "value": "B",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 24.00 | 48.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 24.00 | 48.00",
        "evidence_verified": true,
        "notes": []
       },
       "gtin": {
-       "value": "DEMO-GTIN-B02",
+       "value": "614141000029",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 24.00 | 48.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 24.00 | 48.00",
        "evidence_verified": true,
        "notes": []
       },
@@ -1467,35 +1467,35 @@
       "description": {
        "value": "Demo cracker case",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 24.00 | 48.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 24.00 | 48.00",
        "evidence_verified": true,
        "notes": []
       },
       "quantity": {
        "value": "2",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 24.00 | 48.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 24.00 | 48.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit": {
        "value": "CASE",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 24.00 | 48.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 24.00 | 48.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit_price": {
        "value": "24.00",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 24.00 | 48.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 24.00 | 48.00",
        "evidence_verified": true,
        "notes": []
       },
       "line_amount": {
        "value": "48.00",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 24.00 | 48.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 24.00 | 48.00",
        "evidence_verified": true,
        "notes": []
       }
@@ -1504,14 +1504,14 @@
       "source_line_id": {
        "value": "C",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "gtin": {
-       "value": "OLD-DEMO-003",
+       "value": "614141000043",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
@@ -1525,35 +1525,35 @@
       "description": {
        "value": "Demo trail mix case",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "quantity": {
        "value": "1",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit": {
        "value": "CASE",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit_price": {
        "value": "18.00",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       },
       "line_amount": {
        "value": "18.00",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "evidence_verified": true,
        "notes": []
       }
@@ -1561,7 +1561,7 @@
     ]
    },
    "createdBy": "system:order-agent",
-   "createdAt": "2026-10-15T15:02:17.372+00:00"
+   "createdAt": "2026-10-16T01:15:01.499+00:00"
   },
   {
    "id": 6,
@@ -1626,9 +1626,9 @@
       "notes": []
      },
      "currency": {
-      "value": "CAD",
+      "value": "USD",
       "page": 1,
-      "evidence": "Currency: CAD",
+      "evidence": "Currency: USD",
       "evidence_verified": true,
       "notes": []
      },
@@ -1666,14 +1666,14 @@
       "source_line_id": {
        "value": "C",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 3 | CASE | 18.00 | 54.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 3 | CASE | 18.00 | 54.00",
        "evidence_verified": true,
        "notes": []
       },
       "gtin": {
-       "value": "OLD-DEMO-003",
+       "value": "614141000043",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 3 | CASE | 18.00 | 54.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 3 | CASE | 18.00 | 54.00",
        "evidence_verified": true,
        "notes": []
       },
@@ -1687,35 +1687,35 @@
       "description": {
        "value": "Demo trail mix case",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 3 | CASE | 18.00 | 54.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 3 | CASE | 18.00 | 54.00",
        "evidence_verified": true,
        "notes": []
       },
       "quantity": {
        "value": "3",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 3 | CASE | 18.00 | 54.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 3 | CASE | 18.00 | 54.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit": {
        "value": "CASE",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 3 | CASE | 18.00 | 54.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 3 | CASE | 18.00 | 54.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit_price": {
        "value": "18.00",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 3 | CASE | 18.00 | 54.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 3 | CASE | 18.00 | 54.00",
        "evidence_verified": true,
        "notes": []
       },
       "line_amount": {
        "value": "54.00",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 3 | CASE | 18.00 | 54.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 3 | CASE | 18.00 | 54.00",
        "evidence_verified": true,
        "notes": []
       }
@@ -1723,7 +1723,7 @@
     ]
    },
    "createdBy": "system:order-agent",
-   "createdAt": "2026-10-15T15:02:18.453+00:00"
+   "createdAt": "2026-10-16T01:15:01.532+00:00"
   },
   {
    "id": 7,
@@ -1788,9 +1788,9 @@
       "notes": []
      },
      "currency": {
-      "value": "CAD",
+      "value": "USD",
       "page": 1,
-      "evidence": "Currency: CAD",
+      "evidence": "Currency: USD",
       "evidence_verified": true,
       "notes": []
      },
@@ -1828,14 +1828,14 @@
       "source_line_id": {
        "value": "C",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 2 | CASE | 18.00 | 36.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 2 | CASE | 18.00 | 36.00",
        "evidence_verified": true,
        "notes": []
       },
       "gtin": {
-       "value": "OLD-DEMO-003",
+       "value": "614141000043",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 2 | CASE | 18.00 | 36.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 2 | CASE | 18.00 | 36.00",
        "evidence_verified": true,
        "notes": []
       },
@@ -1849,35 +1849,35 @@
       "description": {
        "value": "Demo trail mix case",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 2 | CASE | 18.00 | 36.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 2 | CASE | 18.00 | 36.00",
        "evidence_verified": true,
        "notes": []
       },
       "quantity": {
        "value": "2",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 2 | CASE | 18.00 | 36.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 2 | CASE | 18.00 | 36.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit": {
        "value": "CASE",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 2 | CASE | 18.00 | 36.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 2 | CASE | 18.00 | 36.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit_price": {
        "value": "18.00",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 2 | CASE | 18.00 | 36.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 2 | CASE | 18.00 | 36.00",
        "evidence_verified": true,
        "notes": []
       },
       "line_amount": {
        "value": "36.00",
        "page": 1,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 2 | CASE | 18.00 | 36.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 2 | CASE | 18.00 | 36.00",
        "evidence_verified": true,
        "notes": []
       }
@@ -1885,7 +1885,7 @@
     ]
    },
    "createdBy": "system:order-agent",
-   "createdAt": "2026-10-15T15:02:19.558+00:00"
+   "createdAt": "2026-10-16T01:15:01.560+00:00"
   },
   {
    "id": 8,
@@ -1950,9 +1950,9 @@
       "notes": []
      },
      "currency": {
-      "value": "CAD",
+      "value": "USD",
       "page": 1,
-      "evidence": "Currency: CAD",
+      "evidence": "Currency: USD",
       "evidence_verified": true,
       "notes": []
      },
@@ -1990,14 +1990,14 @@
       "source_line_id": {
        "value": "A",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 12 | CASE | 24.00 | 288.00",
+       "evidence": "A | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00",
        "evidence_verified": true,
        "notes": []
       },
       "gtin": {
-       "value": "DEMO-GTIN-A01",
+       "value": "614141000012",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 12 | CASE | 24.00 | 288.00",
+       "evidence": "A | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00",
        "evidence_verified": true,
        "notes": []
       },
@@ -2011,35 +2011,35 @@
       "description": {
        "value": "Demo granola case",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 12 | CASE | 24.00 | 288.00",
+       "evidence": "A | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00",
        "evidence_verified": true,
        "notes": []
       },
       "quantity": {
        "value": "12",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 12 | CASE | 24.00 | 288.00",
+       "evidence": "A | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit": {
        "value": "CASE",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 12 | CASE | 24.00 | 288.00",
+       "evidence": "A | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit_price": {
        "value": "24.00",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 12 | CASE | 24.00 | 288.00",
+       "evidence": "A | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00",
        "evidence_verified": true,
        "notes": []
       },
       "line_amount": {
        "value": "288.00",
        "page": 1,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 12 | CASE | 24.00 | 288.00",
+       "evidence": "A | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00",
        "evidence_verified": true,
        "notes": []
       }
@@ -2048,14 +2048,14 @@
       "source_line_id": {
        "value": "B",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 3 | CASE | 24.00 | 72.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00",
        "evidence_verified": true,
        "notes": []
       },
       "gtin": {
-       "value": "DEMO-GTIN-B02",
+       "value": "614141000029",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 3 | CASE | 24.00 | 72.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00",
        "evidence_verified": true,
        "notes": []
       },
@@ -2069,35 +2069,35 @@
       "description": {
        "value": "Demo cracker case",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 3 | CASE | 24.00 | 72.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00",
        "evidence_verified": true,
        "notes": []
       },
       "quantity": {
        "value": "3",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 3 | CASE | 24.00 | 72.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit": {
        "value": "CASE",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 3 | CASE | 24.00 | 72.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00",
        "evidence_verified": true,
        "notes": []
       },
       "unit_price": {
        "value": "24.00",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 3 | CASE | 24.00 | 72.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00",
        "evidence_verified": true,
        "notes": []
       },
       "line_amount": {
        "value": "72.00",
        "page": 1,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 3 | CASE | 24.00 | 72.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00",
        "evidence_verified": true,
        "notes": []
       }
@@ -2105,7 +2105,7 @@
     ]
    },
    "createdBy": "system:order-agent",
-   "createdAt": "2026-10-15T15:02:20.618+00:00"
+   "createdAt": "2026-10-16T01:15:01.586+00:00"
   }
  ],
  "orders": [
@@ -2122,7 +2122,7 @@
      "customer_id": "DEMO-CUST-01",
      "customer_name": "Northfield Demo Retail",
      "po_number": "VIDEO-DEMO-001",
-     "currency": "CAD",
+     "currency": "USD",
      "ship_to_id": "DEMO-DC-01",
      "order_date": "2026-10-14",
      "requested_delivery_date": "2026-10-21",
@@ -2130,7 +2130,7 @@
       {
        "line_index": 0,
        "source_line_id": "A",
-       "printed_gtin": "DEMO-GTIN-A01",
+       "printed_gtin": "614141000012",
        "customer_item_code": null,
        "description": "Demo granola case",
        "original_quantity": "5",
@@ -2138,20 +2138,20 @@
        "printed_unit_price": "24.00",
        "printed_line_amount": "120.00",
        "sku": "DEMO-SKU-A",
-       "gtin": "DEMO-GTIN-A01",
+       "gtin": "614141000012",
        "quantity": "5",
        "unit": "CASE",
        "unit_price": "24.00",
        "line_amount": "120.00",
        "resolved_by": null,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "page": 1,
        "description_reference": "Demo granola case"
       },
       {
        "line_index": 1,
        "source_line_id": "B",
-       "printed_gtin": "DEMO-GTIN-B02",
+       "printed_gtin": "614141000029",
        "customer_item_code": null,
        "description": "Demo cracker case",
        "original_quantity": "2",
@@ -2159,20 +2159,20 @@
        "printed_unit_price": "26.00",
        "printed_line_amount": "52.00",
        "sku": "DEMO-SKU-B",
-       "gtin": "DEMO-GTIN-B02",
+       "gtin": "614141000029",
        "quantity": "2",
        "unit": "CASE",
        "unit_price": "26.00",
        "line_amount": "52.00",
        "resolved_by": null,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "page": 1,
        "description_reference": "Demo cracker case"
       },
       {
        "line_index": 2,
        "source_line_id": "C",
-       "printed_gtin": "OLD-DEMO-003",
+       "printed_gtin": "614141000043",
        "customer_item_code": null,
        "description": "Demo trail mix case",
        "original_quantity": "1",
@@ -2180,16 +2180,16 @@
        "printed_unit_price": "18.00",
        "printed_line_amount": "18.00",
        "sku": "DEMO-SKU-C",
-       "gtin": "NEW-DEMO-003",
+       "gtin": "614141000036",
        "quantity": "1",
        "unit": "CASE",
        "unit_price": "18.00",
        "line_amount": "18.00",
        "resolved_by": {
         "type": "review_decision",
-        "text": "Mapping OLD-DEMO-003 -> NEW-DEMO-003 approved by rita for this order (decision #3)"
+        "text": "Mapping 614141000043 -> 614141000036 approved by rita for this order (decision #3)"
        },
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "page": 1,
        "description_reference": "Demo trail mix case"
       }
@@ -2217,7 +2217,7 @@
       "reference_value": "10 CASE",
       "reference_version": "MOQ-v1",
       "proposed_action": "Ask the customer to correct, or record an authorised one-off exception",
-      "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+      "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
       "page": 1,
       "blocking": true,
       "actions": [
@@ -2234,20 +2234,20 @@
        "actor": "reviewer:rita",
        "role": "reviewer",
        "reason": "Customer confirmed a one-off trial quantity (fictional)",
-       "at": "2026-10-15T15:02:14.067+00:00"
+       "at": "2026-10-16T01:15:01.441+00:00"
       }
      },
      {
       "key": "price_mismatch:1",
       "code": "price_mismatch",
       "title": "Price differs from agreed price",
-      "message": "Line B: printed 26.00 CAD per CASE; agreed price is 24.00.",
+      "message": "Line B: printed 26.00 USD per CASE; agreed price is 24.00.",
       "line_index": 1,
       "printed_value": "26.00",
       "reference_value": "24.00",
       "reference_version": "REF-2026-10-v1",
       "proposed_action": "Accept printed price with a reason, or correct it",
-      "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+      "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
       "page": 1,
       "blocking": true,
       "actions": [
@@ -2263,31 +2263,31 @@
        "actor": "reviewer:rita",
        "role": "reviewer",
        "reason": "Promotional price agreed by the account manager (fictional)",
-       "at": "2026-10-15T15:02:14.432+00:00"
+       "at": "2026-10-16T01:15:01.450+00:00"
       }
      },
      {
       "key": "outdated_identifier:2",
       "code": "outdated_identifier",
       "title": "Outdated GTIN",
-      "message": "Line C: OLD-DEMO-003 is a retired identifier. Supplier notice proposes NEW-DEMO-003; it needs a reviewer decision before use.",
+      "message": "Line C: 614141000043 is a retired identifier. Supplier notice proposes 614141000036; it needs a reviewer decision before use.",
       "line_index": 2,
-      "printed_value": "OLD-DEMO-003",
-      "reference_value": "NEW-DEMO-003",
+      "printed_value": "614141000043",
+      "reference_value": "614141000036",
       "reference_version": "REF-2026-10-v1",
-      "proposed_action": "Apply mapping OLD-DEMO-003 -> NEW-DEMO-003 for DEMO-CUST-01",
-      "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+      "proposed_action": "Apply mapping 614141000043 -> 614141000036 for DEMO-CUST-01",
+      "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
       "page": 1,
       "blocking": true,
       "actions": [
        "apply_mapping",
        "reject_order"
       ],
-      "fingerprint": "[\"outdated_identifier\", 2, \"OLD-DEMO-003\", \"NEW-DEMO-003\"]",
+      "fingerprint": "[\"outdated_identifier\", 2, \"614141000043\", \"614141000036\"]",
       "proposal": {
        "mapping_id": "MAP-PROP-001",
-       "obsolete_identifier": "OLD-DEMO-003",
-       "replacement_identifier": "NEW-DEMO-003",
+       "obsolete_identifier": "614141000043",
+       "replacement_identifier": "614141000036",
        "replacement_sku": "DEMO-SKU-C",
        "source": "supplier product notice (fictional)",
        "state": "proposed",
@@ -2300,14 +2300,14 @@
        "actor": "reviewer:rita",
        "role": "reviewer",
        "reason": null,
-       "at": "2026-10-15T15:02:14.798+00:00"
+       "at": "2026-10-16T01:15:01.458+00:00"
       }
      }
     ],
     "rules_snapshot": [],
     "version": 4
    },
-   "updatedAt": "2026-10-15T15:02:14.802+00:00"
+   "updatedAt": "2026-10-16T01:15:01.459+00:00"
   },
   {
    "documentId": 2,
@@ -2322,7 +2322,7 @@
      "customer_id": "DEMO-CUST-01",
      "customer_name": "Northfield Demo Retail",
      "po_number": "VIDEO-DEMO-002",
-     "currency": "CAD",
+     "currency": "USD",
      "ship_to_id": "DEMO-DC-01",
      "order_date": "2026-10-15",
      "requested_delivery_date": "2026-10-22",
@@ -2330,7 +2330,7 @@
       {
        "line_index": 0,
        "source_line_id": "A",
-       "printed_gtin": "DEMO-GTIN-A01",
+       "printed_gtin": "614141000012",
        "customer_item_code": null,
        "description": "Demo granola case",
        "original_quantity": "10",
@@ -2338,20 +2338,20 @@
        "printed_unit_price": "24.00",
        "printed_line_amount": "240.00",
        "sku": "DEMO-SKU-A",
-       "gtin": "DEMO-GTIN-A01",
+       "gtin": "614141000012",
        "quantity": "10",
        "unit": "CASE",
        "unit_price": "24.00",
        "line_amount": "240.00",
        "resolved_by": null,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 10 | CASE | 24.00 | 240.00",
+       "evidence": "A | 614141000012 | Demo granola case | 10 | CASE | 24.00 | 240.00",
        "page": 1,
        "description_reference": "Demo granola case"
       },
       {
        "line_index": 1,
        "source_line_id": "B",
-       "printed_gtin": "DEMO-GTIN-B02",
+       "printed_gtin": "614141000029",
        "customer_item_code": null,
        "description": "Demo cracker case",
        "original_quantity": "2",
@@ -2359,20 +2359,20 @@
        "printed_unit_price": "24.00",
        "printed_line_amount": "48.00",
        "sku": "DEMO-SKU-B",
-       "gtin": "DEMO-GTIN-B02",
+       "gtin": "614141000029",
        "quantity": "2",
        "unit": "CASE",
        "unit_price": "24.00",
        "line_amount": "48.00",
        "resolved_by": null,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 24.00 | 48.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 24.00 | 48.00",
        "page": 1,
        "description_reference": "Demo cracker case"
       },
       {
        "line_index": 2,
        "source_line_id": "C",
-       "printed_gtin": "OLD-DEMO-003",
+       "printed_gtin": "614141000043",
        "customer_item_code": null,
        "description": "Demo trail mix case",
        "original_quantity": "1",
@@ -2380,7 +2380,7 @@
        "printed_unit_price": "18.00",
        "printed_line_amount": "18.00",
        "sku": "DEMO-SKU-C",
-       "gtin": "NEW-DEMO-003",
+       "gtin": "614141000036",
        "quantity": "1",
        "unit": "CASE",
        "unit_price": "18.00",
@@ -2389,10 +2389,10 @@
         "type": "memory_rule",
         "rule_id": 1,
         "approved_by": "administrator:alex",
-        "activated_at": "2026-10-15T15:02:15.217+00:00",
-        "text": "Resolved by memory rule #1 (OLD-DEMO-003 -> NEW-DEMO-003), activated by alex (administrator)"
+        "activated_at": "2026-10-16T01:15:01.480+00:00",
+        "text": "Resolved by memory rule #1 (614141000043 -> 614141000036), activated by alex (administrator)"
        },
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "page": 1,
        "description_reference": "Demo trail mix case"
       }
@@ -2415,18 +2415,18 @@
       "id": 1,
       "kind": "identifier_mapping",
       "customer_id": "DEMO-CUST-01",
-      "obsolete_identifier": "OLD-DEMO-003",
-      "replacement_identifier": "NEW-DEMO-003",
+      "obsolete_identifier": "614141000043",
+      "replacement_identifier": "614141000036",
       "replacement_sku": "DEMO-SKU-C",
       "reference_version": "REF-2026-10-v1",
       "state": "active",
       "source_document_id": 1,
       "source_decision_id": 3,
-      "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+      "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
       "created_by": "reviewer:rita",
-      "created_at": "2026-10-15T15:02:14.799+00:00",
+      "created_at": "2026-10-16T01:15:01.459+00:00",
       "activated_by": "administrator:alex",
-      "activated_at": "2026-10-15T15:02:15.217+00:00",
+      "activated_at": "2026-10-16T01:15:01.480+00:00",
       "revoked_by": null,
       "revoked_at": null,
       "revoke_reason": null
@@ -2434,7 +2434,7 @@
     ],
     "version": 1
    },
-   "updatedAt": "2026-10-15T15:02:17.378+00:00"
+   "updatedAt": "2026-10-16T01:15:01.503+00:00"
   },
   {
    "documentId": 3,
@@ -2449,7 +2449,7 @@
      "customer_id": "DEMO-CUST-02",
      "customer_name": "Lakeshore Demo Grocers",
      "po_number": "VIDEO-DEMO-003",
-     "currency": "CAD",
+     "currency": "USD",
      "ship_to_id": "DEMO-DC-02",
      "order_date": "2026-10-15",
      "requested_delivery_date": "2026-10-23",
@@ -2457,7 +2457,7 @@
       {
        "line_index": 0,
        "source_line_id": "C",
-       "printed_gtin": "OLD-DEMO-003",
+       "printed_gtin": "614141000043",
        "customer_item_code": null,
        "description": "Demo trail mix case",
        "original_quantity": "3",
@@ -2471,7 +2471,7 @@
        "unit_price": null,
        "line_amount": null,
        "resolved_by": null,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 3 | CASE | 18.00 | 54.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 3 | CASE | 18.00 | 54.00",
        "page": 1
       }
      ],
@@ -2492,24 +2492,24 @@
       "key": "outdated_identifier:0",
       "code": "outdated_identifier",
       "title": "Outdated GTIN",
-      "message": "Line C: OLD-DEMO-003 is a retired identifier. Supplier notice proposes NEW-DEMO-003; it needs a reviewer decision before use.",
+      "message": "Line C: 614141000043 is a retired identifier. Supplier notice proposes 614141000036; it needs a reviewer decision before use.",
       "line_index": 0,
-      "printed_value": "OLD-DEMO-003",
-      "reference_value": "NEW-DEMO-003",
+      "printed_value": "614141000043",
+      "reference_value": "614141000036",
       "reference_version": "REF-2026-10-v1",
-      "proposed_action": "Apply mapping OLD-DEMO-003 -> NEW-DEMO-003 for DEMO-CUST-02",
-      "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 3 | CASE | 18.00 | 54.00",
+      "proposed_action": "Apply mapping 614141000043 -> 614141000036 for DEMO-CUST-02",
+      "evidence": "C | 614141000043 | Demo trail mix case | 3 | CASE | 18.00 | 54.00",
       "page": 1,
       "blocking": true,
       "actions": [
        "apply_mapping",
        "reject_order"
       ],
-      "fingerprint": "[\"outdated_identifier\", 0, \"OLD-DEMO-003\", \"NEW-DEMO-003\"]",
+      "fingerprint": "[\"outdated_identifier\", 0, \"614141000043\", \"614141000036\"]",
       "proposal": {
        "mapping_id": "MAP-PROP-001",
-       "obsolete_identifier": "OLD-DEMO-003",
-       "replacement_identifier": "NEW-DEMO-003",
+       "obsolete_identifier": "614141000043",
+       "replacement_identifier": "614141000036",
        "replacement_sku": "DEMO-SKU-C",
        "source": "supplier product notice (fictional)",
        "state": "proposed",
@@ -2524,18 +2524,18 @@
       "id": 1,
       "kind": "identifier_mapping",
       "customer_id": "DEMO-CUST-01",
-      "obsolete_identifier": "OLD-DEMO-003",
-      "replacement_identifier": "NEW-DEMO-003",
+      "obsolete_identifier": "614141000043",
+      "replacement_identifier": "614141000036",
       "replacement_sku": "DEMO-SKU-C",
       "reference_version": "REF-2026-10-v1",
       "state": "active",
       "source_document_id": 1,
       "source_decision_id": 3,
-      "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+      "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
       "created_by": "reviewer:rita",
-      "created_at": "2026-10-15T15:02:14.799+00:00",
+      "created_at": "2026-10-16T01:15:01.459+00:00",
       "activated_by": "administrator:alex",
-      "activated_at": "2026-10-15T15:02:15.217+00:00",
+      "activated_at": "2026-10-16T01:15:01.480+00:00",
       "revoked_by": null,
       "revoked_at": null,
       "revoke_reason": null
@@ -2543,7 +2543,7 @@
     ],
     "version": 1
    },
-   "updatedAt": "2026-10-15T15:02:18.457+00:00"
+   "updatedAt": "2026-10-16T01:15:01.535+00:00"
   },
   {
    "documentId": 4,
@@ -2558,7 +2558,7 @@
      "customer_id": "DEMO-CUST-01",
      "customer_name": "Northfield Demo Retail",
      "po_number": "VIDEO-DEMO-004",
-     "currency": "CAD",
+     "currency": "USD",
      "ship_to_id": "DEMO-DC-01",
      "order_date": "2026-10-16",
      "requested_delivery_date": "2026-10-23",
@@ -2566,7 +2566,7 @@
       {
        "line_index": 0,
        "source_line_id": "C",
-       "printed_gtin": "OLD-DEMO-003",
+       "printed_gtin": "614141000043",
        "customer_item_code": null,
        "description": "Demo trail mix case",
        "original_quantity": "2",
@@ -2580,7 +2580,7 @@
        "unit_price": null,
        "line_amount": null,
        "resolved_by": null,
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 2 | CASE | 18.00 | 36.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 2 | CASE | 18.00 | 36.00",
        "page": 1
       }
      ],
@@ -2601,24 +2601,24 @@
       "key": "outdated_identifier:0",
       "code": "outdated_identifier",
       "title": "Outdated GTIN",
-      "message": "Line C: OLD-DEMO-003 is a retired identifier. Supplier notice proposes NEW-DEMO-003; it needs a reviewer decision before use.",
+      "message": "Line C: 614141000043 is a retired identifier. Supplier notice proposes 614141000036; it needs a reviewer decision before use.",
       "line_index": 0,
-      "printed_value": "OLD-DEMO-003",
-      "reference_value": "NEW-DEMO-003",
+      "printed_value": "614141000043",
+      "reference_value": "614141000036",
       "reference_version": "REF-2026-10-v1",
-      "proposed_action": "Apply mapping OLD-DEMO-003 -> NEW-DEMO-003 for DEMO-CUST-01",
-      "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 2 | CASE | 18.00 | 36.00",
+      "proposed_action": "Apply mapping 614141000043 -> 614141000036 for DEMO-CUST-01",
+      "evidence": "C | 614141000043 | Demo trail mix case | 2 | CASE | 18.00 | 36.00",
       "page": 1,
       "blocking": true,
       "actions": [
        "apply_mapping",
        "reject_order"
       ],
-      "fingerprint": "[\"outdated_identifier\", 0, \"OLD-DEMO-003\", \"NEW-DEMO-003\"]",
+      "fingerprint": "[\"outdated_identifier\", 0, \"614141000043\", \"614141000036\"]",
       "proposal": {
        "mapping_id": "MAP-PROP-001",
-       "obsolete_identifier": "OLD-DEMO-003",
-       "replacement_identifier": "NEW-DEMO-003",
+       "obsolete_identifier": "614141000043",
+       "replacement_identifier": "614141000036",
        "replacement_sku": "DEMO-SKU-C",
        "source": "supplier product notice (fictional)",
        "state": "proposed",
@@ -2631,7 +2631,7 @@
     "rules_snapshot": [],
     "version": 1
    },
-   "updatedAt": "2026-10-15T15:02:19.563+00:00"
+   "updatedAt": "2026-10-16T01:15:01.563+00:00"
   },
   {
    "documentId": 5,
@@ -2646,7 +2646,7 @@
      "customer_id": "DEMO-CUST-01",
      "customer_name": "Northfield Demo Retail",
      "po_number": "VIDEO-DEMO-005",
-     "currency": "CAD",
+     "currency": "USD",
      "ship_to_id": "DEMO-DC-01",
      "order_date": "2026-10-16",
      "requested_delivery_date": "2026-10-24",
@@ -2654,7 +2654,7 @@
       {
        "line_index": 0,
        "source_line_id": "A",
-       "printed_gtin": "DEMO-GTIN-A01",
+       "printed_gtin": "614141000012",
        "customer_item_code": null,
        "description": "Demo granola case",
        "original_quantity": "12",
@@ -2662,20 +2662,20 @@
        "printed_unit_price": "24.00",
        "printed_line_amount": "288.00",
        "sku": "DEMO-SKU-A",
-       "gtin": "DEMO-GTIN-A01",
+       "gtin": "614141000012",
        "quantity": "12",
        "unit": "CASE",
        "unit_price": "24.00",
        "line_amount": "288.00",
        "resolved_by": null,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 12 | CASE | 24.00 | 288.00",
+       "evidence": "A | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00",
        "page": 1,
        "description_reference": "Demo granola case"
       },
       {
        "line_index": 1,
        "source_line_id": "B",
-       "printed_gtin": "DEMO-GTIN-B02",
+       "printed_gtin": "614141000029",
        "customer_item_code": null,
        "description": "Demo cracker case",
        "original_quantity": "3",
@@ -2683,13 +2683,13 @@
        "printed_unit_price": "24.00",
        "printed_line_amount": "72.00",
        "sku": "DEMO-SKU-B",
-       "gtin": "DEMO-GTIN-B02",
+       "gtin": "614141000029",
        "quantity": "3",
        "unit": "CASE",
        "unit_price": "24.00",
        "line_amount": "72.00",
        "resolved_by": null,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 3 | CASE | 24.00 | 72.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00",
        "page": 1,
        "description_reference": "Demo cracker case"
       }
@@ -2710,7 +2710,7 @@
     "rules_snapshot": [],
     "version": 1
    },
-   "updatedAt": "2026-10-15T15:02:20.623+00:00"
+   "updatedAt": "2026-10-16T01:15:01.589+00:00"
   }
  ],
  "decisions": [
@@ -2725,7 +2725,7 @@
    "actor": "reviewer:rita",
    "role": "reviewer",
    "versionCreated": 2,
-   "createdAt": "2026-10-15T15:02:14.067+00:00"
+   "createdAt": "2026-10-16T01:15:01.441+00:00"
   },
   {
    "id": 2,
@@ -2738,17 +2738,17 @@
    "actor": "reviewer:rita",
    "role": "reviewer",
    "versionCreated": 3,
-   "createdAt": "2026-10-15T15:02:14.432+00:00"
+   "createdAt": "2026-10-16T01:15:01.450+00:00"
   },
   {
    "id": 3,
    "documentId": 1,
    "issueKey": "outdated_identifier:2",
-   "fingerprint": "[\"outdated_identifier\", 2, \"OLD-DEMO-003\", \"NEW-DEMO-003\"]",
+   "fingerprint": "[\"outdated_identifier\", 2, \"614141000043\", \"614141000036\"]",
    "action": "apply_mapping",
    "params": {
-    "obsolete_identifier": "OLD-DEMO-003",
-    "replacement_identifier": "NEW-DEMO-003",
+    "obsolete_identifier": "614141000043",
+    "replacement_identifier": "614141000036",
     "replacement_sku": "DEMO-SKU-C",
     "save_for_future": true
    },
@@ -2756,7 +2756,7 @@
    "actor": "reviewer:rita",
    "role": "reviewer",
    "versionCreated": 4,
-   "createdAt": "2026-10-15T15:02:14.798+00:00"
+   "createdAt": "2026-10-16T01:15:01.458+00:00"
   }
  ],
  "approvals": [
@@ -2768,7 +2768,7 @@
    "actor": "reviewer:rita",
    "policyMode": "exception_only",
    "policyVersion": 2,
-   "createdAt": "2026-10-15T15:02:14.802+00:00",
+   "createdAt": "2026-10-16T01:15:01.460+00:00",
    "invalidatedAt": null,
    "invalidatedReason": null
   },
@@ -2780,7 +2780,7 @@
    "actor": "policy:exception_only#2",
    "policyMode": "exception_only",
    "policyVersion": 2,
-   "createdAt": "2026-10-15T15:02:17.382+00:00",
+   "createdAt": "2026-10-16T01:15:01.506+00:00",
    "invalidatedAt": null,
    "invalidatedReason": null
   },
@@ -2792,7 +2792,7 @@
    "actor": "reviewer:rita",
    "policyMode": "review_all",
    "policyVersion": 3,
-   "createdAt": "2026-10-15T15:02:21.666+00:00",
+   "createdAt": "2026-10-16T01:15:01.604+00:00",
    "invalidatedAt": null,
    "invalidatedReason": null
   }
@@ -2802,19 +2802,19 @@
    "id": 1,
    "mode": "review_all",
    "setBy": "administrator:alex",
-   "effectiveAt": "2026-10-15T15:02:12.136+00:00"
+   "effectiveAt": "2026-10-16T01:15:01.394+00:00"
   },
   {
    "id": 2,
    "mode": "exception_only",
    "setBy": "administrator:alex",
-   "effectiveAt": "2026-10-15T15:02:12.371+00:00"
+   "effectiveAt": "2026-10-16T01:15:01.408+00:00"
   },
   {
    "id": 3,
    "mode": "review_all",
    "setBy": "administrator:alex",
-   "effectiveAt": "2026-10-15T15:02:20.585+00:00"
+   "effectiveAt": "2026-10-16T01:15:01.569+00:00"
   }
  ],
  "memoryRules": [
@@ -2822,20 +2822,20 @@
    "id": 1,
    "kind": "identifier_mapping",
    "customerId": "DEMO-CUST-01",
-   "obsoleteIdentifier": "OLD-DEMO-003",
-   "replacementIdentifier": "NEW-DEMO-003",
+   "obsoleteIdentifier": "614141000043",
+   "replacementIdentifier": "614141000036",
    "replacementSku": "DEMO-SKU-C",
    "referenceVersion": "REF-2026-10-v1",
    "state": "revoked",
    "sourceDocumentId": 1,
    "sourceDecisionId": 3,
-   "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+   "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
    "createdBy": "reviewer:rita",
-   "createdAt": "2026-10-15T15:02:14.799+00:00",
+   "createdAt": "2026-10-16T01:15:01.459+00:00",
    "activatedBy": "administrator:alex",
-   "activatedAt": "2026-10-15T15:02:15.217+00:00",
+   "activatedAt": "2026-10-16T01:15:01.480+00:00",
    "revokedBy": "administrator:alex",
-   "revokedAt": "2026-10-15T15:02:19.532+00:00",
+   "revokedAt": "2026-10-16T01:15:01.542+00:00",
    "revokeReason": "Supplier withdrew the notice (fictional)"
   }
  ],
@@ -2844,53 +2844,53 @@
    "id": 1,
    "documentId": 1,
    "version": 4,
-   "idempotencyKey": "79aed17df0ff5a8b:v4",
+   "idempotencyKey": "99fe4efc6cfd7819:v4",
    "state": "erp_created",
    "detail": "ERP simulator acknowledged the order",
    "erpOrderId": "SIM-ERP-100001",
-   "createdAt": "2026-10-15T15:02:14.808+00:00",
-   "updatedAt": "2026-10-15T15:02:14.816+00:00"
+   "createdAt": "2026-10-16T01:15:01.465+00:00",
+   "updatedAt": "2026-10-16T01:15:01.473+00:00"
   },
   {
    "id": 2,
    "documentId": 2,
    "version": 1,
-   "idempotencyKey": "96cc465e0026d996:v1",
+   "idempotencyKey": "3e79b918d01725d9:v1",
    "state": "erp_created",
    "detail": "ERP simulator acknowledged the order",
    "erpOrderId": "SIM-ERP-100002",
-   "createdAt": "2026-10-15T15:02:17.384+00:00",
-   "updatedAt": "2026-10-15T15:02:17.391+00:00"
+   "createdAt": "2026-10-16T01:15:01.508+00:00",
+   "updatedAt": "2026-10-16T01:15:01.515+00:00"
   },
   {
    "id": 3,
    "documentId": 5,
    "version": 1,
-   "idempotencyKey": "99ed457a1a0dfd65:v1",
+   "idempotencyKey": "e00238a6645c1472:v1",
    "state": "unknown",
    "detail": "No response from ERP simulator after the order was created (simulated timeout)",
    "erpOrderId": null,
-   "createdAt": "2026-10-15T15:02:21.670+00:00",
-   "updatedAt": "2026-10-15T15:02:21.680+00:00"
+   "createdAt": "2026-10-16T01:15:01.607+00:00",
+   "updatedAt": "2026-10-16T01:15:01.616+00:00"
   },
   {
    "id": 4,
    "documentId": 5,
    "version": 1,
-   "idempotencyKey": "99ed457a1a0dfd65:v1",
+   "idempotencyKey": "e00238a6645c1472:v1",
    "state": "erp_created",
    "detail": "Reconciled: ERP already holds this order",
    "erpOrderId": "SIM-ERP-100003",
-   "createdAt": "2026-10-15T15:02:22.027+00:00",
-   "updatedAt": "2026-10-15T15:02:22.034+00:00"
+   "createdAt": "2026-10-16T01:15:01.624+00:00",
+   "updatedAt": "2026-10-16T01:15:01.626+00:00"
   }
  ],
  "erpOrders": [
   {
    "erpOrderId": "SIM-ERP-100001",
-   "idempotencyKey": "79aed17df0ff5a8b:v4",
+   "idempotencyKey": "99fe4efc6cfd7819:v4",
    "payload": {
-    "idempotency_key": "79aed17df0ff5a8b:v4",
+    "idempotency_key": "99fe4efc6cfd7819:v4",
     "approved_version": 4,
     "approval": {
      "kind": "human",
@@ -2901,7 +2901,7 @@
      "customer_id": "DEMO-CUST-01",
      "customer_name": "Northfield Demo Retail",
      "po_number": "VIDEO-DEMO-001",
-     "currency": "CAD",
+     "currency": "USD",
      "ship_to_id": "DEMO-DC-01",
      "order_date": "2026-10-14",
      "requested_delivery_date": "2026-10-21",
@@ -2909,7 +2909,7 @@
       {
        "line_index": 0,
        "source_line_id": "A",
-       "printed_gtin": "DEMO-GTIN-A01",
+       "printed_gtin": "614141000012",
        "customer_item_code": null,
        "description": "Demo granola case",
        "original_quantity": "5",
@@ -2917,20 +2917,20 @@
        "printed_unit_price": "24.00",
        "printed_line_amount": "120.00",
        "sku": "DEMO-SKU-A",
-       "gtin": "DEMO-GTIN-A01",
+       "gtin": "614141000012",
        "quantity": "5",
        "unit": "CASE",
        "unit_price": "24.00",
        "line_amount": "120.00",
        "resolved_by": null,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 5 | CASE | 24.00 | 120.00",
+       "evidence": "A | 614141000012 | Demo granola case | 5 | CASE | 24.00 | 120.00",
        "page": 1,
        "description_reference": "Demo granola case"
       },
       {
        "line_index": 1,
        "source_line_id": "B",
-       "printed_gtin": "DEMO-GTIN-B02",
+       "printed_gtin": "614141000029",
        "customer_item_code": null,
        "description": "Demo cracker case",
        "original_quantity": "2",
@@ -2938,20 +2938,20 @@
        "printed_unit_price": "26.00",
        "printed_line_amount": "52.00",
        "sku": "DEMO-SKU-B",
-       "gtin": "DEMO-GTIN-B02",
+       "gtin": "614141000029",
        "quantity": "2",
        "unit": "CASE",
        "unit_price": "26.00",
        "line_amount": "52.00",
        "resolved_by": null,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 26.00 | 52.00",
        "page": 1,
        "description_reference": "Demo cracker case"
       },
       {
        "line_index": 2,
        "source_line_id": "C",
-       "printed_gtin": "OLD-DEMO-003",
+       "printed_gtin": "614141000043",
        "customer_item_code": null,
        "description": "Demo trail mix case",
        "original_quantity": "1",
@@ -2959,16 +2959,16 @@
        "printed_unit_price": "18.00",
        "printed_line_amount": "18.00",
        "sku": "DEMO-SKU-C",
-       "gtin": "NEW-DEMO-003",
+       "gtin": "614141000036",
        "quantity": "1",
        "unit": "CASE",
        "unit_price": "18.00",
        "line_amount": "18.00",
        "resolved_by": {
         "type": "review_decision",
-        "text": "Mapping OLD-DEMO-003 -> NEW-DEMO-003 approved by rita for this order (decision #3)"
+        "text": "Mapping 614141000043 -> 614141000036 approved by rita for this order (decision #3)"
        },
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "page": 1,
        "description_reference": "Demo trail mix case"
       }
@@ -2986,13 +2986,13 @@
      "policy_version": "POLICY-v1"
     }
    },
-   "createdAt": "2026-10-15T15:02:14.814+00:00"
+   "createdAt": "2026-10-16T01:15:01.471+00:00"
   },
   {
    "erpOrderId": "SIM-ERP-100002",
-   "idempotencyKey": "96cc465e0026d996:v1",
+   "idempotencyKey": "3e79b918d01725d9:v1",
    "payload": {
-    "idempotency_key": "96cc465e0026d996:v1",
+    "idempotency_key": "3e79b918d01725d9:v1",
     "approved_version": 1,
     "approval": {
      "kind": "system",
@@ -3003,7 +3003,7 @@
      "customer_id": "DEMO-CUST-01",
      "customer_name": "Northfield Demo Retail",
      "po_number": "VIDEO-DEMO-002",
-     "currency": "CAD",
+     "currency": "USD",
      "ship_to_id": "DEMO-DC-01",
      "order_date": "2026-10-15",
      "requested_delivery_date": "2026-10-22",
@@ -3011,7 +3011,7 @@
       {
        "line_index": 0,
        "source_line_id": "A",
-       "printed_gtin": "DEMO-GTIN-A01",
+       "printed_gtin": "614141000012",
        "customer_item_code": null,
        "description": "Demo granola case",
        "original_quantity": "10",
@@ -3019,20 +3019,20 @@
        "printed_unit_price": "24.00",
        "printed_line_amount": "240.00",
        "sku": "DEMO-SKU-A",
-       "gtin": "DEMO-GTIN-A01",
+       "gtin": "614141000012",
        "quantity": "10",
        "unit": "CASE",
        "unit_price": "24.00",
        "line_amount": "240.00",
        "resolved_by": null,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 10 | CASE | 24.00 | 240.00",
+       "evidence": "A | 614141000012 | Demo granola case | 10 | CASE | 24.00 | 240.00",
        "page": 1,
        "description_reference": "Demo granola case"
       },
       {
        "line_index": 1,
        "source_line_id": "B",
-       "printed_gtin": "DEMO-GTIN-B02",
+       "printed_gtin": "614141000029",
        "customer_item_code": null,
        "description": "Demo cracker case",
        "original_quantity": "2",
@@ -3040,20 +3040,20 @@
        "printed_unit_price": "24.00",
        "printed_line_amount": "48.00",
        "sku": "DEMO-SKU-B",
-       "gtin": "DEMO-GTIN-B02",
+       "gtin": "614141000029",
        "quantity": "2",
        "unit": "CASE",
        "unit_price": "24.00",
        "line_amount": "48.00",
        "resolved_by": null,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 2 | CASE | 24.00 | 48.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 2 | CASE | 24.00 | 48.00",
        "page": 1,
        "description_reference": "Demo cracker case"
       },
       {
        "line_index": 2,
        "source_line_id": "C",
-       "printed_gtin": "OLD-DEMO-003",
+       "printed_gtin": "614141000043",
        "customer_item_code": null,
        "description": "Demo trail mix case",
        "original_quantity": "1",
@@ -3061,7 +3061,7 @@
        "printed_unit_price": "18.00",
        "printed_line_amount": "18.00",
        "sku": "DEMO-SKU-C",
-       "gtin": "NEW-DEMO-003",
+       "gtin": "614141000036",
        "quantity": "1",
        "unit": "CASE",
        "unit_price": "18.00",
@@ -3070,10 +3070,10 @@
         "type": "memory_rule",
         "rule_id": 1,
         "approved_by": "administrator:alex",
-        "activated_at": "2026-10-15T15:02:15.217+00:00",
-        "text": "Resolved by memory rule #1 (OLD-DEMO-003 -> NEW-DEMO-003), activated by alex (administrator)"
+        "activated_at": "2026-10-16T01:15:01.480+00:00",
+        "text": "Resolved by memory rule #1 (614141000043 -> 614141000036), activated by alex (administrator)"
        },
-       "evidence": "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
+       "evidence": "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00",
        "page": 1,
        "description_reference": "Demo trail mix case"
       }
@@ -3091,13 +3091,13 @@
      "policy_version": "POLICY-v1"
     }
    },
-   "createdAt": "2026-10-15T15:02:17.389+00:00"
+   "createdAt": "2026-10-16T01:15:01.513+00:00"
   },
   {
    "erpOrderId": "SIM-ERP-100003",
-   "idempotencyKey": "99ed457a1a0dfd65:v1",
+   "idempotencyKey": "e00238a6645c1472:v1",
    "payload": {
-    "idempotency_key": "99ed457a1a0dfd65:v1",
+    "idempotency_key": "e00238a6645c1472:v1",
     "approved_version": 1,
     "approval": {
      "kind": "human",
@@ -3108,7 +3108,7 @@
      "customer_id": "DEMO-CUST-01",
      "customer_name": "Northfield Demo Retail",
      "po_number": "VIDEO-DEMO-005",
-     "currency": "CAD",
+     "currency": "USD",
      "ship_to_id": "DEMO-DC-01",
      "order_date": "2026-10-16",
      "requested_delivery_date": "2026-10-24",
@@ -3116,7 +3116,7 @@
       {
        "line_index": 0,
        "source_line_id": "A",
-       "printed_gtin": "DEMO-GTIN-A01",
+       "printed_gtin": "614141000012",
        "customer_item_code": null,
        "description": "Demo granola case",
        "original_quantity": "12",
@@ -3124,20 +3124,20 @@
        "printed_unit_price": "24.00",
        "printed_line_amount": "288.00",
        "sku": "DEMO-SKU-A",
-       "gtin": "DEMO-GTIN-A01",
+       "gtin": "614141000012",
        "quantity": "12",
        "unit": "CASE",
        "unit_price": "24.00",
        "line_amount": "288.00",
        "resolved_by": null,
-       "evidence": "A | DEMO-GTIN-A01 | Demo granola case | 12 | CASE | 24.00 | 288.00",
+       "evidence": "A | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00",
        "page": 1,
        "description_reference": "Demo granola case"
       },
       {
        "line_index": 1,
        "source_line_id": "B",
-       "printed_gtin": "DEMO-GTIN-B02",
+       "printed_gtin": "614141000029",
        "customer_item_code": null,
        "description": "Demo cracker case",
        "original_quantity": "3",
@@ -3145,13 +3145,13 @@
        "printed_unit_price": "24.00",
        "printed_line_amount": "72.00",
        "sku": "DEMO-SKU-B",
-       "gtin": "DEMO-GTIN-B02",
+       "gtin": "614141000029",
        "quantity": "3",
        "unit": "CASE",
        "unit_price": "24.00",
        "line_amount": "72.00",
        "resolved_by": null,
-       "evidence": "B | DEMO-GTIN-B02 | Demo cracker case | 3 | CASE | 24.00 | 72.00",
+       "evidence": "B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00",
        "page": 1,
        "description_reference": "Demo cracker case"
       }
@@ -3169,7 +3169,7 @@
      "policy_version": "POLICY-v1"
     }
    },
-   "createdAt": "2026-10-15T15:02:21.675+00:00"
+   "createdAt": "2026-10-16T01:15:01.612+00:00"
   }
  ],
  "audit": [
@@ -3180,7 +3180,7 @@
    "event": "demo_reset",
    "actor": "administrator:alex",
    "detail": {},
-   "createdAt": "2026-10-15T15:02:12.136+00:00"
+   "createdAt": "2026-10-16T01:15:01.394+00:00"
   },
   {
    "id": 2,
@@ -3192,7 +3192,7 @@
     "key": "rehearsal_mode",
     "value": "on"
    },
-   "createdAt": "2026-10-15T15:02:12.163+00:00"
+   "createdAt": "2026-10-16T01:15:01.402+00:00"
   },
   {
    "id": 3,
@@ -3203,7 +3203,7 @@
    "detail": {
     "mode": "exception_only"
    },
-   "createdAt": "2026-10-15T15:02:12.372+00:00"
+   "createdAt": "2026-10-16T01:15:01.408+00:00"
   },
   {
    "id": 4,
@@ -3215,7 +3215,7 @@
     "intake_mode": "local_forward_demo",
     "attachments": 1
    },
-   "createdAt": "2026-10-15T15:02:12.542+00:00"
+   "createdAt": "2026-10-16T01:15:01.418+00:00"
   },
   {
    "id": 5,
@@ -3225,10 +3225,10 @@
    "actor": "intake:local-demo-inbox",
    "detail": {
     "envelope_id": 1,
-    "sha256": "79aed17df0ff5a8b10407bd3698648deefac8c2666a66a46d80bd8d809087004",
+    "sha256": "99fe4efc6cfd7819b7c5746aa07361b16dd9721e58550d639d140f8f7a81f0db",
     "duplicate_of": null
    },
-   "createdAt": "2026-10-15T15:02:12.544+00:00"
+   "createdAt": "2026-10-16T01:15:01.418+00:00"
   },
   {
    "id": 6,
@@ -3237,7 +3237,7 @@
    "event": "extracting",
    "actor": "system:order-agent",
    "detail": {},
-   "createdAt": "2026-10-15T15:02:12.550+00:00"
+   "createdAt": "2026-10-16T01:15:01.421+00:00"
   },
   {
    "id": 7,
@@ -3250,7 +3250,7 @@
     "is_ai": false,
     "lines": 3
    },
-   "createdAt": "2026-10-15T15:02:12.559+00:00"
+   "createdAt": "2026-10-16T01:15:01.428+00:00"
   },
   {
    "id": 8,
@@ -3259,7 +3259,7 @@
    "event": "matching",
    "actor": "system:order-agent",
    "detail": {},
-   "createdAt": "2026-10-15T15:02:12.562+00:00"
+   "createdAt": "2026-10-16T01:15:01.431+00:00"
   },
   {
    "id": 9,
@@ -3268,7 +3268,7 @@
    "event": "validating",
    "actor": "system:order-agent",
    "detail": {},
-   "createdAt": "2026-10-15T15:02:12.562+00:00"
+   "createdAt": "2026-10-16T01:15:01.431+00:00"
   },
   {
    "id": 10,
@@ -3283,7 +3283,7 @@
      "outdated_identifier"
     ]
    },
-   "createdAt": "2026-10-15T15:02:12.567+00:00"
+   "createdAt": "2026-10-16T01:15:01.435+00:00"
   },
   {
    "id": 11,
@@ -3299,7 +3299,7 @@
     "role": "reviewer",
     "version": 2
    },
-   "createdAt": "2026-10-15T15:02:14.067+00:00"
+   "createdAt": "2026-10-16T01:15:01.442+00:00"
   },
   {
    "id": 12,
@@ -3315,7 +3315,7 @@
     "role": "reviewer",
     "version": 3
    },
-   "createdAt": "2026-10-15T15:02:14.432+00:00"
+   "createdAt": "2026-10-16T01:15:01.450+00:00"
   },
   {
    "id": 13,
@@ -3330,12 +3330,12 @@
     "reason": null,
     "role": "reviewer",
     "version": 4,
-    "obsolete_identifier": "OLD-DEMO-003",
-    "replacement_identifier": "NEW-DEMO-003",
+    "obsolete_identifier": "614141000043",
+    "replacement_identifier": "614141000036",
     "replacement_sku": "DEMO-SKU-C",
     "save_for_future": true
    },
-   "createdAt": "2026-10-15T15:02:14.799+00:00"
+   "createdAt": "2026-10-16T01:15:01.458+00:00"
   },
   {
    "id": 14,
@@ -3345,11 +3345,11 @@
    "actor": "reviewer:rita",
    "detail": {
     "customer_id": "DEMO-CUST-01",
-    "from": "OLD-DEMO-003",
-    "to": "NEW-DEMO-003",
+    "from": "614141000043",
+    "to": "614141000036",
     "source_document_id": 1
    },
-   "createdAt": "2026-10-15T15:02:14.799+00:00"
+   "createdAt": "2026-10-16T01:15:01.459+00:00"
   },
   {
    "id": 15,
@@ -3364,7 +3364,7 @@
     "policy": "exception_only",
     "policy_version": 2
    },
-   "createdAt": "2026-10-15T15:02:14.802+00:00"
+   "createdAt": "2026-10-16T01:15:01.460+00:00"
   },
   {
    "id": 16,
@@ -3374,11 +3374,11 @@
    "actor": "system:order-agent",
    "detail": {
     "attempt_id": 1,
-    "idempotency_key": "79aed17df0ff5a8b:v4",
+    "idempotency_key": "99fe4efc6cfd7819:v4",
     "erp_order_id": null,
     "detail": "Queued automatically after approval"
    },
-   "createdAt": "2026-10-15T15:02:14.808+00:00"
+   "createdAt": "2026-10-16T01:15:01.465+00:00"
   },
   {
    "id": 17,
@@ -3388,11 +3388,11 @@
    "actor": "system:order-agent",
    "detail": {
     "attempt_id": 1,
-    "idempotency_key": "79aed17df0ff5a8b:v4",
+    "idempotency_key": "99fe4efc6cfd7819:v4",
     "erp_order_id": null,
     "detail": null
    },
-   "createdAt": "2026-10-15T15:02:14.811+00:00"
+   "createdAt": "2026-10-16T01:15:01.468+00:00"
   },
   {
    "id": 18,
@@ -3402,11 +3402,11 @@
    "actor": "system:order-agent",
    "detail": {
     "attempt_id": 1,
-    "idempotency_key": "79aed17df0ff5a8b:v4",
+    "idempotency_key": "99fe4efc6cfd7819:v4",
     "erp_order_id": "SIM-ERP-100001",
     "detail": "ERP simulator acknowledged the order"
    },
-   "createdAt": "2026-10-15T15:02:14.816+00:00"
+   "createdAt": "2026-10-16T01:15:01.473+00:00"
   },
   {
    "id": 19,
@@ -3417,7 +3417,7 @@
    "detail": {
     "reason": null
    },
-   "createdAt": "2026-10-15T15:02:15.217+00:00"
+   "createdAt": "2026-10-16T01:15:01.480+00:00"
   },
   {
    "id": 20,
@@ -3429,7 +3429,7 @@
     "intake_mode": "local_forward_demo",
     "attachments": 1
    },
-   "createdAt": "2026-10-15T15:02:17.349+00:00"
+   "createdAt": "2026-10-16T01:15:01.489+00:00"
   },
   {
    "id": 21,
@@ -3439,10 +3439,10 @@
    "actor": "intake:local-demo-inbox",
    "detail": {
     "envelope_id": 2,
-    "sha256": "96cc465e0026d9961cc1f783c961f22c1945a799af698852a40cda553de347e0",
+    "sha256": "3e79b918d01725d90cc762b914134c4ee3ff2d1bfd9f1bfb7c5a8d892082907b",
     "duplicate_of": null
    },
-   "createdAt": "2026-10-15T15:02:17.349+00:00"
+   "createdAt": "2026-10-16T01:15:01.489+00:00"
   },
   {
    "id": 22,
@@ -3451,7 +3451,7 @@
    "event": "extracting",
    "actor": "system:order-agent",
    "detail": {},
-   "createdAt": "2026-10-15T15:02:17.359+00:00"
+   "createdAt": "2026-10-16T01:15:01.493+00:00"
   },
   {
    "id": 23,
@@ -3464,7 +3464,7 @@
     "is_ai": false,
     "lines": 3
    },
-   "createdAt": "2026-10-15T15:02:17.373+00:00"
+   "createdAt": "2026-10-16T01:15:01.500+00:00"
   },
   {
    "id": 24,
@@ -3473,7 +3473,7 @@
    "event": "matching",
    "actor": "system:order-agent",
    "detail": {},
-   "createdAt": "2026-10-15T15:02:17.377+00:00"
+   "createdAt": "2026-10-16T01:15:01.502+00:00"
   },
   {
    "id": 25,
@@ -3482,7 +3482,7 @@
    "event": "validating",
    "actor": "system:order-agent",
    "detail": {},
-   "createdAt": "2026-10-15T15:02:17.377+00:00"
+   "createdAt": "2026-10-16T01:15:01.502+00:00"
   },
   {
    "id": 26,
@@ -3494,10 +3494,10 @@
     "type": "memory_rule",
     "rule_id": 1,
     "approved_by": "administrator:alex",
-    "activated_at": "2026-10-15T15:02:15.217+00:00",
-    "text": "Resolved by memory rule #1 (OLD-DEMO-003 -> NEW-DEMO-003), activated by alex (administrator)"
+    "activated_at": "2026-10-16T01:15:01.480+00:00",
+    "text": "Resolved by memory rule #1 (614141000043 -> 614141000036), activated by alex (administrator)"
    },
-   "createdAt": "2026-10-15T15:02:17.378+00:00"
+   "createdAt": "2026-10-16T01:15:01.503+00:00"
   },
   {
    "id": 27,
@@ -3512,7 +3512,7 @@
     "policy": "exception_only",
     "policy_version": 2
    },
-   "createdAt": "2026-10-15T15:02:17.382+00:00"
+   "createdAt": "2026-10-16T01:15:01.506+00:00"
   },
   {
    "id": 28,
@@ -3522,11 +3522,11 @@
    "actor": "system:order-agent",
    "detail": {
     "attempt_id": 2,
-    "idempotency_key": "96cc465e0026d996:v1",
+    "idempotency_key": "3e79b918d01725d9:v1",
     "erp_order_id": null,
     "detail": "Queued automatically after approval"
    },
-   "createdAt": "2026-10-15T15:02:17.384+00:00"
+   "createdAt": "2026-10-16T01:15:01.508+00:00"
   },
   {
    "id": 29,
@@ -3536,11 +3536,11 @@
    "actor": "system:order-agent",
    "detail": {
     "attempt_id": 2,
-    "idempotency_key": "96cc465e0026d996:v1",
+    "idempotency_key": "3e79b918d01725d9:v1",
     "erp_order_id": null,
     "detail": null
    },
-   "createdAt": "2026-10-15T15:02:17.387+00:00"
+   "createdAt": "2026-10-16T01:15:01.510+00:00"
   },
   {
    "id": 30,
@@ -3550,11 +3550,11 @@
    "actor": "system:order-agent",
    "detail": {
     "attempt_id": 2,
-    "idempotency_key": "96cc465e0026d996:v1",
+    "idempotency_key": "3e79b918d01725d9:v1",
     "erp_order_id": "SIM-ERP-100002",
     "detail": "ERP simulator acknowledged the order"
    },
-   "createdAt": "2026-10-15T15:02:17.391+00:00"
+   "createdAt": "2026-10-16T01:15:01.515+00:00"
   },
   {
    "id": 31,
@@ -3566,7 +3566,7 @@
     "intake_mode": "local_forward_demo",
     "attachments": 1
    },
-   "createdAt": "2026-10-15T15:02:18.440+00:00"
+   "createdAt": "2026-10-16T01:15:01.522+00:00"
   },
   {
    "id": 32,
@@ -3576,10 +3576,10 @@
    "actor": "intake:local-demo-inbox",
    "detail": {
     "envelope_id": 3,
-    "sha256": "b5dc95601e0829abe4179220c3b0bcf0d3199eadf077b733c6e0cbdac813f721",
+    "sha256": "8d67b9234d7cafb9f9e2830994f01e8d7f85616967a252b1a674e1d17944c6a3",
     "duplicate_of": null
    },
-   "createdAt": "2026-10-15T15:02:18.441+00:00"
+   "createdAt": "2026-10-16T01:15:01.523+00:00"
   },
   {
    "id": 33,
@@ -3588,7 +3588,7 @@
    "event": "extracting",
    "actor": "system:order-agent",
    "detail": {},
-   "createdAt": "2026-10-15T15:02:18.445+00:00"
+   "createdAt": "2026-10-16T01:15:01.526+00:00"
   },
   {
    "id": 34,
@@ -3601,7 +3601,7 @@
     "is_ai": false,
     "lines": 1
    },
-   "createdAt": "2026-10-15T15:02:18.453+00:00"
+   "createdAt": "2026-10-16T01:15:01.532+00:00"
   },
   {
    "id": 35,
@@ -3610,7 +3610,7 @@
    "event": "matching",
    "actor": "system:order-agent",
    "detail": {},
-   "createdAt": "2026-10-15T15:02:18.456+00:00"
+   "createdAt": "2026-10-16T01:15:01.535+00:00"
   },
   {
    "id": 36,
@@ -3619,7 +3619,7 @@
    "event": "validating",
    "actor": "system:order-agent",
    "detail": {},
-   "createdAt": "2026-10-15T15:02:18.456+00:00"
+   "createdAt": "2026-10-16T01:15:01.535+00:00"
   },
   {
    "id": 37,
@@ -3632,7 +3632,7 @@
      "outdated_identifier"
     ]
    },
-   "createdAt": "2026-10-15T15:02:18.459+00:00"
+   "createdAt": "2026-10-16T01:15:01.538+00:00"
   },
   {
    "id": 38,
@@ -3643,7 +3643,7 @@
    "detail": {
     "reason": "Supplier withdrew the notice (fictional)"
    },
-   "createdAt": "2026-10-15T15:02:19.532+00:00"
+   "createdAt": "2026-10-16T01:15:01.542+00:00"
   },
   {
    "id": 39,
@@ -3655,7 +3655,7 @@
     "intake_mode": "local_forward_demo",
     "attachments": 1
    },
-   "createdAt": "2026-10-15T15:02:19.545+00:00"
+   "createdAt": "2026-10-16T01:15:01.550+00:00"
   },
   {
    "id": 40,
@@ -3665,10 +3665,10 @@
    "actor": "intake:local-demo-inbox",
    "detail": {
     "envelope_id": 4,
-    "sha256": "722364728577187071f099d539d53019cfb80b2d21970ca2a0e9abb9d71f985d",
+    "sha256": "193b20a5a751a687a1e1830f7f8cc8d7b16a6191cd4de81848c8a8b90a755e00",
     "duplicate_of": null
    },
-   "createdAt": "2026-10-15T15:02:19.545+00:00"
+   "createdAt": "2026-10-16T01:15:01.550+00:00"
   },
   {
    "id": 41,
@@ -3677,7 +3677,7 @@
    "event": "extracting",
    "actor": "system:order-agent",
    "detail": {},
-   "createdAt": "2026-10-15T15:02:19.550+00:00"
+   "createdAt": "2026-10-16T01:15:01.554+00:00"
   },
   {
    "id": 42,
@@ -3690,7 +3690,7 @@
     "is_ai": false,
     "lines": 1
    },
-   "createdAt": "2026-10-15T15:02:19.558+00:00"
+   "createdAt": "2026-10-16T01:15:01.560+00:00"
   },
   {
    "id": 43,
@@ -3699,7 +3699,7 @@
    "event": "matching",
    "actor": "system:order-agent",
    "detail": {},
-   "createdAt": "2026-10-15T15:02:19.562+00:00"
+   "createdAt": "2026-10-16T01:15:01.562+00:00"
   },
   {
    "id": 44,
@@ -3708,7 +3708,7 @@
    "event": "validating",
    "actor": "system:order-agent",
    "detail": {},
-   "createdAt": "2026-10-15T15:02:19.562+00:00"
+   "createdAt": "2026-10-16T01:15:01.562+00:00"
   },
   {
    "id": 45,
@@ -3721,7 +3721,7 @@
      "outdated_identifier"
     ]
    },
-   "createdAt": "2026-10-15T15:02:19.565+00:00"
+   "createdAt": "2026-10-16T01:15:01.565+00:00"
   },
   {
    "id": 46,
@@ -3732,7 +3732,7 @@
    "detail": {
     "mode": "review_all"
    },
-   "createdAt": "2026-10-15T15:02:20.585+00:00"
+   "createdAt": "2026-10-16T01:15:01.569+00:00"
   },
   {
    "id": 47,
@@ -3744,7 +3744,7 @@
     "intake_mode": "local_forward_demo",
     "attachments": 1
    },
-   "createdAt": "2026-10-15T15:02:20.602+00:00"
+   "createdAt": "2026-10-16T01:15:01.576+00:00"
   },
   {
    "id": 48,
@@ -3754,10 +3754,10 @@
    "actor": "intake:local-demo-inbox",
    "detail": {
     "envelope_id": 5,
-    "sha256": "99ed457a1a0dfd65bbd7e9acbf1342238ba3a729272462eec64e63aae0bfb375",
+    "sha256": "e00238a6645c147231a363fa185bf0adb4ba47ba4ca65babcc244339ebf510d8",
     "duplicate_of": null
    },
-   "createdAt": "2026-10-15T15:02:20.603+00:00"
+   "createdAt": "2026-10-16T01:15:01.577+00:00"
   },
   {
    "id": 49,
@@ -3766,7 +3766,7 @@
    "event": "extracting",
    "actor": "system:order-agent",
    "detail": {},
-   "createdAt": "2026-10-15T15:02:20.607+00:00"
+   "createdAt": "2026-10-16T01:15:01.580+00:00"
   },
   {
    "id": 50,
@@ -3779,7 +3779,7 @@
     "is_ai": false,
     "lines": 2
    },
-   "createdAt": "2026-10-15T15:02:20.619+00:00"
+   "createdAt": "2026-10-16T01:15:01.586+00:00"
   },
   {
    "id": 51,
@@ -3788,7 +3788,7 @@
    "event": "matching",
    "actor": "system:order-agent",
    "detail": {},
-   "createdAt": "2026-10-15T15:02:20.622+00:00"
+   "createdAt": "2026-10-16T01:15:01.589+00:00"
   },
   {
    "id": 52,
@@ -3797,7 +3797,7 @@
    "event": "validating",
    "actor": "system:order-agent",
    "detail": {},
-   "createdAt": "2026-10-15T15:02:20.622+00:00"
+   "createdAt": "2026-10-16T01:15:01.589+00:00"
   },
   {
    "id": 53,
@@ -3808,7 +3808,7 @@
    "detail": {
     "policy": "review_all"
    },
-   "createdAt": "2026-10-15T15:02:20.626+00:00"
+   "createdAt": "2026-10-16T01:15:01.592+00:00"
   },
   {
    "id": 54,
@@ -3820,7 +3820,7 @@
     "key": "erp_failure_mode",
     "value": "timeout_next"
    },
-   "createdAt": "2026-10-15T15:02:21.655+00:00"
+   "createdAt": "2026-10-16T01:15:01.598+00:00"
   },
   {
    "id": 55,
@@ -3835,7 +3835,7 @@
     "policy": "review_all",
     "policy_version": 3
    },
-   "createdAt": "2026-10-15T15:02:21.666+00:00"
+   "createdAt": "2026-10-16T01:15:01.604+00:00"
   },
   {
    "id": 56,
@@ -3845,11 +3845,11 @@
    "actor": "system:order-agent",
    "detail": {
     "attempt_id": 3,
-    "idempotency_key": "99ed457a1a0dfd65:v1",
+    "idempotency_key": "e00238a6645c1472:v1",
     "erp_order_id": null,
     "detail": "Queued automatically after approval"
    },
-   "createdAt": "2026-10-15T15:02:21.670+00:00"
+   "createdAt": "2026-10-16T01:15:01.607+00:00"
   },
   {
    "id": 57,
@@ -3859,11 +3859,11 @@
    "actor": "system:order-agent",
    "detail": {
     "attempt_id": 3,
-    "idempotency_key": "99ed457a1a0dfd65:v1",
+    "idempotency_key": "e00238a6645c1472:v1",
     "erp_order_id": null,
     "detail": null
    },
-   "createdAt": "2026-10-15T15:02:21.673+00:00"
+   "createdAt": "2026-10-16T01:15:01.610+00:00"
   },
   {
    "id": 58,
@@ -3873,11 +3873,11 @@
    "actor": "system:order-agent",
    "detail": {
     "attempt_id": 3,
-    "idempotency_key": "99ed457a1a0dfd65:v1",
+    "idempotency_key": "e00238a6645c1472:v1",
     "erp_order_id": null,
     "detail": "No response from ERP simulator after the order was created (simulated timeout)"
    },
-   "createdAt": "2026-10-15T15:02:21.680+00:00"
+   "createdAt": "2026-10-16T01:15:01.616+00:00"
   },
   {
    "id": 59,
@@ -3886,7 +3886,7 @@
    "event": "delivery_retry_requested",
    "actor": "reviewer:rita",
    "detail": {},
-   "createdAt": "2026-10-15T15:02:22.023+00:00"
+   "createdAt": "2026-10-16T01:15:01.621+00:00"
   },
   {
    "id": 60,
@@ -3896,11 +3896,11 @@
    "actor": "system:order-agent",
    "detail": {
     "attempt_id": 4,
-    "idempotency_key": "99ed457a1a0dfd65:v1",
+    "idempotency_key": "e00238a6645c1472:v1",
     "erp_order_id": null,
     "detail": "Queued automatically after approval"
    },
-   "createdAt": "2026-10-15T15:02:22.028+00:00"
+   "createdAt": "2026-10-16T01:15:01.624+00:00"
   },
   {
    "id": 61,
@@ -3910,11 +3910,11 @@
    "actor": "system:order-agent",
    "detail": {
     "attempt_id": 4,
-    "idempotency_key": "99ed457a1a0dfd65:v1",
+    "idempotency_key": "e00238a6645c1472:v1",
     "erp_order_id": "SIM-ERP-100003",
     "detail": "Reconciled: ERP already holds this order"
    },
-   "createdAt": "2026-10-15T15:02:22.034+00:00"
+   "createdAt": "2026-10-16T01:15:01.627+00:00"
   },
   {
    "id": 62,
@@ -3926,7 +3926,7 @@
     "intake_mode": "local_forward_demo",
     "attachments": 1
    },
-   "createdAt": "2026-10-15T15:02:22.071+00:00"
+   "createdAt": "2026-10-16T01:15:01.636+00:00"
   },
   {
    "id": 63,
@@ -3936,10 +3936,10 @@
    "actor": "intake:local-demo-inbox",
    "detail": {
     "envelope_id": 6,
-    "sha256": "99ed457a1a0dfd65bbd7e9acbf1342238ba3a729272462eec64e63aae0bfb375",
+    "sha256": "e00238a6645c147231a363fa185bf0adb4ba47ba4ca65babcc244339ebf510d8",
     "duplicate_of": 5
    },
-   "createdAt": "2026-10-15T15:02:22.071+00:00"
+   "createdAt": "2026-10-16T01:15:01.636+00:00"
   }
  ],
  "settings": {

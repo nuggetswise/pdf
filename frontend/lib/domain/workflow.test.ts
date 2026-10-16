@@ -31,7 +31,7 @@ Customer ID: ${cust}
 Ship-to: ${ship}
 Currency: ${cur}
 Line | GTIN | Description | Quantity | Unit | Unit price | Amount
-A | DEMO-GTIN-A01 | Demo granola case | 10 | CASE | 24.00 | 240.00
+A | 614141000012 | Demo granola case | 10 | CASE | 24.00 | 240.00
 Subtotal: 240.00
 Tax amount: 0.00
 Shipping amount: 0.00
@@ -175,9 +175,9 @@ describe("slice 2 intake and extraction", () => {
     ({ state: s, docId } = forward(s, "VIDEO-DEMO-001", clock));
     const payload = latestPayload(s, docId)!;
     const h = header(s, docId);
-    expect([h.po_number, h.currency, h.total]).toEqual(["VIDEO-DEMO-001", "CAD", "190.00"]);
+    expect([h.po_number, h.currency, h.total]).toEqual(["VIDEO-DEMO-001", "USD", "190.00"]);
     expect((payload.lines as Obj[]).map((l) => l.unit_price.value)).toEqual(["24.00", "26.00", "18.00"]);
-    expect(payload.lines[2].gtin.value).toBe("OLD-DEMO-003");
+    expect(payload.lines[2].gtin.value).toBe("614141000043");
     for (const field of Object.values(payload.header as Obj)) {
       if (field.value !== null) {
         expect(field.evidence_verified).toBe(true);
@@ -232,7 +232,7 @@ describe("slice 2 intake and extraction", () => {
       messageId: null, receivedAt: null, intakeMode: "demo_envelope_upload", rawSha256: null } }));
     expect(s.envelopes[0].subjectMetadata!.startsWith("PO HACKED-999")).toBe(true);
     const h = header(s, docId);
-    expect([h.po_number, h.currency]).toEqual(["VIDEO-DEMO-001", "CAD"]);
+    expect([h.po_number, h.currency]).toEqual(["VIDEO-DEMO-001", "USD"]);
   });
 
   it("identical file marked duplicate and not reprocessed", () => {
@@ -293,7 +293,7 @@ describe("slice 3 validation", () => {
     const price = openIssue(s, docId, "price_mismatch");
     expect([price.printed_value, price.reference_value]).toEqual(["26.00", "24.00"]); // P20
     const gtin = openIssue(s, docId, "outdated_identifier");
-    expect([gtin.printed_value, gtin.reference_value]).toEqual(["OLD-DEMO-003", "NEW-DEMO-003"]); // P21
+    expect([gtin.printed_value, gtin.reference_value]).toEqual(["614141000043", "614141000036"]); // P21
     const lines = linesOf(s, docId);
     expect(lines[0].quantity).toBe("5");
     expect(lines[1].printed_unit_price).toBe("26.00");
@@ -328,7 +328,7 @@ describe("slice 3 validation", () => {
   });
 
   it("P03 unknown customer blocks and is never reassigned", () => {
-    const r = runValidate(SAMPLE({ po: "X1", cust: "DEMO-CUST-99", ship: "DEMO-DC-01", cur: "CAD", total: "240.00" }));
+    const r = runValidate(SAMPLE({ po: "X1", cust: "DEMO-CUST-99", ship: "DEMO-DC-01", cur: "USD", total: "240.00" }));
     expect(codes(r)).toContain("unknown_customer");
     expect(r.order.customer_id).toBeNull();
   });
@@ -341,7 +341,7 @@ describe("slice 3 validation", () => {
   });
 
   it("P13 and P27 totals use decimal and keep printed values", () => {
-    const r = runValidate(SAMPLE({ po: "X1", cust: "DEMO-CUST-01", ship: "DEMO-DC-01", cur: "CAD", total: "250.00" }));
+    const r = runValidate(SAMPLE({ po: "X1", cust: "DEMO-CUST-01", ship: "DEMO-DC-01", cur: "USD", total: "250.00" }));
     expect([r.order.totals.printed_total, r.order.totals.computed_total]).toEqual(["250.00", "240.00"]);
     expect(codes(r)).toContain("total_mismatch");
     for (const [name, g] of Object.entries(GOLDEN as Record<string, Obj>)) {
@@ -352,7 +352,7 @@ describe("slice 3 validation", () => {
   });
 
   it("unknown ship-to blocks", () => {
-    const r = runValidate(SAMPLE({ po: "X1", cust: "DEMO-CUST-01", ship: "DEMO-DC-99", cur: "CAD", total: "240.00" }));
+    const r = runValidate(SAMPLE({ po: "X1", cust: "DEMO-CUST-01", ship: "DEMO-DC-99", cur: "USD", total: "240.00" }));
     expect(codes(r)).toEqual(["unknown_ship_to"]);
   });
 
@@ -427,7 +427,7 @@ describe("slice 4 review, roles and modes", () => {
     expect(order.lines.map((l: Obj) => l.quantity)).toEqual(["5", "2", "1"]);
     expect(order.lines[1].unit_price).toBe("26.00");
     expect([order.totals.computed_total, order.totals.printed_total]).toEqual(["190.00", "190.00"]);
-    expect([order.lines[2].sku, order.lines[2].printed_gtin]).toEqual(["DEMO-SKU-C", "OLD-DEMO-003"]);
+    expect([order.lines[2].sku, order.lines[2].printed_gtin]).toEqual(["DEMO-SKU-C", "614141000043"]);
     expect(order.lines[2].resolved_by!.text).toContain("decision");
     const events = timeline(s, docId);
     for (const e of ["extracted", "needs_review", "decision_recorded", "approved", "delivery_queued",
@@ -621,9 +621,9 @@ describe("slice 6 agent memory and administration", () => {
     expect(issuesOf(s, d4).map((i) => i.code)).toEqual(["outdated_identifier"]);
     // Revoked: not applied to later orders.
     s = setRuleState(s, rule.id, "revoked", ADMIN, "test", clock);
-    const lineC = "C | OLD-DEMO-003 | Demo trail mix case | 1 | CASE | 18.00 | 18.00";
-    const text = SAMPLE({ po: "X1", cust: "DEMO-CUST-01", ship: "DEMO-DC-01", cur: "CAD", total: "18.00" })
-      .replace("A | DEMO-GTIN-A01 | Demo granola case | 10 | CASE | 24.00 | 240.00", lineC)
+    const lineC = "C | 614141000043 | Demo trail mix case | 1 | CASE | 18.00 | 18.00";
+    const text = SAMPLE({ po: "X1", cust: "DEMO-CUST-01", ship: "DEMO-DC-01", cur: "USD", total: "18.00" })
+      .replace("A | 614141000012 | Demo granola case | 10 | CASE | 24.00 | 240.00", lineC)
       .replace("Subtotal: 240.00", "Subtotal: 18.00");
     expect(codes(runValidate(text, s.memoryRules.map(ruleRow) as unknown as RuleInput[]))).toEqual(["outdated_identifier"]);
   });
