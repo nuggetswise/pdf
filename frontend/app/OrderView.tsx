@@ -224,7 +224,9 @@ function IssueCard({ issue, onAct, role, focused, onFocus, onRun, docId, line, c
           {issue.actions.includes("apply_mapping") && (
             <label className="check"><input type="checkbox" checked={save} onChange={(e) => setSave(e.target.checked)} /> Save for future matching orders (needs administrator activation)</label>
           )}
-          <input aria-label="Reason" placeholder="Reason (recorded in the audit trail)" value={reason} onChange={(e) => setReason(e.target.value)} />
+          {issue.actions.some((a) => a !== "reject_order" && a !== "apply_mapping" && a !== "map_item") && (
+            <input aria-label="Reason" placeholder="Reason (recorded in the audit trail)" value={reason} onChange={(e) => setReason(e.target.value)} />
+          )}
           <div className="btns">
             {issue.actions.map((a) => (
               <button key={a} disabled={busy} className={a === "reject_order" ? "ghost danger" : "primary"} onClick={() => run(a)}>

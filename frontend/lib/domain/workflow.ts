@@ -18,7 +18,7 @@ export const SYSTEM = "system:order-agent";
 const REVIEWER_ROLES = new Set(["reviewer", "administrator"]);
 const LINE_EDIT_ACTIONS = new Set(["change_quantity", "correct_price"]);
 const REASON_REQUIRED = new Set(["one_off_exception", "accept_printed_price", "acknowledge_total_difference",
-  "confirm_field", "accept_as_revision", "reject_order", "change_quantity", "correct_price"]);
+  "confirm_field", "accept_as_revision", "change_quantity", "correct_price"]);
 
 /** Who acts: the demo role and the actor label "<role>:<name>" (D22, demo-only). */
 export interface Who { actor: string; role: string }
