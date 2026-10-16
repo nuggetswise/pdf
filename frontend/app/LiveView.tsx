@@ -3,6 +3,7 @@
 // decide the odd exception, reply in plain words, mark it shipped in their ERP). Right: the retailer receives
 // standard EDI as each of those happens. Nothing here is a script; every card is read from the run's state.
 import { useState } from "react";
+import { ArrowRight, CheckCircle2, FileCheck2, Mail, Network, Receipt, ScanText, ShieldCheck, Truck } from "lucide-react";
 import { SAMPLE_LABELS } from "../lib/intake/intake";
 import { openQuantities, portalForOrder, repliesFor } from "../lib/domain/portal";
 import { type ReplyPoLine, type SupplierReplyInterpretation, replyRows } from "../lib/domain/reply";
@@ -23,31 +24,93 @@ function useWrap() {
   return { error, wrap };
 }
 
-export function LiveView({ role, onOpen }: { role: Role; onOpen: (docId: number) => void }) {
+/** Supplier home: what needs a person now, then everything the agent handled on its own. */
+export function SupplierToday({ role, onOpen }: { role: Role; onOpen: (docId: number) => void }) {
   const agent = useAgent();
   const s = agent.ready ? agent.state : null;
   const docs = s ? [...s.documents].sort((a, b) => b.id - a.id) : [];
-  const toRetailer = s ? [...(s.portal?.outbound ?? [])].filter((m) => m.channel === "retailer_edi_outbox").sort((a, b) => b.id - a.id) : [];
-  const toErp = s ? (s.portal?.outbound ?? []).filter((m) => m.channel === "supplier_erp").length + s.orders.filter((o) => o.erpOrderId).length : 0;
+  const needs = s ? docs.filter((d) => {
+    const o = s.orders.find((x) => x.documentId === d.id);
+    return !IN_FLIGHT.has(d.status) && (!o || (o.deliveryState !== "erp_created" && (o.validation.issues.some((i) => i.status === "open") || o.reviewState === "ready")));
+  }) : [];
+  const rest = docs.filter((d) => !needs.includes(d));
+  const inErp = s ? s.orders.filter((o) => o.erpOrderId).length : 0;
+  const sent = s ? (s.portal?.outbound ?? []).filter((m) => m.channel === "retailer_edi_outbox" && m.status === "delivered").length : 0;
+  const caught = s ? s.orders.reduce((t, o) => t + o.validation.issues.length, 0) : 0;
+  const steps: [typeof Mail, string, string][] = [
+    [Mail, "Forwarded", `${docs.length} purchase order${docs.length === 1 ? "" : "s"}`],
+    [ScanText, "Read by the agent", "every value tied to the PDF"],
+    [ShieldCheck, "Checked", `${caught} problem${caught === 1 ? "" : "s"} caught`],
+    [CheckCircle2, "In your ERP", `${inErp} order${inErp === 1 ? "" : "s"}`],
+    [FileCheck2, "Sent to the retailer", `${sent} EDI document${sent === 1 ? "" : "s"}`],
+  ];
   return (
-    <div className="live">
-      <p className="story">The supplier keeps working by email. The retailer receives EDI in its system. Nobody retypes anything.</p>
-      <div className="split">
-        <section className="side supplier" aria-label="Supplier's side">
-          <header><div className="eyebrow">Supplier · email and their own ERP, as today</div><h3>Supplier's inbox</h3></header>
-          <Forward />
-          {docs.length === 0 && <p className="placeholder">Forward a purchase order to begin. The agent reads it, checks it and puts it in the supplier's ERP.</p>}
-          {s && docs.map((d) => <SupplierCard key={d.id} s={s} docId={d.id} role={role} onOpen={onOpen} />)}
-          {toErp > 0 && <p className="muted small erp-note">{toErp} update{toErp === 1 ? "" : "s"} written to the supplier's ERP (simulated). See ERP records.</p>}
+    <div className="today">
+      <ol className="flowbar" aria-label="How orders flow">
+        {steps.map(([I, t, d], i) => (
+          <li key={t}><span className="fi" aria-hidden><I size={18} /></span><div><b>{t}</b><span>{d}</span></div>
+            {i < steps.length - 1 && <ArrowRight className="farrow" size={16} aria-hidden />}</li>
+        ))}
+      </ol>
+      <div className="today-grid">
+        <section className="panel" aria-label="Needs you">
+          <header className="panel-head"><h3>Needs you</h3><span className="count">{needs.length}</span></header>
+          {needs.length === 0 && <p className="empty"><CheckCircle2 size={18} aria-hidden /> Nothing waiting. The agent is handling every order.</p>}
+          {s && needs.map((d) => <SupplierCard key={d.id} s={s} docId={d.id} role={role} onOpen={onOpen} />)}
         </section>
-        <section className="side retailer" aria-label="Retailer's side">
-          <header><div className="eyebrow">Retailer · receives standard X12 EDI, as from any connected supplier</div><h3>Retailer's EDI inbox</h3></header>
-          {toRetailer.length === 0 && <p className="placeholder">Nothing received yet. When the supplier's order is in their ERP, the retailer gets an acknowledgement here.</p>}
-          {toRetailer.map((m) => <RetailerCard key={m.id} m={m} s={s!} />)}
-          <p className="path">Path into Trading Grid: once a supplier runs clean through the agent, the retailer can invite them onto full EDI with this history already in place.</p>
+        <section className="panel forward-panel" aria-label="Forward a purchase order">
+          <header className="panel-head"><h3>New purchase order</h3></header>
+          <Forward />
+          <p className="muted small">In production, the supplier's mailbox forwards retailer POs here automatically.</p>
         </section>
       </div>
+      <section className="panel" aria-label="Handled by the agent">
+        <header className="panel-head"><h3>Handled by the agent</h3><span className="count muted">{rest.length}</span></header>
+        {rest.length === 0 && <p className="empty">Orders the agent read, checked and put in your ERP appear here.</p>}
+        {s && rest.map((d) => <SupplierCard key={d.id} s={s} docId={d.id} role={role} onOpen={onOpen} />)}
+      </section>
     </div>
+  );
+}
+
+/** Retailer view: standard EDI arriving from a supplier who never left email. */
+export function RetailerInbox() {
+  const agent = useAgent();
+  const s = agent.ready ? agent.state : null;
+  const msgs = s ? [...(s.portal?.outbound ?? [])].filter((m) => m.channel === "retailer_edi_outbox").sort((a, b) => b.id - a.id) : [];
+  return (
+    <section className="panel" aria-label="Documents received">
+      <header className="panel-head"><h3>Documents received</h3><span className="count">{msgs.length}</span></header>
+      {msgs.length === 0 && <p className="empty">Nothing received yet. Switch to the supplier view and forward a purchase order.</p>}
+      <div className="rlist">{msgs.map((m) => <RetailerCard key={m.id} m={m} s={s!} />)}</div>
+    </section>
+  );
+}
+
+export function RetailerSuppliers() {
+  const agent = useAgent();
+  const s = agent.ready ? agent.state : null;
+  const msgs = (s?.portal?.outbound ?? []).filter((m) => m.channel === "retailer_edi_outbox");
+  const orders = s?.orders ?? [];
+  const untouched = orders.filter((o) => o.deliveryState === "erp_created" && o.validation.issues.length === 0).length;
+  const supplier = s?.portal?.supplier?.name ?? "Fictional demo supplier";
+  return (
+    <section className="panel" aria-label="Suppliers">
+      <header className="panel-head"><h3>Suppliers</h3></header>
+      <table className="grid-table">
+        <thead><tr><th>Supplier</th><th>How they connect</th><th>Orders</th><th>Documents received</th><th>Went through untouched</th><th></th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>{supplier}</b><div className="muted small">Fictional</div></td>
+            <td><span className="pill info"><Mail size={14} aria-hidden /> Email, via Order Agent</span></td>
+            <td>{orders.length}</td><td>{msgs.length}</td>
+            <td>{orders.length ? `${untouched} of ${orders.length}` : "–"}</td>
+            <td><button className="ghost" disabled title="Prototype: shows the next step only">Invite to Trading Grid EDI</button></td>
+          </tr>
+        </tbody>
+      </table>
+      <p className="path"><Network size={16} aria-hidden /> Once a supplier runs clean through the agent, invite them onto full Trading Grid EDI with this history already in place.</p>
+    </section>
   );
 }
 
@@ -175,18 +238,25 @@ function ReplyBox({ o, role }: { o: Order; role: Role }) {
   );
 }
 
+const KIND_ICON = { ORDRSP: FileCheck2, DESADV: Truck, INVOIC: Receipt } as const;
+
 function RetailerCard({ m, s }: { m: OutboundMessage; s: RunState }) {
   const [open, setOpen] = useState(false);
   const o = s.orders.find((x) => x.documentId === m.documentId);
-  const changes = m.mapping.filter((x) => /changed|will ship/i.test(x.meaning)).map((x) => x.meaning);
+  const changed = m.mapping.some((x) => /changed/i.test(x.meaning));
+  // The plain-language reading of the document the retailer's system would show: line, quantity and total rows.
+  const facts = m.mapping.map((x) => x.meaning).filter((t) => /^(Confirmed|Supplier will ship|Line \d|Ship(ped)? date|Estimated delivery|Total|Invoice total|Carrier)/.test(t)).slice(0, 6);
+  const Icon = KIND_ICON[m.kind as keyof typeof KIND_ICON] ?? FileCheck2;
   return (
-    <article className={`rcard ${m.status}`} data-kind={m.kind}>
+    <article className={`rcard ${m.status} ${changed ? "changed" : ""}`} data-kind={m.kind}>
       <header>
-        <h4>{DOC_NAME[m.kind] ?? m.kind}{m.format === "x12" ? ` (X12 ${X12_NO[m.kind]})` : ""}</h4>
-        <span className={`pill ${STATUS_TONE[m.status]}`}>{m.status === "delivered" ? "received" : m.status}</span>
+        <div className="rhead"><span className="ricon" aria-hidden><Icon size={18} /></span>
+          <div><h4>{DOC_NAME[m.kind] ?? m.kind}{m.format === "x12" ? ` (X12 ${X12_NO[m.kind]})` : ""}</h4>
+            <p className="small muted">PO {o?.validation.order.po_number ?? "?"} · {m.sourceId} · from the supplier's email, via Order Agent</p></div></div>
+        <div className="rbadges">{changed && <span className="pill warn">Changes</span>}
+          <span className={`pill ${STATUS_TONE[m.status]}`}>{m.status === "delivered" ? "received" : m.status}</span></div>
       </header>
-      <p className="small">PO {o?.validation.order.po_number ?? "?"} · {m.sourceId}</p>
-      {changes.length > 0 && <ul className="changes">{changes.map((c, i) => <li key={i}>{c}</li>)}</ul>}
+      {facts.length > 0 && <ul className="changes">{facts.map((c, i) => <li key={i}>{c}</li>)}</ul>}
       <button className="ghost" onClick={() => setOpen(!open)}>{open ? "Hide" : "Show"} EDI</button>
       {open && <pre className="raw">{m.body}</pre>}
     </article>

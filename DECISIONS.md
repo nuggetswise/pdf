@@ -131,3 +131,8 @@ D49 Phase 2, Act 1 (owner plan 2026-10-16): every order shows "If you retyped th
 - Confirming sends a changed 855 (BAK AC; ACK IQ/IP/IC; DTM*068 ship date), an ERP order change, and closes the quantity that will not ship so the ASN and invoice follow the confirmed amount. Increases over the PO and replies after shipping are refused. Quoted price changes go on the 855 for the retailer to accept; the invoice stays at the PO price.
 - "Mark shipped in ERP" builds the ASN from open quantities and the invoice from the ASN, with the usual compliance checks.
 - Supplier scorecard as a paid retailer product was dropped: no public evidence retailers pay for one (search 2026-10-16).
+
+## D55 Enterprise shell in OpenText colours (2026-10-16)
+- A Supplier/Retailer toggle at the top replaces the split screen. Supplier workspace: Today, Orders, Agent memory, ERP records, Trading Grid outbox, Settings. Retailer workspace: Documents received, Suppliers.
+- Today shows a live flow ribbon (forwarded, read, checked, in ERP, sent to retailer), what needs a person, and what the agent handled alone.
+- Colours: Cobalt Blue #001889 and Electric Blue #0075FC, from public brand listings (not verified against brandcentral.opentext.com). Icons from lucide-react.
