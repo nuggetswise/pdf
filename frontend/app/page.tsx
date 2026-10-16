@@ -6,19 +6,21 @@ import { manualRouteTotals } from "../lib/domain/manual-route";
 import { PEOPLE, Role } from "./api";
 import { ErpView, MemoryView, SettingsView, Workspace } from "./Panels";
 import { EdiView } from "./Portal";
+import { LiveView } from "./LiveView";
 import { RunProvider, useAgent, useHealth } from "./run/RunProvider";
 
-type Tab = "work" | "memory" | "erp" | "edi" | "settings";
-const TABS: [Tab, string][] = [["work", "Inbox & review"], ["memory", "Agent memory"], ["erp", "ERP records"], ["edi", "Trading Grid outbox"], ["settings", "Settings"]];
+type Tab = "live" | "work" | "memory" | "erp" | "edi" | "settings";
+const TABS: [Tab, string][] = [["live", "Supplier and retailer"], ["work", "Inbox & review"], ["memory", "Agent memory"], ["erp", "ERP records"], ["edi", "Trading Grid outbox"], ["settings", "Settings"]];
 
 export default function Page() {
   return <RunProvider><App /></RunProvider>;
 }
 
 function App() {
-  const [tab, setTab] = useState<Tab>("work");
+  const [tab, setTab] = useState<Tab>("live");
   // One signed-in user with full rights. Switching to a restricted demo user stays possible (role checks are
   // an acceptance check, P15) but is tucked away so it is not the first thing a supplier sees.
+  const [focus, setFocus] = useState<number | null>(null);
   const [role, setRole] = useState<Role>("administrator");
   const agent = useAgent();
   const health = useHealth();
@@ -75,7 +77,8 @@ function App() {
         {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}
       </nav>
       <main>
-        {tab === "work" && <Workspace role={role} />}
+        {tab === "live" && <LiveView role={role} onOpen={(id) => { setFocus(id); setTab("work"); }} />}
+        {tab === "work" && <Workspace key={focus ?? 0} role={role} focus={focus} />}
         {tab === "memory" && <MemoryView role={role} />}
         {tab === "erp" && <ErpView />}
         {tab === "edi" && <EdiView role={role} />}

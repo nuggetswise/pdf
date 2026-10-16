@@ -243,3 +243,26 @@ iframe { width: 100%; height: 640px; border: 1px solid var(--line); border-radiu
 .mr-detail .calc { margin: 8px 0 0; font-size: 14px; }
 .mr-detail tr.total th, .mr-detail tr.total td { border-top: 2px solid var(--line); }
 .settings { max-width: 760px; padding: 16px 24px; display: grid; gap: 16px; }
+
+/* D54: supplier and retailer side by side */
+.live { padding: 12px 24px 24px; }
+.story { font-size: 17px; margin: 4px 0 12px; }
+.split { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px; align-items: start; }
+.side { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; background: var(--panel); display: grid; gap: 10px; }
+.side.supplier { border-top: 5px solid #2f5bea; }
+.side.retailer { border-top: 5px solid var(--ok); }
+.side h3 { margin: 2px 0 0; }
+.small-drop { margin: 0; padding: 12px; }
+.scard, .rcard { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; }
+.scard header, .rcard header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.scard h4, .rcard h4 { margin: 0; font-size: 15px; }
+.scard.warn { border-left: 4px solid var(--warn); } .scard.ok { border-left: 4px solid var(--ok); } .scard.bad { border-left: 4px solid var(--bad); }
+.scard .state { margin: 0; }
+.reply textarea { width: 100%; box-sizing: border-box; font: inherit; padding: 8px; border: 1px solid var(--line); border-radius: 8px; margin-top: 4px; }
+.reply label { display: block; font-size: 13px; }
+.reply-read { display: grid; gap: 6px; }
+.rcard .changes { margin: 0; padding-left: 18px; font-size: 13px; }
+.rcard .raw { max-height: 260px; overflow: auto; font-size: 12px; }
+.path { font-size: 13px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; margin: 4px 0 0; }
+.erp-note { margin: 0; }
+.rcard > button, .scard header button { justify-self: start; width: auto; }

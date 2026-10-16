@@ -9,6 +9,7 @@ test("reviewer resolves exceptions by hand and the order is delivered without a 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await page.getByRole("tab", { name: "Inbox & review" }).click();
+  await page.getByRole("tab", { name: "Inbox & review" }).click();
   await page.getByLabel("Sample purchase order").selectOption("VIDEO-DEMO-001");
   await page.getByRole("button", { name: "Open sample" }).click();
   await expect(page.locator(".issue.open")).toHaveCount(3);

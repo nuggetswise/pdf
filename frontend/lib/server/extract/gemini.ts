@@ -61,22 +61,27 @@ export class GeminiExtractor {
   }
 
   async extract(pages: string[]): Promise<unknown> {
+    const document = pages.map((text, i) => `<page number="${i + 1}">\n${text}\n</page>`).join("\n");
+    return this.generate(SYSTEM_INSTRUCTION, RESPONSE_SCHEMA, `<document>\n${document}\n</document>`);
+  }
+
+  /** One structured-output call with the same retries and fallback model; used for POs and supplier replies. */
+  async generate(system: string, schema: unknown, userText: string): Promise<unknown> {
     try {
-      return await this.extractWith(this.model, pages);
+      return await this.generateWith(this.model, system, schema, userText);
     } catch (exc) {
       if (!(exc instanceof GeminiBusy) || !this.fallbackModel) throw exc;
       this.deps.log("gemini primary busy; using configured fallback model");
       this.name = `gemini:${this.fallbackModel} (fallback)`;
-      return this.extractWith(this.fallbackModel, pages);
+      return this.generateWith(this.fallbackModel, system, schema, userText);
     }
   }
 
-  private async extractWith(model: string, pages: string[]): Promise<unknown> {
-    const document = pages.map((text, i) => `<page number="${i + 1}">\n${text}\n</page>`).join("\n");
+  private async generateWith(model: string, system: string, schema: unknown, userText: string): Promise<unknown> {
     const body = JSON.stringify({
-      systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-      contents: [{ role: "user", parts: [{ text: `<document>\n${document}\n</document>` }] }],
-      generationConfig: { responseMimeType: "application/json", responseSchema: RESPONSE_SCHEMA, temperature: 0 },
+      systemInstruction: { parts: [{ text: system }] },
+      contents: [{ role: "user", parts: [{ text: userText }] }],
+      generationConfig: { responseMimeType: "application/json", responseSchema: schema, temperature: 0 },
     });
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
     // Extraction is read-only, so retrying on overload (429/500/503) or a timeout is safe.

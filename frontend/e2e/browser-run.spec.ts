@@ -5,6 +5,7 @@ import { expect, test } from "@playwright/test";
 test("the run is kept for the tab's session and nowhere else", async ({ page, context }) => {
   await page.goto("/");
   await page.getByRole("tab", { name: "Inbox & review" }).click();
+  await page.getByRole("tab", { name: "Inbox & review" }).click();
   await page.getByLabel("Sample purchase order").selectOption("VIDEO-DEMO-001");
   await page.getByRole("button", { name: "Open sample" }).click();
   await expect(page.locator(".issue.open")).toHaveCount(3);
@@ -30,6 +31,7 @@ test("an extraction cut off by a reload is marked for retry, and retry finishes 
   // Hold the extraction request so the reload happens while it is in flight.
   await page.route("/api/extract", (route) => (route.request().method() === "POST" ? new Promise(() => {}) : route.fallback()));
   await page.goto("/");
+  await page.getByRole("tab", { name: "Inbox & review" }).click();
   await page.getByRole("tab", { name: "Inbox & review" }).click();
   await page.getByLabel("Sample purchase order").selectOption("VIDEO-DEMO-001");
   await page.getByRole("button", { name: "Open sample" }).click();

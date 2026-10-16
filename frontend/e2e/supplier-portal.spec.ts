@@ -8,6 +8,7 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
+  await page.getByRole("tab", { name: "Inbox & review" }).click();
   await asRole(page, "reviewer");
   await page.getByLabel("Upload a purchase order").setInputFiles("../fixtures/demo/generated/VIDEO-DEMO-005.pdf");
   await page.getByRole("button", { name: "Approve order" }).click();
@@ -91,6 +92,7 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
 test("a held EDI message shows the mixed state and a safe retry delivers it", async ({ page }) => {
   test.setTimeout(90_000);
   await page.goto("/");
+  await page.getByRole("tab", { name: "Inbox & review" }).click();
   await asRole(page, "administrator");
   await page.getByRole("tab", { name: "Settings" }).click();
   await page.getByLabel("Retailer EDI outbox next message").selectOption("hold_next");

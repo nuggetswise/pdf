@@ -116,12 +116,12 @@ export function ErpView() {
   );
 }
 
-export function Workspace({ role }: { role: Role }) {
+export function Workspace({ role, focus = null }: { role: Role; focus?: number | null }) {
   const agent = useAgent();
   const docs = agent.ready ? documentsList(agent.state) : null;
   const emails: readonly string[] = DEMO_EMAILS;
   const [pick, setPick] = useState<string>(DEMO_EMAILS[0]);
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selected, setSelected] = useState<number | null>(focus);
   const detail = selected === null ? null : documentDetail(agent.state, selected);
   const [error, setError] = useState<string | null>(null);
 

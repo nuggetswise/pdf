@@ -11,7 +11,8 @@ test("a user runs the order desk end to end", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   page.on("pageerror", (e) => console.log("PAGEERR", e.message));
   await page.goto("/");
-  await expect(page.getByRole("tab", { name: "Inbox & review", selected: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Supplier and retailer", selected: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Inbox & review" }).click();
   await expect(page.getByRole("tab", { name: "Guided demo" })).toHaveCount(0);
   const role = (r: "administrator" | "reviewer" | "viewer") => asRole(page, r);
   const card = (title: string) => page.locator(".issue", { hasText: title });
@@ -104,6 +105,7 @@ test("a user runs the order desk end to end", async ({ page }) => {
 
 test("a file that is not a PDF is refused with a reason", async ({ page }) => {
   await page.goto("/");
+  await page.getByRole("tab", { name: "Inbox & review" }).click();
   await page.getByLabel("Upload a purchase order").setInputFiles({ name: "order.pdf", mimeType: "application/pdf",
     buffer: Buffer.from("not really a pdf") });
   await expect(page.locator(".main > .alert.bad")).toContainText("Attachment is not a PDF");

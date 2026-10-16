@@ -11,7 +11,7 @@ import {
   resetDemo, retryDelivery, retryExtraction, setDemoSetting, setPolicy, setRuleState, startExtraction,
 } from "../domain/workflow";
 import { setManualRouteAssumptions } from "../domain/manual-route";
-import { cancelBackorder, retryOutbound, setEdiFailureMode, submitAsn, submitInvoice } from "../domain/portal";
+import { applySupplierReply, cancelBackorder, retryOutbound, shipFromErp, setEdiFailureMode, submitAsn, submitInvoice } from "../domain/portal";
 import { saveSupplierSetup, saveTradingPartner } from "../domain/partners";
 import { PROFILE_IDS } from "../domain/compliance";
 
@@ -85,6 +85,8 @@ export const Action = z.discriminatedUnion("type", [
       unitsPerCarton: z.array(z.strictObject({ lineIndex: z.number().int().nonnegative(), units: z.string().max(40) }))
         .max(500).optional() }).optional() }),
   z.strictObject({ type: z.literal("cancelBackorder"), role: Role, docId, reason: z.string().max(400) }),
+  z.strictObject({ type: z.literal("applySupplierReply"), role: Role, docId, text: z.string().max(4000), interpretation: z.unknown() }),
+  z.strictObject({ type: z.literal("shipFromErp"), role: Role, docId }),
   z.strictObject({ type: z.literal("submitInvoice"), role: Role, asnId: docId,
     lines: z.array(z.strictObject({ lineIndex: z.number().int().nonnegative(), quantity: z.string().max(40),
       taxRate: z.string().max(20).nullable().optional() })).min(1).max(500),
@@ -164,6 +166,10 @@ function apply(s: RunState, a: Action): { state: RunState; documentIds?: number[
       return { state: submitAsn(s, a.docId, { lines: a.lines, despatchDate: a.despatchDate,
         estimatedDelivery: a.estimatedDelivery, carrierScac: a.carrierScac, bolNumber: a.bolNumber,
         trackingNumber: a.trackingNumber, packing: a.packing }, who(a.role)) };
+    case "applySupplierReply":
+      return { state: applySupplierReply(s, a.docId, a.text, a.interpretation, who(a.role)) };
+    case "shipFromErp":
+      return { state: shipFromErp(s, a.docId, who(a.role)) };
     case "cancelBackorder":
       return { state: cancelBackorder(s, a.docId, a.reason, who(a.role)) };
     case "submitInvoice":
