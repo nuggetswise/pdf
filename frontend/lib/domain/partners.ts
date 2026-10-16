@@ -12,7 +12,7 @@ import {
 } from "./run-state";
 import { Conflict, type Clock, Forbidden, type Who, systemClock } from "./workflow";
 
-interface RefCustomer { customer_id: string; name: string; ship_tos: { ship_to_id: string }[] }
+interface RefCustomer { customer_id: string; name: string; ship_tos: { ship_to_id: string }[]; ship_to_not_on_file?: boolean }
 const baseCustomers = (s: RunState): { fictional: boolean; customers: RefCustomer[] } => {
   const ref = (s.settings.referenceData ?? bundledReference) as unknown as { fictional?: boolean; customers: RefCustomer[] };
   return { fictional: ref.fictional === true, customers: ref.customers };
@@ -53,6 +53,8 @@ export function partnerFor(s: RunState, customerId: string | null): EffectivePar
     let n = 0;
     const shipToGlns = customers.flatMap((c, ci) => c.ship_tos.map((t) => ({ ci, shipToId: t.ship_to_id, gln: fictionalGln("ship_to", ++n) })))
       .filter((x) => x.ci === i).map(({ shipToId, gln }) => ({ shipToId, gln }));
+    // A fictional retailer whose POs print a ship-to address but no code (the example PO) gets one delivery GLN.
+    if (!shipToGlns.length && customers[i]?.ship_to_not_on_file) shipToGlns.push({ shipToId: "(no ship-to on the PO)", gln: fictionalGln("ship_to", 90 + i) });
     return { customerId: customerId ?? "", profile: "x12_retail", buyerGln: fictionalGln("buyer", i + 1), buyerVatId: null,
       contractRef: null, vendorNumber: null, shipToGlns, isDefault: true, fictional };
   }

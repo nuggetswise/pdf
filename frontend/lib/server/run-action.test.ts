@@ -1,7 +1,7 @@
 // Rebuild slice 5: the server action behind every screen action. The guided demo performed the way the screens
 // perform it (one action per call, the run sent along each time) gives the same run as the workflow replay,
 // and the server refuses what it should, with the reason as a value rather than a thrown error.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { runAction } from "../../app/actions/run";
 import { EMAILS, type DemoName, maskTimes } from "../domain/__fixtures__/demo";
 import { replayGuidedDemo } from "../domain/__fixtures__/replay";
@@ -37,6 +37,9 @@ const go = (s: RunState, a: Action) => must(applyAction(s, a));
 
 describe("the guided demo through the server action", () => {
   it("gives the same run as the workflow replay, timestamps aside", async () => {
+    // Ship dates are worked out from today (D61), so both runs share the replay clock's day.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-15T15:00:00.000Z"));
     let s = go(emptyRunState(), { type: "resetDemo", role: "administrator" });
     s = go(s, { type: "setDemoSetting", role: "administrator", key: "rehearsal_mode", value: "on" });
     s = go(s, { type: "setPolicy", role: "administrator", mode: "exception_only" });
@@ -61,6 +64,7 @@ describe("the guided demo through the server action", () => {
     s = await forward(s, "VIDEO-DEMO-005");
     expect(maskTimes(s)).toStrictEqual(maskTimes(replayGuidedDemo()));
     expect(s.erpOrders).toHaveLength(3);
+    vi.useRealTimers();
   });
 
   it("the exported server action is the same function", async () => {

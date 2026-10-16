@@ -1,6 +1,6 @@
 // Test helpers: the fictional demo inbox fed through intake and the labelled TEST ADAPTER, as the
 // Python tests did through /api/demo/forward. Used by the Vitest workflow tests only.
-import { FIXTURE_EXTRACTOR, fixtureExtract } from "../extract/fixture";
+import { FIXTURE_EXTRACTOR, fixtureExtractAny } from "../extract/fixture";
 import { pyStrip } from "../money";
 import { normalise } from "../normalise";
 import type { OrderVersion, RunState } from "../run-state";
@@ -31,7 +31,7 @@ export function extract(state: RunState, docId: number, clock: Clock): RunState 
   let s = startExtraction(state, docId, clock);
   const pages = doc.pageText;
   if (!pages.some((p) => pyStrip(p))) return failExtraction(s, docId, "unsupported", EXTRACTION_MESSAGES.unsupported, clock);
-  const payload = normalise(fixtureExtract(pages), pages, { name: FIXTURE_EXTRACTOR.name, isAi: FIXTURE_EXTRACTOR.isAi });
+  const payload = normalise(fixtureExtractAny(pages), pages, { name: FIXTURE_EXTRACTOR.name, isAi: FIXTURE_EXTRACTOR.isAi });
   s = recordExtraction(s, docId, payload as unknown as OrderVersion["payload"], clock);
   return s;
 }

@@ -3,7 +3,7 @@
 // failure the document should show. It keeps nothing between requests.
 import "server-only";
 import { EXTRACTION_MESSAGES } from "../../domain/workflow";
-import { FIXTURE_EXTRACTOR, fixtureExtract } from "../../domain/extract/fixture";
+import { FIXTURE_EXTRACTOR, fixtureExtractAny } from "../../domain/extract/fixture";
 import { pyStrip } from "../../domain/money";
 import { normalise } from "../../domain/normalise";
 import type { ExtractionConfig } from "../config";
@@ -20,7 +20,7 @@ export async function extractPages(pages: string[], opts: { rehearsal: boolean; 
   const { config } = opts;
   // Rehearsal mode (an administrator setting) uses the labelled TEST ADAPTER, never presented as AI (D15, D26).
   if (opts.rehearsal || config.mode === "test") {
-    return { ok: true, payload: normalise(fixtureExtract(pages), pages, { name: FIXTURE_EXTRACTOR.name, isAi: false }) };
+    return { ok: true, payload: normalise(fixtureExtractAny(pages), pages, { name: FIXTURE_EXTRACTOR.name, isAi: false }) };
   }
   if (!config.apiKey || !config.model) {
     return { ok: false, status: "extraction_unavailable", detail: EXTRACTION_MESSAGES.extraction_unavailable };

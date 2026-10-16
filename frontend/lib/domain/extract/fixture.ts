@@ -50,3 +50,71 @@ export function fixtureExtract(pages: string[]): { header: Record<string, RawFie
   });
   return { header, lines };
 }
+
+// ---- second test layout: retailer-style PO (D60), labels above values and a supplier-SKU table ----
+type Raw = { value: string; page: number; evidence: string };
+const NEXT_LINE_LABELS: Record<string, string> = {
+  "po number": "po_number", "po date": "order_date", "requested delivery": "requested_delivery_date", currency: "currency",
+  buyer: "customer_name", supplier: "supplier",
+};
+const TERM_LABELS: Record<string, string> = {
+  "payment terms": "payment_terms", "ship window": "ship_window", "delivery window": "delivery_window",
+};
+const TOTAL_LABELS: [RegExp, string][] = [[/^merchandise total\b/i, "subtotal"], [/^freight\b/i, "shipping"],
+  [/^sales tax\b/i, "tax"], [/^total purchase order value\b/i, "total"]];
+const ROW = /^(\d+) (\S+) (.+) (\S+) (\d[\d,]*(?:\.\d+)?) (?:USD |\$)?([\d,]+\.\d+) (?:USD |\$)?([\d,]+\.\d+)$/;
+
+/** True when the page text has the retailer-style table this adapter reads. */
+export const isRetailerLayout = (pages: string[]) => pages.some((p) => /\bSUPPLIER SKU\b/.test(p));
+
+export function retailerLayoutExtract(pages: string[]) {
+  const header: Record<string, Raw> = {};
+  const lines: Record<string, Raw>[] = [];
+  const terms: Record<string, Raw> = {};
+  const instructions: Raw[] = [];
+  pages.forEach((text, i) => {
+    const page = i + 1;
+    const rows = text.split(LINE_BREAKS).map(pyStrip).filter(Boolean);
+    rows.forEach((line, j) => {
+      const next = rows[j + 1];
+      const label = line.toLowerCase();
+      const at = (value: string) => ({ value, page, evidence: `${line} ${value}` });
+      if (NEXT_LINE_LABELS[label] && next && !(NEXT_LINE_LABELS[label] in header)) header[NEXT_LINE_LABELS[label]] = at(next);
+      if (TERM_LABELS[label] && next && !(TERM_LABELS[label] in terms)) terms[TERM_LABELS[label]] = at(next);
+      const m = ROW.exec(line);
+      if (m) {
+        const f = (value: string) => ({ value, page, evidence: line });
+        lines.push({ source_line_id: f(m[1]), supplier_sku: f(m[2]), description: f(m[3]), unit: f(m[4]),
+          quantity: f(m[5]), unit_price: f(m[6]), line_amount: f(m[7]) });
+        return;
+      }
+      for (const [re, field] of TOTAL_LABELS) {
+        const t = re.exec(line);
+        const amount = /([\d,]+\.\d+)$/.exec(line);
+        if (t && amount && !(field in header)) header[field] = { value: amount[1], page, evidence: line };
+      }
+      const inc = /^incoterms:\s*(.+)$/i.exec(line);
+      if (inc && !terms.freight_terms) terms.freight_terms = { value: inc[1], page, evidence: line };
+      const bullet = /^[•\-*]\s+(.+)$/.exec(line);
+      if (bullet) {
+        instructions.push({ value: bullet[1], page, evidence: line });
+        if (/ship complete/i.test(bullet[1]) && !terms.ship_complete) terms.ship_complete = { value: bullet[1], page, evidence: line };
+      }
+    });
+  });
+  const window = terms.ship_window;
+  delete terms.ship_window;
+  if (window) {
+    const parts = window.value.split(/\s+(?:-|–|to)\s+/);
+    if (parts.length === 2) {
+      terms.ship_not_before = { ...window, value: parts[0] };
+      terms.ship_no_later_than = { ...window, value: parts[1] };
+    }
+  }
+  return { header, lines, terms: { ...terms, ...(instructions.length ? { instructions } : {}) } };
+}
+
+/** The test adapter: whichever of the two fictional layouts the text is in. */
+export function fixtureExtractAny(pages: string[]) {
+  return isRetailerLayout(pages) ? retailerLayoutExtract(pages) : fixtureExtract(pages);
+}

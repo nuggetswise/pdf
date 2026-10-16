@@ -38,8 +38,10 @@ function emlWith(parts: { filename: string; data: Uint8Array }[]): Uint8Array {
     `--${b}`, "Content-Type: text/plain", "", "FICTIONAL TEST DATA", "", body + `--${b}--`, ""].join("\r\n"));
 }
 
-describe("demo emails read in the browser match what the Python prototype stored", () => {
-  for (const name of DEMO_EMAILS) {
+const PARITY_EMAILS = ["VIDEO-DEMO-001", "VIDEO-DEMO-002", "VIDEO-DEMO-003", "VIDEO-DEMO-004", "VIDEO-DEMO-005"];
+
+describe("test emails read in the browser match what the Python prototype stored", () => {
+  for (const name of PARITY_EMAILS) {
     it(name, async () => {
       const got = await intakeEml(bytes(join(GEN, `${name}.eml`)), "local_forward_demo", { pdfjs });
       const want = EMAILS[name as DemoName];
@@ -64,7 +66,7 @@ describe("the demo inbox", () => {
     const served = readdirSync(join(__dirname, "..", "..", "public", "demo")).sort();
     expect(served).toEqual(DEMO_EMAILS.map((n) => `${n}.eml`));
     for (const name of DEMO_EMAILS) {
-      expect(bytes(join(__dirname, "..", "..", "public", "demo", `${name}.eml`))).toStrictEqual(bytes(join(GEN, `${name}.eml`)));
+      expect(bytes(join(__dirname, "..", "..", "public", "demo", `${name}.eml`))).toStrictEqual(bytes(join(ROOT, "fixtures", "example", `${name}.eml`)));
     }
   });
 
@@ -72,7 +74,8 @@ describe("the demo inbox", () => {
     for (const bad of ["..%2F..%2Fsecrets", "../secrets", "nope", "constructor", "VIDEO-DEMO-001.eml", ""]) {
       expect(demoEmailPath(bad)).toBeNull();
     }
-    expect(demoEmailPath("VIDEO-DEMO-001")).toBe("/demo/VIDEO-DEMO-001.eml");
+    expect(demoEmailPath("VIDEO-DEMO-001")).toBeNull();
+    expect(demoEmailPath("PO-2026-104587")).toBe("/demo/PO-2026-104587.eml");
   });
 });
 

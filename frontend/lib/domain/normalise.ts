@@ -1,7 +1,7 @@
 // Port of extraction.py normalise(): turns any extractor's raw result into the fixed payload shape and
 // checks every value against the PDF text (D14). Document text is untrusted data throughout.
 import { Dec, PY_WHITESPACE_RUN, pyStrip } from "./money";
-import type { ExtractionPayload } from "./run-state";
+import { type ExtractionPayload, type OrderTerms, termFields } from "./run-state";
 
 export const HEADER_FIELDS = ["customer_name", "customer_id", "supplier", "po_number", "ship_to_id", "order_date",
   "requested_delivery_date", "currency", "subtotal", "tax", "shipping", "total"] as const;
@@ -11,7 +11,7 @@ const NUMERIC_FIELDS = new Set(["subtotal", "tax", "shipping", "total", "quantit
 export const SCHEMA_VERSION = "order-extraction-v1";
 
 export interface ExtractorInfo { name: string; isAi: boolean }
-type RawResult = { header?: unknown; lines?: unknown };
+type RawResult = { header?: unknown; lines?: unknown; terms?: unknown };
 type Field = ExtractionPayload["header"]["po_number"];
 
 const squash = (text: string): string => pyStrip(text.replace(PY_WHITESPACE_RUN, " ")).toLowerCase();
@@ -59,12 +59,38 @@ export function normalise(result: RawResult, pages: string[], extractor: Extract
   const linesIn = Array.isArray(result.lines) ? result.lines : [];
   const lines = linesIn.map((raw) => {
     const line = isDict(raw) ? raw : {};
-    return Object.fromEntries(LINE_FIELDS.map((f) => [f, normaliseField(f, line[f], pages)]));
+    const out: Record<string, Field> = Object.fromEntries(LINE_FIELDS.map((f) => [f, normaliseField(f, line[f], pages)]));
+    const sku = line.supplier_sku;
+    if (sku !== undefined && sku !== null && sku !== "" && !(isDict(sku) && (sku.value === null || sku.value === ""))) {
+      out.supplier_sku = normaliseField("supplier_sku", sku, pages);
+    }
+    return out;
   });
-  return {
+  const payload: ExtractionPayload = {
     schema_version: SCHEMA_VERSION,
     extractor: { name: extractor.name, is_ai: extractor.isAi },
     header: header as ExtractionPayload["header"],
     lines: lines as ExtractionPayload["lines"],
   };
+  const terms = normaliseTerms(result.terms, pages);
+  if (terms) payload.terms = terms;
+  return payload;
+}
+
+/** D59: order terms and printed instructions, checked against the page text like every other value. Present only
+ *  when the extractor returned some; the instructions are kept as text for a person and never acted on. */
+export function normaliseTerms(raw: unknown, pages: string[]): OrderTerms | undefined {
+  if (!isDict(raw)) return undefined;
+  const out: OrderTerms = {};
+  for (const f of termFields) {
+    const v = raw[f];
+    if (v === undefined || v === null || v === "") continue;
+    const field = normaliseField(f, v, pages);
+    if (field.value !== null) out[f] = field;
+  }
+  if (Array.isArray(raw.instructions)) {
+    const list = raw.instructions.slice(0, 30).map((v) => normaliseField("instruction", v, pages)).filter((f) => f.value !== null);
+    if (list.length) out.instructions = list;
+  }
+  return Object.keys(out).length ? out : undefined;
 }

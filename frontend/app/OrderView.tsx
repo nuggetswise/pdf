@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
+import { type PageTarget, PdfPage } from "./PdfPage";
 import { useAgent } from "./run/RunProvider";
 import { OrderPortal } from "./Portal";
 import { AgentWorkPanel } from "./ManualRoute";
@@ -9,7 +10,7 @@ import { mergeReference } from "../lib/domain/onboarding";
 import type { Reference } from "../lib/domain/validation";
 const bundledReference = bundledReferenceJson as unknown as Reference;
 import {
-  ACTION_LABEL, DELIVERY_LABEL, DocDetail, IN_FLIGHT, Issue, PEOPLE, PROCESS_LABEL, REVIEW_LABEL, Role, STOPPED,
+  ACTION_LABEL, DELIVERY_LABEL, DocDetail, type Field, IN_FLIGHT, Issue, PEOPLE, PROCESS_LABEL, REVIEW_LABEL, Role, STOPPED,
 } from "./api";
 
 const STAGES = ["Received", "Reading PDF", "Matching", "Business rules", "Review", "Approved", "Sending to ERP", "In ERP"];
@@ -47,58 +48,56 @@ export function Timeline({ d }: { d: DocDetail }) {
   );
 }
 
-function highlightTerms(d: DocDetail, focus: Issue | null): string[] {
-  if (focus?.evidence) return [focus.evidence];
-  const v = d.latest_version?.payload;
-  if (!v) return [];
-  return v.lines.map((l) => l.description?.evidence ?? l.quantity?.evidence).filter(Boolean) as string[];
+const FIELD_LABEL: Record<string, string> = {
+  customer_name: "Customer", customer_id: "Customer ID", supplier: "Supplier", po_number: "PO number", ship_to_id: "Ship-to",
+  order_date: "Order date", requested_delivery_date: "Requested delivery", currency: "Currency", subtotal: "Subtotal",
+  tax: "Tax", shipping: "Freight", total: "Total", source_line_id: "Line", gtin: "Product code", customer_item_code: "Retailer item",
+  description: "Description", quantity: "Quantity", unit: "Unit", unit_price: "Unit price", line_amount: "Line amount",
+  payment_terms: "Payment terms", ship_not_before: "Ship not before", ship_no_later_than: "Ship no later than",
+  delivery_window: "Delivery window", ship_complete: "Ship complete", freight_terms: "Freight terms",
+};
+/** Which printed value an issue is about, so its box on the page turns amber. */
+const ISSUE_FIELD: Record<string, string> = {
+  moq_violation: "quantity", price_mismatch: "unit_price", outdated_identifier: "gtin", rule_needs_revalidation: "gtin",
+  unknown_item: "gtin", unknown_unit: "unit", unit_conversion: "unit", line_amount_mismatch: "line_amount",
+  unknown_customer: "customer_name", unknown_ship_to: "ship_to_id", currency_mismatch: "currency", total_mismatch: "total",
+  possible_revision: "po_number",
+};
+const fieldOfIssue = (i: Issue) => (i.code === "unverified_field" ? i.field : ISSUE_FIELD[i.code]) ?? null;
+const targetId = (i: Issue) => {
+  const f = fieldOfIssue(i);
+  return f ? (i.line_index === null ? `h:${f}` : `l:${i.line_index}:${f}`) : null;
+};
+
+/** Every value the agent read, as something to box on the page. */
+function pageTargets(d: DocDetail, issues: Issue[]): PageTarget[] {
+  const p = d.latest_version?.payload;
+  if (!p) return [];
+  const flagged = new Set(issues.filter((i) => i.status === "open").map(targetId).filter(Boolean));
+  const out: PageTarget[] = [];
+  const add = (id: string, name: string, f: { value: string | null; page: number | null } | undefined, group?: string, anchor?: boolean) => {
+    if (!f?.value) return;
+    out.push({ id, value: f.value, page: f.page, group: group ?? null, anchor, label: FIELD_LABEL[name] ?? name,
+      tone: flagged.has(id) ? "issue" : "value" });
+  };
+  for (const [k, f] of Object.entries(p.header)) add(`h:${k}`, k, f);
+  for (const [k, f] of Object.entries(p.terms ?? {})) if (k !== "instructions") add(`t:${k}`, k, f as Field);
+  (p.terms?.instructions ?? []).forEach((f, i) => add(`t:instructions:${i}`, "instruction", f));
+  p.lines.forEach((l, i) => {
+    for (const [k, f] of Object.entries(l)) add(`l:${i}:${k}`, k, f, `line${i}`, k === "description" || k === "gtin");
+  });
+  return out;
 }
 
-export function SourcePanel({ d, focus }: { d: DocDetail; focus: Issue | null }) {
-  const pages = d.pages;
-  const [view, setView] = useState<"evidence" | "pdf">("evidence");
-  const terms = highlightTerms(d, focus);
-  const norm = (t: string) => t.replace(/\s+/g, " ").trim();
+export function SourcePanel({ d, focus, onPick }: { d: DocDetail; focus: Set<string>; onPick?: (id: string) => void }) {
+  const issues = d.order?.validation.issues ?? [];
+  const targets = useMemo(() => pageTargets(d, issues), [d, issues]);
   return (
     <div className="source">
-      <div className="seg" role="tablist" aria-label="Source view">
-        <button role="tab" aria-selected={view === "evidence"} onClick={() => setView("evidence")}>Evidence in PDF text</button>
-        <button role="tab" aria-selected={view === "pdf"} onClick={() => setView("pdf")}>Original PDF</button>
-      </div>
-      {view === "pdf" ? (
-        <OriginalPdf docId={d.document.id} />
-      ) : (
-        <div className="paper" aria-label="PDF text with highlighted evidence">
-          {pages === null && <p className="muted">Loading document text...</p>}
-          {pages?.map((p, pi) => (
-            <div key={pi}>
-              <div className="pageno">Page {pi + 1}</div>
-              {p.split("\n").map((ln, i) => {
-                const hit = terms.some((t) => norm(t) && norm(ln).includes(norm(t)) || (norm(t).includes(norm(ln)) && norm(ln).length > 8));
-                const focused = focus?.evidence && norm(ln).includes(norm(focus.evidence));
-                return <div key={i} className={`pl ${hit ? "hl" : ""} ${focused ? "focus" : ""}`}>{ln || " "}</div>;
-              })}
-            </div>
-          ))}
-        </div>
-      )}
+      <PdfPage docId={d.document.id} targets={targets} focus={focus} onPick={onPick} pageText={d.pages}
+        scanned={d.latest_version?.payload.source === "scan"} />
     </div>
   );
-}
-
-/** The PDF bytes stay in this tab's memory (never in the saved run), so they are gone after a reload. */
-function OriginalPdf({ docId }: { docId: number }) {
-  const agent = useAgent();
-  const bytes = agent.pdfBytes(docId);
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    if (!bytes) { setUrl(null); return; }
-    const u = URL.createObjectURL(new Blob([bytes as Uint8Array<ArrayBuffer>], { type: "application/pdf" }));
-    setUrl(u);
-    return () => URL.revokeObjectURL(u);
-  }, [bytes]);
-  if (!url) return <p className="placeholder">The original PDF is kept only in memory and is gone after a reload. The PDF text and its evidence are still shown under Evidence in PDF text.</p>;
-  return <iframe title="Source PDF" src={url} />;
 }
 
 type Act = (issue: Issue, action: string, reason: string, params: Record<string, unknown>) => Promise<void>;
@@ -240,7 +239,19 @@ function IssueCard({ issue, onAct, role, focused, onFocus, onRun, docId, line, c
 export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight }: {
   d: DocDetail; role: Role; onAct?: Act; onRun?: RunFn; onApprove?: () => void; onRetry?: () => void; highlight?: string;
 }) {
-  const [focus, setFocus] = useState<Issue | null>(null);
+  // What is selected: an issue, an order line or a value on the page. The page boxes and the review follow it.
+  const [focus, setFocus] = useState<{ issue: string | null; line: number | null; ids: Set<string> }>(
+    { issue: null, line: null, ids: new Set() });
+  const pickIssue = (i: Issue) => { const t = targetId(i); setFocus({ issue: i.key, line: i.line_index, ids: new Set(t ? [t] : []) }); };
+  const pickLine = (n: number) => {
+    const ids = Object.keys(d.latest_version?.payload.lines[n] ?? {}).map((k) => `l:${n}:${k}`);
+    setFocus({ issue: null, line: n, ids: new Set(ids) });
+  };
+  const pickBox = (id: string) => {
+    const hit = (d.order?.validation.issues ?? []).find((i) => targetId(i) === id);
+    const m = /^l:(\d+):/.exec(id);
+    setFocus({ issue: hit?.key ?? null, line: m ? Number(m[1]) : null, ids: new Set([id]) });
+  };
   const o = d.order;
   const v = o?.validation.order;
   const issues = o?.validation.issues ?? [];
@@ -278,7 +289,7 @@ export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight
               <section aria-label="Issues">
                 <h4 className="section">{issues.filter((i) => i.status === "open").length} of {issues.length} issues need a decision</h4>
                 {issues.map((i) => (
-                  <IssueCard key={i.key} issue={i} role={role} onAct={onAct} focused={focus?.key === i.key} onFocus={() => setFocus(i)}
+                  <IssueCard key={i.key} issue={i} role={role} onAct={onAct} focused={focus.issue === i.key} onFocus={() => pickIssue(i)}
                     onRun={onRun} docId={d.document.id} currency={v?.currency ?? null}
                     line={i.line_index === null ? undefined : v?.lines[i.line_index]} />
                 ))}
@@ -300,7 +311,7 @@ export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight
                   {v?.lines.map((l) => {
                     const open = issues.some((i) => i.line_index === l.line_index && i.status === "open");
                     return (
-                      <tr key={l.line_index}>
+                      <tr key={l.line_index} className={`pick ${focus.line === l.line_index ? "picked" : ""}`} onClick={() => pickLine(l.line_index)}>
                         <td>{l.source_line_id}</td>
                         <td>{l.description}<div className="muted small">{l.sku ?? "unmatched"} · printed {l.printed_gtin ?? l.customer_item_code}{l.gtin && l.gtin !== l.printed_gtin ? ` → ${l.gtin}` : ""}</div></td>
                         <td>{l.quantity ?? l.original_quantity} {l.unit ?? l.original_unit}{l.original_unit && l.unit && l.original_unit !== l.unit && <div className="muted small">printed {l.original_quantity} {l.original_unit}</div>}</td>
@@ -338,7 +349,7 @@ export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight
             )}
             {o.delivery_state === "erp_created" && <OrderPortal docId={d.document.id} role={role} />}
           </div>
-          <SourcePanel d={d} focus={focus} />
+          <SourcePanel d={d} focus={focus.ids} onPick={pickBox} />
         </div>
       )}
     </div>

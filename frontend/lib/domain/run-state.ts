@@ -71,12 +71,26 @@ const lineFields = ["source_line_id", "gtin", "customer_item_code", "description
 const fieldsOf = <K extends readonly string[]>(keys: K) =>
   z.strictObject(Object.fromEntries(keys.map((k) => [k, ExtractedField])) as { [P in K[number]]: typeof ExtractedField });
 
+/** D59: order terms read from any PO layout (outside the Python parity payload). Each value is checked like the rest. */
+export const termFields = ["payment_terms", "freight_terms", "ship_not_before", "ship_no_later_than", "delivery_window",
+  "ship_complete"] as const;
+export const OrderTerms = z.strictObject({
+  ...Object.fromEntries(termFields.map((k) => [k, ExtractedField.optional()])) as { [P in (typeof termFields)[number]]: z.ZodOptional<typeof ExtractedField> },
+  /** The buyer's printed instructions, word for word. Shown to a person; never acted on as commands. */
+  instructions: z.array(ExtractedField).max(30).optional(),
+});
+export type OrderTerms = z.infer<typeof OrderTerms>;
+
 export const ExtractionPayload = z.strictObject({
   schema_version: z.literal("order-extraction-v1"),
   extractor: z.strictObject({ name: z.string(), is_ai: z.boolean() }),
   header: fieldsOf(headerFields),
-  lines: z.array(fieldsOf(lineFields)),
+  /** supplier_sku (D59): the supplier's own item number when the PO prints one; outside the parity payload. */
+  lines: z.array(fieldsOf(lineFields).extend({ supplier_sku: ExtractedField.optional() })),
   applied_decisions: z.array(id).optional(),
+  terms: OrderTerms.optional(),
+  /** "scan": no text layer; the AI read page images and transcribed them, so a person checks every value. */
+  source: z.enum(["text", "scan"]).optional(),
 });
 
 // ---------- validation result (orders.validation_json) ----------
@@ -94,6 +108,8 @@ export const CanonicalLine = z.strictObject({
   source_line_id: z.string(),
   printed_gtin: maybe(text),
   customer_item_code: maybe(text),
+  /** D59: the supplier's own item number when the PO printed one. */
+  supplier_sku: text.optional(),
   description: maybe(text),
   original_quantity: maybe(text),
   original_unit: maybe(text),
@@ -247,6 +263,8 @@ export const Order = z.strictObject({
   erpOrderId: maybe(z.string()),
   validation: ValidationResult,
   updatedAt: isoTime,
+  /** D61: stock check and ship dates, set when the order reaches the ERP. Optional so earlier runs load. */
+  fulfilment: z.lazy(() => Fulfilment).optional(),
 });
 
 export const Decision = z.strictObject({
@@ -568,6 +586,62 @@ export const ReferenceOverlay = z.strictObject({
 export const emptyOverlay = (): z.infer<typeof ReferenceOverlay> =>
   ({ customers: [], customerAliases: [], shipTos: [], products: [] });
 
+// ---------- D61: ERP stock, the stock check and ship dates (simulated ERP) ----------
+
+const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+export const StockItem = z.strictObject({
+  sku: z.string(),
+  onHand: decimalString,
+  /** Calendar days to get more when nothing is on order. */
+  leadTimeDays: z.number().int().nonnegative(),
+  /** Purchase orders the supplier has placed with its own suppliers, not yet received. */
+  incoming: z.array(z.strictObject({ ref: z.string(), quantity: decimalString, expected: isoDay })),
+});
+export const ShortStockPolicy = z.enum(["ask", "ship_complete", "split"]);
+export const FulfilmentSettings = z.strictObject({
+  /** Working days to pick, pack and load once stock is there. */
+  packDays: z.number().int().min(0).max(30),
+  /** Working days in transit to a retailer's dock, unless the retailer has its own. */
+  transitDays: z.number().int().min(0).max(30),
+  shortStock: ShortStockPolicy,
+  retailers: z.array(z.strictObject({ customerId: z.string(), transitDays: z.number().int().min(0).max(30).optional(),
+    shortStock: ShortStockPolicy.optional() })),
+  updatedBy: z.string().optional(), updatedAt: isoTime.optional(),
+});
+export const FulfilmentLine = z.strictObject({
+  lineIndex: z.number().int().nonnegative(),
+  sku: maybe(z.string()),
+  ordered: decimalString,
+  /** Free stock for this line when the order reached the ERP (on hand less what other orders hold). */
+  availableNow: decimalString,
+  short: decimalString,
+  /** When the short quantity can be picked: an expected delivery from the supplier's own PO, or the lead time. */
+  shortReadyOn: maybe(isoDay),
+  shortSource: maybe(z.enum(["incoming", "lead_time"])),
+});
+export const ShipPart = z.strictObject({ lineIndex: z.number().int().nonnegative(), quantity: decimalString,
+  shipOn: maybe(isoDay), kind: z.enum(["now", "backorder", "cancelled"]) });
+export const Fulfilment = z.strictObject({
+  checkedOn: isoDay,
+  lines: z.array(FulfilmentLine),
+  window: z.strictObject({ notBefore: maybe(isoDay), noLaterThan: maybe(isoDay), deliverBy: maybe(isoDay),
+    transitDays: z.number().int().nonnegative(), packDays: z.number().int().nonnegative() }),
+  /** Latest day the goods can leave and still arrive on time; null when the PO gives no date. */
+  shipBy: maybe(isoDay),
+  options: z.strictObject({
+    ship_complete: z.strictObject({ parts: z.array(ShipPart), late: z.boolean() }),
+    split: z.strictObject({ parts: z.array(ShipPart), late: z.boolean() }).optional(),
+    ship_available: z.strictObject({ parts: z.array(ShipPart), late: z.boolean() }).optional(),
+  }),
+  recommended: z.enum(["ship_complete", "split", "ship_available"]),
+  status: z.enum(["confirmed", "needs_decision"]),
+  choice: z.enum(["ship_complete", "split", "ship_available"]).nullable(),
+  decidedBy: maybe(z.string()),
+  decidedAt: maybe(isoTime),
+  /** The plan the retailer was told: per line what ships when, what is backordered, what will not ship. */
+  parts: z.array(ShipPart),
+});
+
 export const RUN_STATE_SCHEMA_VERSION = "run-state-v1";
 
 export const RunState = z.strictObject({
@@ -590,6 +664,10 @@ export const RunState = z.strictObject({
   referenceOverlay: ReferenceOverlay.optional(),
   /** Added by D49: the administrator's Act 1 assumptions. Optional; absent means the labelled defaults. */
   manualRoute: ManualRouteAssumptions.optional(),
+  /** D61: ERP stock. Absent means the bundled fictional stock file (erp-stock.v1.json). */
+  erpStock: z.array(StockItem).optional(),
+  /** D61: packing and transit days, and what to do when stock is short. Absent means the defaults. */
+  fulfilmentSettings: FulfilmentSettings.optional(),
 });
 
 export type RunState = z.infer<typeof RunState>;
@@ -617,6 +695,10 @@ export type ExtractionPayload = z.infer<typeof ExtractionPayload>;
 export type ValidationResult = z.infer<typeof ValidationResult>;
 export type ReferenceData = z.infer<typeof ReferenceData>;
 export type ReferenceOverlay = z.infer<typeof ReferenceOverlay>;
+export type StockItem = z.infer<typeof StockItem>;
+export type FulfilmentSettings = z.infer<typeof FulfilmentSettings>;
+export type Fulfilment = z.infer<typeof Fulfilment>;
+export type ShipPart = z.infer<typeof ShipPart>;
 
 /** A fresh run, as after "Reset demo": Review-all policy, bundled reference data, nothing received. */
 export function emptyRunState(now: string = new Date().toISOString()): RunState {

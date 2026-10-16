@@ -17,7 +17,9 @@ describe("guided demo replay", () => {
 
   for (const key of Object.keys(expected) as (keyof RunState)[]) {
     it(`matches the Python run: ${key}`, () => {
-      expect(actual[key]).toStrictEqual(expected[key]);
+      // D61's stock plan is TypeScript-only; the Python run has none.
+      const value = key === "orders" ? actual.orders.map(({ fulfilment: _f, ...o }) => o) : actual[key];
+      expect(value).toStrictEqual(expected[key]);
     });
   }
 });
