@@ -238,7 +238,7 @@ function FwdIssueCard({ d, issue, canAct, role, onAct, onRun, show }: { d: DocDe
       </div>
       {evidence && (
         <ul className="evidence" aria-label="Evidence">
-          <li><span className="tag">Source</span><span>{issue.evidence ? `“${issue.evidence}”` : "No printed text recorded"}{issue.page ? ` · page ${issue.page}` : ""}</span></li>
+          <li><span className="tag">Source</span><span>{issue.evidence ? `“${issue.evidence}”` : "No source text recorded"}{issue.page ? ` · page ${issue.page}` : ""}</span></li>
           <li><span className="tag">Reference data</span><span>{issue.reference_value ?? "Not on file"}{issue.reference_version ? ` · ${issue.reference_version}` : ""}</span></li>
           <li><span className="tag">Rule</span><span>{issue.code.replace(/_/g, " ")}{issue.blocking ? " · blocks sending" : ""}</span></li>
         </ul>
@@ -315,7 +315,7 @@ function ErpBox({ d, canAct, onRetry }: { d: DocDetail; canAct: boolean; onRetry
       <p className="muted small">Simulated system. No live ERP connection.</p>
       <dl className="facts erp-roles">
         <div><dt>Accepts or rejects</dt><dd>Your ERP, using its own checks.</dd></div>
-        <div><dt>Order Agent</dt><dd>Sends the approved version once, records the response and retries safely when the outcome is unknown.</dd></div>
+        <div><dt>Order Agent</dt><dd>Sends the approved version, records the response and retries safely when the outcome is unknown.</dd></div>
       </dl>
       <ol className="lifecycle" aria-label="ERP lifecycle">
         {steps.map(([t, done], i) => <li key={t} className={done ? (i === 3 && failed ? "stop" : "done") : ""}>{t}</li>)}

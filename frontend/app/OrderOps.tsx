@@ -32,7 +32,7 @@ export const FIELD_STATE: Record<FieldState, [string, string]> = {
   accepted: ["Accepted", "ok"], changed: ["Changed", "info"], uncertain: ["Uncertain", "warn"], missing: ["Missing", "bad"], invalid: ["Invalid", "bad"],
 };
 export const ACTOR: Record<ActorKind, [string, typeof Cog]> = {
-  system: ["System", Cog], agent: ["AI agent", Bot], person: ["Person", User], erp: ["Simulated ERP", Server],
+  system: ["System", Cog], agent: ["AI agent", Bot], person: ["Person", User], erp: ["Your ERP", Server],
 };
 
 const time = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
@@ -157,7 +157,7 @@ export function OpsHome({ onOpen, forward, commandCenter }: {
         <header className="panel-head"><h3 id="normal-h">Processing normally or completed</h3><span className="count muted">{normal.length}</span></header>
         <div className="scroll">
           <table className="grid-table ops-table stack-table">
-            <thead><tr><th>PO number</th><th>Customer</th><th>Received</th><th>Channel</th><th>State</th><th>Simulated ERP result</th><th><span className="sr-only">Open</span></th></tr></thead>
+            <thead><tr><th>PO number</th><th>Customer</th><th>Received</th><th>Channel</th><th>State</th><th>ERP result (simulated)</th><th><span className="sr-only">Open</span></th></tr></thead>
             <tbody>
               {normal.map((r) => (
                 <tr key={r.key} data-po={r.po}>
@@ -360,7 +360,7 @@ function IssueCard({ o, iss, canAct, show, onDecide }: { o: OpsOrder; iss: OpsIs
   );
 }
 
-const EVIDENCE_KIND: Record<Evidence["kind"], string> = { source: "Source", reference: "Reference data", history: "Order history", rule: "Rule", erp: "Simulated ERP" };
+const EVIDENCE_KIND: Record<Evidence["kind"], string> = { source: "Source", reference: "Reference data", history: "Order history", rule: "Rule", erp: "Your ERP (simulated)" };
 function EvidenceList({ items, show }: { items: Evidence[]; show: (s: SourceRef | null) => void }) {
   return (
     <ul className="evidence" aria-label="Evidence">

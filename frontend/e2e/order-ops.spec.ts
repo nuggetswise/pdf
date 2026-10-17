@@ -40,7 +40,7 @@ test("scenario 1: a straight-through order needs no person and shows how it was 
   await expect(page.locator(".outcome").getByText("Accepted by your ERP as SIM-SO-61001.")).toBeVisible();
   const h = history(page);
   for (const t of ["Email received", "identified as a purchase order", "Order fields extracted", "Buyer matched", "Validation completed. All checks passed.",
-    "Structured order created", "Sent to your ERP, simulated", "Accepted by your ERP as SIM-SO-61001"]) await expect(h).toContainText(t);
+    "Structured order created", "Sent to your ERP (simulated)", "Accepted by your ERP as SIM-SO-61001"]) await expect(h).toContainText(t);
   await expect(h.locator(".ev-person")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Approve|Resend/ })).toHaveCount(0);
 });

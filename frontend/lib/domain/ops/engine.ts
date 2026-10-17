@@ -137,7 +137,7 @@ export function build(o: Pick<OpsOrder, "email" | "po" | "decisions" | "erp">): 
     const iss = issue({ id, type: "downstream_rejection", field: a.response.field ?? "delivery_location", attemptId: a.id,
       title: "Rejected by your ERP", summary: a.response.message,
       whyItMatters: "The ERP holds no order. The buyer's order is not confirmed until the ERP accepts it.",
-      rule: { id: a.response.code, text: "Your ERP customer master: orders use an active ship-to for the account." },
+      rule: { id: a.response.code, text: "Orders must use a ship-to that is active for the account in your ERP." },
       original: a.request.shipTo, expected: rec?.value ?? null, proposed: rec?.value ?? null, options, actions: ["select", "defer"],
       agentNote: rec ? `${rec.value} is the active ship-to at the same street address as ${a.request.shipTo} in the ERP customer master.` : null,
       evidence: [
@@ -370,7 +370,7 @@ function send(o: OpsOrder, at: string) {
   const request: ErpAttempt["request"] = { poNumber: o.header.po_number.value, account: b?.erpAccount ?? null,
     shipTo: o.header.delivery_location.value, deliveryDate: o.header.delivery_date.value, total: o.total,
     lines: o.lines.map((l) => ({ sku: l.fields.sku.value, quantity: l.fields.quantity.value, unit: l.fields.unit.value, unitPrice: l.fields.unit_price.value })) };
-  event(o, at, SYSTEM, "erp_sent", `Sent to your ERP, simulated (request ${key}).`);
+  event(o, at, SYSTEM, "erp_sent", `Sent to your ERP (simulated). Request key ${key}.`);
   const earlier = o.erp.attempts.find((a) => a.idempotencyKey === key);
   const response = earlier ? earlier.response : erpRespond(request, o.id);
   const respondedAt = addSeconds(at, 1);
