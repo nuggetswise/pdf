@@ -24,14 +24,14 @@ export const STATE_LABEL: Record<OrderState, [string, string]> = {
   needs_review: ["Needs review", "warn"], blocked: ["Blocked", "bad"], ready_to_send: ["Ready to send", "warn"],
   sending: ["Sending", "info"], accepted: ["Accepted by ERP", "ok"], rejected: ["Rejected by ERP", "bad"],
 };
-const ISSUE_LABEL: Record<IssueType, string> = {
+export const ISSUE_LABEL: Record<IssueType, string> = {
   correctable_discrepancy: "Recommendation available", ambiguous_match: "Judgement required",
   missing_required_data: "Missing required data", validation_failure: "Validation failed", downstream_rejection: "ERP rejection",
 };
-const FIELD_STATE: Record<FieldState, [string, string]> = {
+export const FIELD_STATE: Record<FieldState, [string, string]> = {
   accepted: ["Accepted", "ok"], changed: ["Changed", "info"], uncertain: ["Uncertain", "warn"], missing: ["Missing", "bad"], invalid: ["Invalid", "bad"],
 };
-const ACTOR: Record<ActorKind, [string, typeof Cog]> = {
+export const ACTOR: Record<ActorKind, [string, typeof Cog]> = {
   system: ["System", Cog], agent: ["AI agent", Bot], person: ["Person", User], erp: ["Simulated ERP", Server],
 };
 
@@ -67,7 +67,7 @@ function opsRow(o: OpsOrder): Row {
 }
 
 /** Orders forwarded or uploaded in this tab go through the full reading pipeline (Orders view). */
-function engineRows(s: RunState): Row[] {
+export function engineRows(s: RunState): Row[] {
   return s.documents.map((d) => {
     const o = s.orders.find((x) => x.documentId === d.id);
     const env = s.envelopes.find((e) => e.id === d.envelopeId);
@@ -156,14 +156,16 @@ export function OpsHome({ onOpen, forward, commandCenter }: {
       <section className="panel" aria-labelledby="normal-h">
         <header className="panel-head"><h3 id="normal-h">Processing normally or completed</h3><span className="count muted">{normal.length}</span></header>
         <div className="scroll">
-          <table className="grid-table ops-table">
+          <table className="grid-table ops-table stack-table">
             <thead><tr><th>PO number</th><th>Customer</th><th>Received</th><th>Channel</th><th>State</th><th>Simulated ERP result</th><th><span className="sr-only">Open</span></th></tr></thead>
             <tbody>
               {normal.map((r) => (
                 <tr key={r.key} data-po={r.po}>
-                  <td><b>{r.po}</b></td><td>{r.customer}</td><td>{time(r.receivedAt)}</td><td>{r.channel}</td>
-                  <td><span className={`pill ${r.state[1]}`}>{r.state[0]}</span>{r.detail.map((t) => <div key={t} className="muted small wrap">{t}</div>)}</td><td>{r.erp}</td>
-                  <td><button className="ghost" onClick={() => onOpen(r.target)} aria-label={`View order ${r.po}`}>View</button></td>
+                  <td data-label="PO number"><b>{r.po}</b></td><td data-label="Customer">{r.customer}</td>
+                  <td data-label="Received">{time(r.receivedAt)}</td><td data-label="Channel">{r.channel}</td>
+                  <td data-label="State"><div><span className={`pill ${r.state[1]}`}>{r.state[0]}</span>{r.detail.map((t) => <div key={t} className="muted small wrap">{t}</div>)}</div></td>
+                  <td data-label="ERP result">{r.erp}</td>
+                  <td className="row-open"><button className="ghost" onClick={() => onOpen(r.target)} aria-label={`View order ${r.po}`}>View</button></td>
                 </tr>
               ))}
             </tbody>
@@ -224,13 +226,13 @@ export function OpsReview({ id, role, onBack }: { id: string; role: Role; onBack
               onDecide={(input) => ops.decide(o.id, iss.id, input, actor)} />)}
             {o.state === "ready_to_send" && (
               <div className="approve-bar">
-                <p>{o.erp.attempts.length ? "Correction recorded. Resend the order to the simulated ERP." : "All blocking issues are resolved. Approval sends the order to the simulated ERP."}</p>
+                <p>{o.erp.attempts.length ? "Correction recorded. Resend the order to your ERP." : "All blocking issues are resolved. Approval sends the order to your ERP."}</p>
                 <button className="primary big" disabled={!canAct} onClick={() => ops.approve(o.id, actor)}>
                   {o.erp.attempts.length ? "Resend to ERP" : "Approve and send to ERP"}</button>
               </div>
             )}
             {o.state === "accepted" && last && (
-              <div className="outcome ok"><CheckCircle2 size={20} aria-hidden /><div><b>Accepted by simulated downstream ERP as {last.response.erpOrderId}.</b>
+              <div className="outcome ok"><CheckCircle2 size={20} aria-hidden /><div><b>Accepted by your ERP as {last.response.erpOrderId}.</b>
                 <p className="muted small">{isAutomatic(o) ? "Processed automatically. No person was needed." : `${activeDecisions.length} decision${activeDecisions.length === 1 ? "" : "s"} recorded before sending.`}</p></div></div>
             )}
           </section>
@@ -418,8 +420,12 @@ function ErpPanel({ o }: { o: OpsOrder }) {
   ];
   return (
     <section className="erp-sim" aria-labelledby="erp-h">
-      <h3 id="erp-h" className="section-h"><Server size={16} aria-hidden /> Simulated downstream ERP</h3>
+      <h3 id="erp-h" className="section-h"><Server size={16} aria-hidden /> Your ERP (simulated)</h3>
       <p className="muted small">Simulated system. No live ERP connection.</p>
+      <dl className="facts erp-roles">
+        <div><dt>Accepts or rejects</dt><dd>Your ERP, using its own checks such as active ship-to codes in its customer master.</dd></div>
+        <div><dt>Order Agent</dt><dd>Sends the order, records the ERP response and proposes a correction.</dd></div>
+      </dl>
       <ol className="lifecycle" aria-label="ERP lifecycle">
         {steps.map(([t, done], i) => <li key={t} className={done ? (i === 3 && o.state === "rejected" ? "stop" : "done") : ""}>{t}</li>)}
       </ol>

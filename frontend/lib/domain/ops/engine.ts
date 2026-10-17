@@ -12,7 +12,7 @@ import {
 
 export const SYSTEM: Actor = { kind: "system", name: "Order agent" };
 export const AGENT: Actor = { kind: "agent", name: "Order agent (AI)" };
-export const ERP: Actor = { kind: "erp", name: "Simulated downstream ERP" };
+export const ERP: Actor = { kind: "erp", name: "Your ERP (simulated)" };
 
 const HEADER_LABEL: Record<HeaderKey, string> = { po_number: "PO number", buyer: "Buyer", supplier: "Supplier",
   delivery_location: "Delivery location", delivery_date: "Delivery date" };
@@ -135,9 +135,9 @@ export function build(o: Pick<OpsOrder, "email" | "po" | "decisions" | "erp">): 
       details: [["Address", s.address], ["Status in ERP", "Active"]], recommended: !!rejected && s.address === rejected.address }));
     const rec = options.find((x) => x.recommended);
     const iss = issue({ id, type: "downstream_rejection", field: a.response.field ?? "delivery_location", attemptId: a.id,
-      title: "Rejected by simulated ERP", summary: a.response.message,
+      title: "Rejected by your ERP", summary: a.response.message,
       whyItMatters: "The ERP holds no order. The buyer's order is not confirmed until the ERP accepts it.",
-      rule: { id: a.response.code, text: "ERP customer master: orders use an active ship-to for the account." },
+      rule: { id: a.response.code, text: "Your ERP customer master: orders use an active ship-to for the account." },
       original: a.request.shipTo, expected: rec?.value ?? null, proposed: rec?.value ?? null, options, actions: ["select", "defer"],
       agentNote: rec ? `${rec.value} is the active ship-to at the same street address as ${a.request.shipTo} in the ERP customer master.` : null,
       evidence: [
@@ -370,7 +370,7 @@ function send(o: OpsOrder, at: string) {
   const request: ErpAttempt["request"] = { poNumber: o.header.po_number.value, account: b?.erpAccount ?? null,
     shipTo: o.header.delivery_location.value, deliveryDate: o.header.delivery_date.value, total: o.total,
     lines: o.lines.map((l) => ({ sku: l.fields.sku.value, quantity: l.fields.quantity.value, unit: l.fields.unit.value, unitPrice: l.fields.unit_price.value })) };
-  event(o, at, SYSTEM, "erp_sent", `Sent to simulated ERP (request ${key}).`);
+  event(o, at, SYSTEM, "erp_sent", `Sent to your ERP, simulated (request ${key}).`);
   const earlier = o.erp.attempts.find((a) => a.idempotencyKey === key);
   const response = earlier ? earlier.response : erpRespond(request, o.id);
   const respondedAt = addSeconds(at, 1);
@@ -379,11 +379,11 @@ function send(o: OpsOrder, at: string) {
   event(o, respondedAt, ERP, "erp_response", earlier ? "Response matched an earlier request with the same key. No duplicate order created." : `Response received: ${response.code}.`);
   if (response.status === "accepted") {
     o.erp.status = "accepted"; o.erp.erpOrderId = response.erpOrderId; o.state = "accepted";
-    event(o, respondedAt, ERP, "erp_accepted", `Accepted by simulated ERP as ${response.erpOrderId}.`);
+    event(o, respondedAt, ERP, "erp_accepted", `Accepted by your ERP as ${response.erpOrderId}.`);
   } else {
     rebuild(o);
     o.erp.status = "rejected"; o.state = "rejected";
-    event(o, respondedAt, ERP, "erp_rejected", `Rejected by simulated ERP: ${response.message}`, { field: response.field, issueId: `erp:${o.erp.attempts.length}` });
+    event(o, respondedAt, ERP, "erp_rejected", `Rejected by your ERP: ${response.message}`, { field: response.field, issueId: `erp:${o.erp.attempts.length}` });
     const iss = o.issues.find((i) => i.id === `erp:${o.erp.attempts.length}`);
     if (iss?.proposed) event(o, respondedAt, AGENT, "recommendation", `Recommended ship-to ${iss.proposed}: ${iss.agentNote}`, { field: iss.field, issueId: iss.id });
   }

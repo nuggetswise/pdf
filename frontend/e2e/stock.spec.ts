@@ -22,7 +22,7 @@ test("the example PO: page view, stock check, split shipment and backorder dates
   await expect(terms).toContainText("Ship complete whenever possible.");
   await page.screenshot({ path: "../docs/screenshots/app-14-example-po-page.png", fullPage: true });
 
-  await page.getByRole("button", { name: "Approve order" }).click();
+  await page.getByRole("button", { name: "Approve and send to ERP" }).click();
   const stock = page.getByRole("region", { name: "Stock and ship date" });
   await expect(stock).toContainText("Needs your choice");
   await expect(stock.locator("tr.short")).toHaveCount(1);

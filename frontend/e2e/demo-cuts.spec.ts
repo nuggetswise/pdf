@@ -18,7 +18,7 @@ async function toShortage(page: Page) {
   await card.getByRole("button").click();
   await expect(page.locator(".pdfpage img")).toBeVisible();
   await shot(page, "02-order-pdf");
-  await page.getByRole("button", { name: "Approve order" }).click();
+  await page.getByRole("button", { name: "Approve and send to ERP" }).click();
   const stock = page.getByRole("region", { name: "Stock and ship date" });
   await expect(stock).toContainText("Needs your choice");
   await shot(page, "03-stock-short");

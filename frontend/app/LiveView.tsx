@@ -55,15 +55,15 @@ export function RetailerSuppliers({ customerId }: { customerId: string | null })
   return (
     <section className="panel" aria-label="Suppliers">
       <header className="panel-head"><h3>Suppliers</h3></header>
-      <table className="grid-table">
+      <table className="grid-table stack-table">
         <thead><tr><th>Supplier</th><th>How they connect</th><th>Orders</th><th>Documents received</th><th>Went through untouched</th><th></th></tr></thead>
         <tbody>
           <tr>
-            <td><b>{supplier}</b><div className="muted small">Fictional</div></td>
-            <td><span className="pill info"><Mail size={14} aria-hidden /> Email, via Order Agent</span></td>
-            <td>{orders.length}</td><td>{msgs.length}</td>
-            <td>{orders.length ? `${untouched} of ${orders.length}` : "–"}</td>
-            <td className="muted small">Onboarding is outside this concept</td>
+            <td data-label="Supplier"><b>{supplier}</b><div className="muted small">Fictional</div></td>
+            <td data-label="How they connect"><span className="pill info"><Mail size={14} aria-hidden /> Email, via Order Agent</span></td>
+            <td data-label="Orders">{orders.length}</td><td data-label="Documents received">{msgs.length}</td>
+            <td data-label="Went through untouched">{orders.length ? `${untouched} of ${orders.length}` : "–"}</td>
+            <td data-label="Onboarding" className="muted small">Onboarding is outside this concept</td>
           </tr>
         </tbody>
       </table>

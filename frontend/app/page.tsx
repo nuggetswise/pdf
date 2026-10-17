@@ -8,6 +8,7 @@ import { PEOPLE, Role } from "./api";
 import { ErpView, MemoryView, SettingsView, Workspace } from "./Panels";
 import { EdiView } from "./Portal";
 import { Forward, RetailerInbox, RetailerSuppliers } from "./LiveView";
+import { ForwardedReview } from "./ForwardedReview";
 import { OpsHome, OpsReview, OrderExceptions } from "./OrderOps";
 import { OpsProvider, useOps } from "./ops/OpsProvider";
 import { needsAttention } from "../lib/domain/ops/engine";
@@ -132,7 +133,7 @@ function App() {
           {agent.storageWarning && <div className="alert warn" role="status">{agent.storageWarning}</div>}
           {tab === "ops" && !opsOrder && (
             <OpsHome
-              onOpen={(t) => (t.kind === "ops" ? openOps(t.id, "ops") : (setFocus(t.docId), setSection(null), setTab("work")))}
+              onOpen={(t) => openOps(t.kind === "ops" ? t.id : `doc:${t.docId}`, "ops")}
               commandCenter={(
                 <section className="panel cc-entry" aria-labelledby="cc-entry-h">
                   <header className="panel-head"><h3 id="cc-entry-h">Command Center</h3><span className="count">{ccOpen}</span></header>
@@ -147,8 +148,13 @@ function App() {
                 </section>
               )} />
           )}
-          {tab === "ops" && opsOrder && (
+          {tab === "ops" && opsOrder && !opsOrder.startsWith("doc:") && (
             <OpsReview id={opsOrder} role={role} onBack={() => (opsFrom === "command" ? goTab("command") : setOpsOrder(null))} />
+          )}
+          {tab === "ops" && opsOrder?.startsWith("doc:") && (
+            <ForwardedReview key={opsOrder} docId={Number(opsOrder.slice(4))} role={role}
+              onBack={() => (opsFrom === "command" ? goTab("command") : setOpsOrder(null))}
+              onOpenIntake={(id) => { setOpsOrder(null); setFocus(id); setSection(null); setTab("work"); }} />
           )}
           {tab === "work" && <Workspace key={`${focus ?? 0}:${section ?? ""}`} role={role} focus={focus} section={section} />}
           {tab === "command" && <OrderExceptions onOpen={(id) => openOps(id, "command")} />}
