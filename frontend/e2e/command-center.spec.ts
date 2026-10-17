@@ -8,7 +8,7 @@ const PACK = (name: string) => `../fixtures/test-pack/${name}`;
 test("intake history: email text order, not an order, attachments kept as evidence", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  await page.getByRole("tab", { name: "Orders" }).click();
+  await page.getByRole("tab", { name: "Intake" }).click();
   const upload = (name: string) => page.getByLabel("Upload a purchase order").setInputFiles(PACK(name));
 
   await upload("TP-02-email-body.eml");
@@ -62,7 +62,7 @@ test("Command Center: stock shortage from finding to verified outcome", async ({
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  await page.getByRole("tab", { name: "Orders" }).click();
+  await page.getByRole("tab", { name: "Intake" }).click();
   await page.getByLabel("Upload a purchase order").setInputFiles(PACK("TP-13-stock-short.eml"));
   await page.getByRole("button", { name: "Approve order" }).click();
   await expect(page.getByRole("region", { name: "Stock and ship date" })).toContainText("Needs your choice");

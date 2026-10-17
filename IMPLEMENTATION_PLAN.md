@@ -230,3 +230,11 @@ Remaining rebuild slices: 6 Vercel deploy (merged to main deploys via Vercel's g
 
 ## Session onboarding for real POs (D46)
 Done: Add as new customer, Assign to existing customer, Add ship-to and Add to catalogue as reviewer actions; additions in optional RunState.referenceOverlay merged for validation ("REF-2026-10-v1 + session additions"), audited, shown on Agent memory as "Added in this session"; current order re-validated. Tests: lib/domain/onboarding.test.ts, e2e/onboarding.spec.ts with fictional fixtures/onboarding (scripts/onboarding_fixtures.py). Not done: saving additions beyond the tab, editing or removing an addition.
+
+## Order Operations upgrade (2026-10-17, D71)
+- [x] Audit, gap analysis and change plan (docs/13-order-operations.md)
+- [x] Explicit order, issue, decision and field states (`frontend/lib/domain/ops/`)
+- [x] Fictional 18-order sample inbox covering the six scenarios
+- [x] Order operations home, order review, history, simulated ERP panel, Command Center deep links
+- [x] Engine tests and browser journeys; `scripts/verify.sh` passes
+- [ ] Usability session with someone who has not seen the app

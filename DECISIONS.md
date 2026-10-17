@@ -249,3 +249,24 @@ received the order (the envelope's intake time), not from the sender's Date head
 seconds; for a forwarded example email dated in the past, the Date header made the deadline read "passed" before the
 demo began. No clock control or reset is added: the deadline counts down in real time. The Today flow bar now has six
 columns (it had five for six steps) and the forward box keeps its button on its own line.
+
+## D71 Order Operations: explicit order states over a sample inbox (2026-10-17)
+Mandip's brief asks the prototype to test one hypothesis: an emailed PDF order can become a trustworthy transaction
+with a person needed only for meaningful judgement. The app now opens on "Order operations": counts by state, a
+"Needs attention" queue first, and every other order with its simulated ERP result. Today is removed (its forward box
+moved to the home side panel) and "Orders" is renamed "Intake".
+- New domain `lib/domain/ops/` with explicit order states (received to accepted or rejected), issue types
+  (correctable discrepancy, ambiguous match, missing required data, validation failure, downstream rejection),
+  decision outcomes (accepted or rejected recommendation, selected option, corrected value, deferred) and field states
+  (accepted, changed, uncertain, missing, invalid). State is computed from decisions and issues, never display text.
+- Kept separate from RunState (own sessionStorage key) so saved runs, Python parity fixtures and the server action
+  contract do not change. Reversible: the module can later be fed by the live reading pipeline.
+- Eighteen fictional sample emails are read by the same rules each time the tab opens. The reading step of samples is
+  simulated (structured fixtures rendered as a document, no OCR or AI); the recommendation text is rule-generated from
+  reference data and order history and shown under "Order agent (AI)". The ERP is simulated with its own customer
+  master, so a downstream rejection can happen after the agent's checks pass.
+- Behaviour: enough evidence sends automatically; a correctable discrepancy gets a recommendation with evidence; an
+  ambiguity lists options with no recommendation; missing critical data blocks with no proposed fix. A person's change
+  requires one approval, which sends (no separate send step). Decisions can be undone until an ERP submission follows.
+- No confidence scores. Orders forwarded in the session appear in the same queue and open in Intake.
+Details, gap analysis and capability boundaries: docs/13-order-operations.md.

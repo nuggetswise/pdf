@@ -10,9 +10,9 @@ test("the example PO: page view, stock check, split shipment and backorder dates
   const forward = page.getByRole("region", { name: "Forward a purchase order" });
   await expect(forward).toContainText("Maple Retail Group (FreshMart Markets) · PO-2026-104587");
   await forward.getByRole("button", { name: "Forward to agent" }).click();
-  const card = page.getByRole("article", { name: /Order PO-2026-104587/ });
+  const card = page.locator("[data-po=\"PO-2026-104587\"]");
   await expect(card).toContainText("waiting for one approval");
-  await card.getByRole("button", { name: "Open order" }).click();
+  await card.getByRole("button").click();
 
   // The PDF as printed, with the values the agent read boxed; the PO's terms and notes, word for word.
   await expect(page.locator(".pdfpage img")).toBeVisible();
@@ -34,9 +34,9 @@ test("the example PO: page view, stock check, split shipment and backorder dates
   await page.getByRole("button", { name: "Retailer", exact: true }).click();
   await expect(page.locator(".rcard[data-kind=ORDRSP]")).toHaveCount(0);
   await page.getByRole("button", { name: "Supplier", exact: true }).click();
-  await page.getByRole("tab", { name: "Today" }).click();
+  await page.getByRole("tab", { name: "Order operations" }).click();
   await expect(card).toContainText("Stock is short on 1 line");
-  await card.getByRole("button", { name: "Open order" }).click();
+  await card.getByRole("button").click();
 
   await stock.getByLabel("Ship now, backorder the rest").check();
   await stock.getByRole("button", { name: "Confirm to the retailer" }).click();
@@ -52,8 +52,8 @@ test("the example PO: page view, stock check, split shipment and backorder dates
 
   // Ship what is in stock; ERP stock goes down.
   await page.getByRole("button", { name: "Supplier", exact: true }).click();
-  await page.getByRole("tab", { name: "Today" }).click();
-  await card.getByRole("button", { name: "Open order" }).click();
+  await page.getByRole("tab", { name: "Order operations" }).click();
+  await card.getByRole("button").click();
   await stock.getByLabel("Carrier SCAC").fill("UPSN");
   await stock.getByLabel("Tracking number").fill("1ZTEST200001");
   await stock.getByRole("button", { name: "Mark shipped in ERP" }).click();

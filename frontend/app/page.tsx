@@ -4,22 +4,25 @@ import {
   Activity, ArrowLeft, Bot, Brain, Building2, Database, FileStack, Home, Inbox, type LucideIcon, Send as Outbox, Settings, Store, Users,
 } from "lucide-react";
 import { pilotRows, toCsv } from "../lib/domain/pilot";
-import { summary as summarise } from "../lib/domain/workflow";
 import { PEOPLE, Role } from "./api";
 import { ErpView, MemoryView, SettingsView, Workspace } from "./Panels";
 import { EdiView } from "./Portal";
-import { RetailerInbox, RetailerSuppliers, SupplierToday } from "./LiveView";
+import { Forward, RetailerInbox, RetailerSuppliers } from "./LiveView";
+import { OpsHome, OpsReview, OrderExceptions } from "./OrderOps";
+import { OpsProvider, useOps } from "./ops/OpsProvider";
+import { needsAttention } from "../lib/domain/ops/engine";
+import { findingCounts, supplierFindings } from "../lib/domain/command-center";
 import { CommandCenter, type OpenTarget } from "./CommandCenter";
 import { RunProvider, useAgent, useHealth } from "./run/RunProvider";
 
 // D55: one product, two audiences. A toggle at the top switches between the supplier's workspace and what the
 // retailer receives; each has its own short navigation. The data underneath is one run.
 type View = "supplier" | "retailer";
-type Tab = "today" | "work" | "command" | "memory" | "erp" | "edi" | "settings" | "received" | "suppliers" | "rcommand";
+type Tab = "ops" | "work" | "command" | "memory" | "erp" | "edi" | "settings" | "received" | "suppliers" | "rcommand";
 const NAV: Record<View, [Tab, string, LucideIcon, string][]> = {
   supplier: [
-    ["today", "Today", Home, "What needs you, and what the agent handled on its own"],
-    ["work", "Orders", Inbox, "Every purchase order, how the agent read it, and any decision waiting"],
+    ["ops", "Order operations", Home, "Orders received by email, checked and sent to the ERP"],
+    ["work", "Intake", Inbox, "Every forwarded document, how the agent read it, and any decision waiting"],
     ["command", "Command Center", Activity, "Findings from order, ERP and outbox records, with owner, action and verification"],
     ["memory", "Agent memory", Brain, "Corrections an administrator approved for reuse"],
     ["erp", "ERP records", Database, "What the agent wrote to your ERP (simulated)"],
@@ -34,12 +37,14 @@ const NAV: Record<View, [Tab, string, LucideIcon, string][]> = {
 };
 
 export default function Page() {
-  return <RunProvider><App /></RunProvider>;
+  return <RunProvider><OpsProvider><App /></OpsProvider></RunProvider>;
 }
 
 function App() {
   const [view, setView] = useState<View>("supplier");
-  const [tab, setTab] = useState<Tab>("today");
+  const [tab, setTab] = useState<Tab>("ops");
+  const [opsOrder, setOpsOrder] = useState<string | null>(null);
+  const [opsFrom, setOpsFrom] = useState<"ops" | "command">("ops");
   const [focus, setFocus] = useState<number | null>(null);
   const [section, setSection] = useState<string | null>(null);
   const [fromCc, setFromCc] = useState(false);
@@ -49,13 +54,15 @@ function App() {
   const [role, setRole] = useState<Role>("administrator");
   const agent = useAgent();
   const health = useHealth();
-  const summary = agent.ready ? summarise(agent.state) : null;
   const error = agent.serverError;
   const testMode = health?.rehearsal_mode || health?.extractor_mode === "test";
   const extraction = !health ? "…" : testMode ? "Scripted reader, not live AI"
     : health.extraction === "available" ? `AI: ${health.model}` : "AI unavailable";
   const switchView = (v: View) => { setView(v); setTab(NAV[v][0][0]); setFromCc(false); };
-  const goTab = (t: Tab) => { setTab(t); setFromCc(false); setSection(null); };
+  const goTab = (t: Tab) => { setTab(t); setFromCc(false); setSection(null); setOpsOrder(null); };
+  const openOps = (id: string, from: "ops" | "command") => { setOpsOrder(id); setOpsFrom(from); setTab("ops"); window.scrollTo?.(0, 0); };
+  const ops = useOps();
+  const ccOpen = (agent.ready ? findingCounts(supplierFindings(agent.state)).open : 0) + (ops.state?.orders.filter(needsAttention).length ?? 0);
   const openFromCc = (t: OpenTarget) => { setFocus(t.docId); setSection(t.section); setFromCc(true); setTab("work"); };
   // D66: the retailer view is scoped to one retailer at a time; it sees only its own orders.
   const retailers = agent.ready ? [...new Set(agent.state.orders.map((o) => o.customerId).filter(Boolean))] as string[] : [];
@@ -123,16 +130,28 @@ function App() {
           </div>
           {error && <div className="alert bad" role="alert">{error}</div>}
           {agent.storageWarning && <div className="alert warn" role="status">{agent.storageWarning}</div>}
-          {tab === "today" && (summary?.orders_received ?? 0) > 0 && (
-            <div className="kpis" aria-label="Executive summary">
-              <Kpi n={summary?.orders_received} label="Orders received" />
-              <Kpi n={summary?.delivered_to_erp} label="Delivered to ERP" tone="ok" />
-              <Kpi n={summary?.held_for_review} label="Waiting on a person" tone="warn" />
-              {!!summary?.delivery_problems && <Kpi n={summary.delivery_problems} label="Delivery needs attention" tone="bad" />}
-            </div>
+          {tab === "ops" && !opsOrder && (
+            <OpsHome
+              onOpen={(t) => (t.kind === "ops" ? openOps(t.id, "ops") : (setFocus(t.docId), setSection(null), setTab("work")))}
+              commandCenter={(
+                <section className="panel cc-entry" aria-labelledby="cc-entry-h">
+                  <header className="panel-head"><h3 id="cc-entry-h">Command Center</h3><span className="count">{ccOpen}</span></header>
+                  <p className="muted small">Order exceptions and findings across stock and the outbox.</p>
+                  <button className="ghost" onClick={() => goTab("command")}><Activity size={16} aria-hidden /> Open Command Center</button>
+                </section>
+              )}
+              forward={(
+                <section className="panel forward-panel" aria-label="Forward a purchase order">
+                  <header className="panel-head"><h3>New purchase order</h3></header>
+                  <Forward />
+                </section>
+              )} />
           )}
-          {tab === "today" && <SupplierToday role={role} onOpen={(id) => { setFocus(id); setSection(null); setTab("work"); }} />}
+          {tab === "ops" && opsOrder && (
+            <OpsReview id={opsOrder} role={role} onBack={() => (opsFrom === "command" ? goTab("command") : setOpsOrder(null))} />
+          )}
           {tab === "work" && <Workspace key={`${focus ?? 0}:${section ?? ""}`} role={role} focus={focus} section={section} />}
+          {tab === "command" && <OrderExceptions onOpen={(id) => openOps(id, "command")} />}
           {tab === "command" && <CommandCenter audience="supplier" role={role} customerId={null} onOpen={openFromCc} />}
           {tab === "rcommand" && <CommandCenter audience="retailer" role={role} customerId={viewingAs} />}
           {tab === "memory" && <MemoryView role={role} />}
@@ -145,8 +164,4 @@ function App() {
       </div>
     </div>
   );
-}
-
-function Kpi({ n, label, tone }: { n?: number | string; label: string; tone?: string }) {
-  return <div className={`kpi ${tone ?? ""}`}><b>{n ?? "–"}</b><span>{label}</span></div>;
 }

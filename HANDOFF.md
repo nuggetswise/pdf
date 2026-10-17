@@ -9,6 +9,9 @@ Purpose: a working prototype to show leadership how the forwarded-email/PDF orde
 
 Video moments to mirror (owner-supplied): 0:19-0:31 automated extraction and entry; 0:34-0:38 business rule validation; 0:36-0:44 MOQ check; 0:45-0:53 price verification; 0:54-1:04 outdated GTIN; 1:05-1:10 learning from corrections. Our learning is approved, scoped rule reuse with an administrator gate (DECISIONS.md D03), not autonomous retraining. Present it as "agent memory with provenance".
 
+## Update (2026-10-17, Order Operations, D71)
+Branch `claude/order-ops-upgrade-an6w93`, built on the unmerged v1.2 branch. New default view "Order operations" over a fictional 18-order sample inbox with explicit states, recommendations, ambiguity, blocked, ERP rejection, undo and history (`lib/domain/ops/`, `app/OrderOps.tsx`). Today removed; Orders renamed Intake. Read docs/13-order-operations.md first.
+
 ## Update (2026-10-17, v1.2: intake, governance, Command Center, D62-D68)
 Branch `claude/project-thread-qjo9d5`. Email-text and X12 850 intake, Not an order with correction, evidence-only
 attachments, dates never assumed, email/attachment conflict, line placement check, provenance per value, internal
