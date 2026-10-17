@@ -81,7 +81,7 @@ limits).
 | UC-30 | Email and attachment conflict (new) | Subject or text naming another PO blocks the order until a person confirms. | Runtime-tested | TP-08 |
 | UC-31 | Command Center finding (new) | Findings derived from order, ERP and outbox records with owner, rule, deadline source, priority basis, action and verification. | Runtime-tested; proposed composition | TP-13..17, e2e command-center |
 | UC-32 | Act from a finding (new) | Open order goes to the exact section; the authorised action happens in the order workspace; Back to Command Center returns. | Runtime-tested | e2e command-center |
-| UC-33 | Verify an outcome (new) | Verified only when the resolution condition holds in source records. Sent is not accepted. | Runtime-tested; outcomes from simulators | TP-13..17 |
+| UC-33 | Verify an outcome (new) | Verified only when the resolution condition holds in source records. Sent is not accepted: a shortage confirmation that changes the PO is verified by the retailer's recorded (simulated) response, one finding per shortage (D69). | Runtime-tested; outcomes from simulators | TP-13..17 |
 | UC-34 | Scoped retailer view (new) | Viewing as one retailer: only its documents and shared findings; no supplier stock, cost or other-retailer data. | Runtime-tested | TP-17, e2e command-center |
 
 ## States (v1.1 section 7, as built)

@@ -87,12 +87,11 @@ test("Command Center: stock shortage from finding to verified outcome", async ({
   await stock.getByRole("button", { name: "Confirm to the retailer" }).click();
   await page.getByRole("button", { name: "Back to Command Center" }).click();
 
-  // Verify: the confirmation reached the retailer's mailbox. The revision itself waits for the retailer.
-  await page.getByRole("button", { name: "Verified", exact: true }).click();
-  await expect(page.getByRole("article", { name: /Stock short for order/ })).toContainText("Resolution condition met");
-  await page.getByRole("button", { name: "Open", exact: true }).click();
-  const revised = page.getByRole("article", { name: /Revised delivery awaiting retailer/ });
-  await expect(revised).toContainText("Delivery of the confirmation alone does not resolve it");
+  // The confirmation is the action. Delivery is not acceptance, so the finding stays open and there is no second finding.
+  const open = page.getByRole("article", { name: /Stock short for order/ });
+  await expect(open).toContainText("Wait for the retailer's response");
+  await expect(page.getByRole("article", { name: /Revised delivery/ })).toHaveCount(0);
+  await expect(page.getByRole("article")).toHaveCount(1);
   await page.screenshot({ path: "../docs/screenshots/app-22-command-center-verified.png", fullPage: true });
 
   // The retailer sees only the shared finding on its own order, never the supplier's stock.
@@ -106,4 +105,11 @@ test("Command Center: stock shortage from finding to verified outcome", async ({
   await page.getByRole("button", { name: "Verified", exact: true }).click();
   await expect(page.getByRole("article", { name: /Revised delivery awaiting retailer/ })).toContainText("Retailer accepted the revised quantities and dates");
   await page.screenshot({ path: "../docs/screenshots/app-23-retailer-command-center.png", fullPage: true });
+
+  // Back as the supplier: the same shortage is now verified by the retailer's acceptance.
+  await page.getByRole("button", { name: "Supplier", exact: true }).click();
+  await page.getByRole("tab", { name: "Command Center" }).click();
+  await page.getByRole("button", { name: "Verified", exact: true }).click();
+  await expect(page.getByRole("article", { name: /Stock short for order/ })).toContainText("Resolution condition met");
+  await expect(page.getByRole("article", { name: /Stock short for order/ })).toContainText("Retailer accepted the revised quantities and dates");
 });

@@ -4,7 +4,7 @@ test("forwarded email is processed automatically and shows evidence", async ({ p
   await request.post("/api/demo/reset", { headers: { "X-Demo-Role": "administrator", "X-Demo-User": "alex" } });
   await page.goto("/");
   await page.getByRole("tab", { name: "Orders" }).click();
-  await expect(page.getByText("Rehearsal: TEST ADAPTER (not AI)")).toBeVisible();
+  await expect(page.getByText("Scripted reader, not live AI")).toBeVisible();
   await page.getByRole("tab", { name: "Orders" }).click();
   await expect(page.getByText("No orders yet")).toBeVisible();
 

@@ -111,6 +111,7 @@ function FindingCard({ f, audience, role, customerId, onOpen, onAssign, onRespon
           {canRespond && <>
             <button className="primary" onClick={() => onRespond("accepted")}>Accept revision</button>
             <button className="ghost danger" onClick={() => onRespond("declined")}>Decline revision</button>
+            <span className="muted small">Simulated retailer response. In a pilot, this evidence comes from the retailer&apos;s own system.</span>
           </>}
         </div>
       </div>

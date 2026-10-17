@@ -31,7 +31,7 @@ pending. Sending is never treated as acceptance.
 | Type | Detected when | Visibility | Resolution condition | Evidence that verifies it |
 |---|---|---|---|---|
 | Stock short for order (first scenario) | ERP stock check needs a person's decision | Supplier only (rests on ERP stock) | Shipping decision recorded and the order confirmation delivered to the retailer mailbox | Fulfilment decision with person and time; 855 status delivered with a receiver reference |
-| Revised delivery awaiting retailer | A delivered confirmation ships less, later or cancels part of the PO | Shared with that retailer | Retailer accepted the revised quantities and dates | Retailer response recorded as accepted. Delivery of the confirmation alone does not resolve it |
+| Revised delivery awaiting retailer | A delivered confirmation ships less, later or cancels part of the PO | Shared with that retailer | Retailer accepted the revised quantities and dates | Retailer response recorded as accepted. Delivery of the confirmation alone does not resolve it. The supplier sees this as evidence on its Stock short finding, not as a second finding (D69) |
 | ERP order not confirmed | ERP delivery failed or its outcome is unknown | Supplier only | The ERP holds an order record for the approved version | ERP order number found for the idempotency key |
 | Document not delivered to retailer | A retailer-bound document is held or refused by the outbox | Supplier only | The retailer's mailbox holds the document | Message status delivered with a receiver reference |
 

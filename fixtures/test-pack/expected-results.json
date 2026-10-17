@@ -114,8 +114,8 @@
               "history_includes": "condition_cleared" },
               { "type": "retailer_message", "verification": "pending" }] } },
         { "action": { "type": "retryOutbound", "role": "reviewer", "messageId": "$message:ORDRSP" },
-          "expect": { "_case": "TP-16 verified outcome",
-            "findings": [{ "type": "stock_short", "verification": "verified" }, { "type": "retailer_message", "verification": "verified" },
+          "expect": { "_case": "TP-16 delivered is not accepted: the shortage stays pending until the retailer responds",
+            "findings": [{ "type": "stock_short", "verification": "pending", "action": "completed" }, { "type": "retailer_message", "verification": "verified" },
               { "type": "revised_delivery", "verification": "pending", "visibility": "shared" }] } },
         { "retailer_view": "DEMO-CUST-01",
           "expect": { "_case": "TP-17 another retailer sees nothing", "visible_findings": [] } },
@@ -126,7 +126,9 @@
         { "action": { "type": "assignFinding", "role": "viewer", "findingId": "$finding:stock_short", "owner": null },
           "expect": { "_case": "TP-17 a viewer cannot assign", "refused": 403 } },
         { "action": { "type": "respondToRevision", "messageId": "$message:ORDRSP", "customerId": "MAPLE-01", "decision": "accepted" },
-          "expect": { "findings": [{ "type": "revised_delivery", "verification": "verified" }] } }
+          "expect": { "_case": "retailer acceptance is the only verification, for both views of the one shortage",
+            "findings": [{ "type": "revised_delivery", "verification": "verified" }, { "type": "stock_short", "verification": "verified" }],
+            "supplier_finding_types": ["retailer_message", "stock_short"] } }
       ]
     },
     {

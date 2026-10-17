@@ -116,7 +116,7 @@ export function RetailerSuppliers({ customerId }: { customerId: string | null })
             <td><span className="pill info"><Mail size={14} aria-hidden /> Email, via Order Agent</span></td>
             <td>{orders.length}</td><td>{msgs.length}</td>
             <td>{orders.length ? `${untouched} of ${orders.length}` : "–"}</td>
-            <td><button className="ghost" disabled title="Prototype: shows the next step only">Invite to Trading Grid EDI</button></td>
+            <td className="muted small">Onboarding is outside this concept</td>
           </tr>
         </tbody>
       </table>

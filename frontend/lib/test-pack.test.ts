@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as pdfjsNode from "pdfjs-dist/legacy/build/pdf.mjs";
 import { describe, expect, it, vi } from "vitest";
-import { reconcileFindings, retailerFindings } from "./domain/command-center";
+import { reconcileFindings, retailerFindings, supplierFindings } from "./domain/command-center";
 import { normalise } from "./domain/normalise";
 import { type RunState, emptyRunState } from "./domain/run-state";
 import { type Intake, intakeEdi, intakeEml } from "./intake/intake";
@@ -152,6 +152,9 @@ describe("intake test pack (fixtures/test-pack, fictional)", () => {
             continue;
           }
           if (step.expect) check(s, step.expect, ids, created);
+          if (step.expect && "supplier_finding_types" in step.expect) {
+            expect(supplierFindings(s).map((f) => f.type).sort()).toStrictEqual([...(step.expect.supplier_finding_types as string[])].sort());
+          }
         }
       } finally {
         vi.useRealTimers();

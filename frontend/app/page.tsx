@@ -52,7 +52,7 @@ function App() {
   const summary = agent.ready ? summarise(agent.state) : null;
   const error = agent.serverError;
   const testMode = health?.rehearsal_mode || health?.extractor_mode === "test";
-  const extraction = !health ? "…" : testMode ? "Rehearsal: TEST ADAPTER (not AI)"
+  const extraction = !health ? "…" : testMode ? "Scripted reader, not live AI"
     : health.extraction === "available" ? `AI: ${health.model}` : "AI unavailable";
   const switchView = (v: View) => { setView(v); setTab(NAV[v][0][0]); setFromCc(false); };
   const goTab = (t: Tab) => { setTab(t); setFromCc(false); setSection(null); };
@@ -86,14 +86,16 @@ function App() {
         </div>
         <div className="mast-right">
           <span className={`chip ${testMode ? "warn" : health?.extraction === "available" ? "ok" : "bad"}`}>{extraction}</span>
-          <details className="role">
-            <summary>Signed in as {PEOPLE[role]}</summary>
-            <label>Switch user
-              <select value={role} onChange={(e) => setRole(e.target.value as Role)} aria-label="Signed-in user">
-                {(["administrator", "reviewer", "viewer"] as Role[]).map((r) => <option key={r} value={r}>{PEOPLE[r]}</option>)}
-              </select>
-            </label>
-          </details>
+          {testMode ? (
+            <details className="role">
+              <summary>Signed in as {PEOPLE[role]}</summary>
+              <label>Switch user
+                <select value={role} onChange={(e) => setRole(e.target.value as Role)} aria-label="Signed-in user">
+                  {(["administrator", "reviewer", "viewer"] as Role[]).map((r) => <option key={r} value={r}>{PEOPLE[r]}</option>)}
+                </select>
+              </label>
+            </details>
+          ) : <span className="muted small">Signed in as {PEOPLE[role]}</span>}
         </div>
       </header>
       <div className="shell">
@@ -121,7 +123,7 @@ function App() {
           </div>
           {error && <div className="alert bad" role="alert">{error}</div>}
           {agent.storageWarning && <div className="alert warn" role="status">{agent.storageWarning}</div>}
-          {tab === "today" && (
+          {tab === "today" && (summary?.orders_received ?? 0) > 0 && (
             <div className="kpis" aria-label="Executive summary">
               <Kpi n={summary?.orders_received} label="Orders received" />
               <Kpi n={summary?.delivered_to_erp} label="Delivered to ERP" tone="ok" />

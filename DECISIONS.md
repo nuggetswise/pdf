@@ -229,3 +229,16 @@ case id or file name. The wrong-line case uses a hand-written stand-in for an AI
 deterministic reader cannot produce it. The invoice check formerly called a three-way match is renamed "Order, ASN
 and invoice check": it compares the supplier's PO line, ASN and invoice; there is no goods receipt
 (docs/11-system-of-record.md).
+
+## D69 One shortage, one finding; acceptance verifies (2026-10-17)
+The stock shortage used to produce two findings for one condition: the supplier's "Stock short" finding, verified when
+the confirmation was delivered, and a shared "Revised delivery" finding verified by the retailer's response. Delivery
+was being counted as verification. Now the supplier's confirmation is the action on the shortage finding, and when the
+confirmation ships less or later than the PO asked, only the retailer's recorded acceptance verifies it (delivery stays
+as outcome evidence). The shared finding still exists so the retailer can respond without seeing supplier stock; the
+supplier's list hides it while its shortage finding exists. A confirmation that changes nothing is still verified on
+delivery. The acceptance is a simulated retailer response and is labelled so beside the buttons.
+Demo-readiness changes in the same pass: the signed-in user switch shows only with the test adapter; the header chip for
+the test adapter reads "Scripted reader, not live AI" and stays until live AI reading is verified; the disabled
+"Invite to Trading Grid EDI" button is replaced by "Onboarding is outside this concept"; the Today tiles are hidden
+until an order exists. Currency, dates and retailer profile are unchanged (no decision yet).

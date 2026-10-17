@@ -72,6 +72,13 @@ function prioritise(now: string, deadline: Finding["deadline"], shipBy: string |
   return { level: "low", basis: "Waiting on a response; no deadline is established." };
 }
 
+/** The parts of a delivered confirmation that ship less or later than the PO asked: a change the buyer must accept. */
+function revisedParts(o: RunState["orders"][number] | undefined) {
+  const f = o?.fulfilment;
+  if (!f || f.status !== "confirmed") return [];
+  return f.parts.filter((p) => p.kind !== "now" || (f.shipBy !== null && p.shipOn !== null && p.shipOn > f.shipBy));
+}
+
 // ---------- Detect ----------
 
 export function detect(s: RunState, now: string): Condition[] {
@@ -94,8 +101,8 @@ export function detect(s: RunState, now: string): Condition[] {
         deadline,
         priority: prioritise(now, deadline, f.shipBy, "the order confirmation to the retailer waits for this decision"),
         nextAction: { text: "Choose how to ship: hold and ship complete, ship now and backorder, or ship now and cancel the rest.", target: "stock" },
-        resolution: { condition: "Shipping decision recorded and the order confirmation delivered to the retailer's Trading Grid mailbox.",
-          evidenceRequired: "Fulfilment decision with who and when; order confirmation (855) with status delivered and a receiver reference." } });
+        resolution: { condition: "Shipping decision recorded, the order confirmation delivered, and, when it changes quantities or dates, accepted by the retailer.",
+          evidenceRequired: "Fulfilment decision with who and when; order confirmation (855) delivered with a receiver reference; for a changed confirmation, the retailer's recorded acceptance." } });
     }
     // ERP delivery failed or its outcome is unknown. Transport is not creation: only an ERP record verifies it.
     if (o.deliveryState === "failed" || o.deliveryState === "unknown") {
@@ -133,8 +140,7 @@ export function detect(s: RunState, now: string): Condition[] {
     // Once the retailer accepts, the change is agreed and the condition no longer holds.
     const accepted = (s.portal?.retailerResponses ?? []).some((r) => r.messageId === m.id && r.decision === "accepted");
     if (m.kind === "ORDRSP" && m.status === "delivered" && o.fulfilment?.status === "confirmed" && m === firstOrdrsp(s, m.documentId) && !accepted) {
-      const changed = o.fulfilment.parts.filter((p) => p.kind !== "now"
-        || (o.fulfilment!.shipBy !== null && p.shipOn !== null && p.shipOn > o.fulfilment!.shipBy));
+      const changed = revisedParts(o);
       if (changed.length) {
         out.push({ ...base, type: "revised_delivery", key: `revised_delivery:${m.id}`, visibility: "shared",
           lines: [...new Set(changed.map((p) => p.lineIndex))].map((i) => ({ lineIndex: i, label: lineLabel(s, m.documentId, i) })),
@@ -164,7 +170,17 @@ function actionAndOutcome(s: RunState, f: Finding): { action: Evidence | null; o
     const msg = firstOrdrsp(s, f.documentId);
     const outcome: Evidence[] = msg ? [{ kind: "outcome", text: `Order confirmation ${msg.sourceId}: ${msg.status}${msg.receiverRef ? ` as ${msg.receiverRef}` : ""}`,
       source: "Trading Grid outbox (simulated)", at: msg.updatedAt }] : [];
-    return { action, outcome, verified: Boolean(action && msg?.status === "delivered" && msg.receiverRef) };
+    // One shortage, one lifecycle: the confirmation is the supplier's action. When it changes what or when the
+    // retailer receives, only the retailer's acceptance verifies it. Delivery alone does not.
+    const delivered = Boolean(msg?.status === "delivered" && msg.receiverRef);
+    const needsAcceptance = revisedParts(o).length > 0;
+    const resp = msg ? [...(s.portal?.retailerResponses ?? [])].reverse().find((r) => r.messageId === msg.id) : undefined;
+    if (resp) outcome.push({ kind: "outcome", text: `Retailer ${resp.decision} the revised quantities and dates (simulated retailer view)`,
+      source: "Retailer response record", at: resp.at });
+    const next = delivered && needsAcceptance
+      ? { text: resp?.decision === "declined" ? "Agree a new plan with the buyer, then send a changed confirmation from the order."
+        : "Wait for the retailer's response to the revised quantities and dates.", target: "stock" as const } : undefined;
+    return { action, outcome, verified: Boolean(action && delivered && (!needsAcceptance || resp?.decision === "accepted")), next };
   }
   if (f.type === "erp_outcome") {
     const retry = s.audit.find((a) => a.entityType === "document" && a.entityId === f.documentId && a.event === "delivery_retry_requested" && a.createdAt >= f.detectedAt);
@@ -314,7 +330,11 @@ export const issueOwner = (s: RunState): string | null => s.commandCenter?.owner
 export function retailerFindings(s: RunState, customerId: string): Finding[] {
   return (s.commandCenter?.findings ?? []).filter((f) => f.visibility === "shared" && f.customerId === customerId);
 }
-export const supplierFindings = (s: RunState): Finding[] => s.commandCenter?.findings ?? [];
+/** The supplier sees one finding per shortage: the retailer's copy of the same condition is evidence on it. */
+export const supplierFindings = (s: RunState): Finding[] => {
+  const all = s.commandCenter?.findings ?? [];
+  return all.filter((f) => f.type !== "revised_delivery" || !all.some((x) => x.type === "stock_short" && x.documentId === f.documentId));
+};
 
 /** Counts derived from the findings, for the Command Center header. */
 export function findingCounts(list: Finding[]) {
