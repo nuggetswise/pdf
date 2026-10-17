@@ -11,7 +11,7 @@ test("a user runs the order desk end to end", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   page.on("pageerror", (e) => console.log("PAGEERR", e.message));
   await page.goto("/");
-  await expect(page.getByRole("tab", { name: "Order operations", selected: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Orders", exact: true, selected: true })).toBeVisible();
   await page.getByRole("tab", { name: "Intake" }).click();
   await expect(page.getByRole("tab", { name: "Guided demo" })).toHaveCount(0);
   const role = (r: "administrator" | "reviewer" | "viewer") => asRole(page, r);
@@ -97,7 +97,7 @@ test("a user runs the order desk end to end", async ({ page }) => {
   await expect(page.locator(".erp-card")).toHaveCount(3);
   await page.screenshot({ path: "../docs/screenshots/app-03-erp-records.png", fullPage: true });
 
-  await page.getByRole("tab", { name: "Order operations" }).click();
+  await page.getByRole("tab", { name: "Orders", exact: true }).click();
   // Forwarded orders join the sample inbox in one queue (18 samples plus 6 documents).
   await expect(page.locator(".kpi b").first()).toHaveText("24");
   const row = (po: string) => page.locator(`[data-po="${po}"]`).first();

@@ -55,7 +55,8 @@ describe("recommended correction (unit of measure)", () => {
     expect(iss.original).toBe("24 CASE");
     expect(iss.expected).toBe("24 EA");
     expect(iss.proposed).toBe("EA");
-    expect(iss.evidence.map((e) => e.kind)).toEqual(["source", "reference", "reference", "history"]);
+    expect(iss.evidence.map((e) => e.kind)).toEqual(["source", "reference", "reference", "history", "rule"]);
+    expect(iss.agentNote).toContain("no CASE unit");
     expect(order(s0, id).lines[0].fields.unit.state).toBe("uncertain");
   });
 
@@ -68,6 +69,7 @@ describe("recommended correction (unit of measure)", () => {
     const s2 = approveAndSend(s1, id, RITA, LATER);
     expect(order(s2, id).state).toBe("accepted");
     expect(order(s2, id).erp.attempts[0].request.lines[0].unit).toBe("EA");
+    expect(order(s2, id).history.find((e) => e.type === "acknowledgement")?.text).toContain("line 1 unit CASE changed to EA");
     expect(counts(s2).afterReview).toBe(1);
     expect(counts(s2).needsReview).toBe(2);
   });

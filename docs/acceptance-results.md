@@ -201,3 +201,6 @@ passed (including 11 new in `e2e/order-ops.spec.ts`).
 | Live AI on the sample inbox | Not applicable | The sample reading step is simulated (docs/13-order-operations.md) |
 
 Screenshots: docs/screenshots/ops-01-home.png to ops-05-erp-rejection.png (headless Chromium, 1440 px).
+
+## 2026-10-17: D72 (portal name, one retailer view, unit change told to buyer)
+`scripts/verify.sh` exit 0: backend 47 passed; Vitest 537 passed (25 files); typecheck and build passed; pydifact 5 of 5; Playwright 29 passed. In an earlier run, browser-run.spec.ts failed once and passed on the next two runs (base and change). Not yet re-proven as a flake.

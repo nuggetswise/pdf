@@ -97,7 +97,7 @@ test("Command Center: stock shortage from finding to verified outcome", async ({
   // The retailer sees only the shared finding on its own order, never the supplier's stock.
   await page.getByRole("button", { name: "Retailer", exact: true }).click();
   await page.getByRole("tab", { name: "Command Center" }).click();
-  await expect(page.getByLabel("Viewing as retailer")).toHaveValue("MAPLE-01");
+  await expect(page.locator(".viewing-as")).toContainText("Maple Retail Group Inc.");
   await expect(page.getByRole("article", { name: /Stock short/ })).toHaveCount(0);
   await expect(page.locator(".command-center")).not.toContainText("free stock");
   const rv = page.getByRole("article", { name: /Revised delivery awaiting retailer/ });

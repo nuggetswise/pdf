@@ -221,12 +221,13 @@ export function build(o: Pick<OpsOrder, "email" | "po" | "decisions" | "erp">): 
             whyItMatters: `${pl.unit} is not an orderable unit for ${item.sku}, so the ERP cannot take the line as printed.`,
             rule: { id: "R6", text: "The unit is an orderable unit for the item." },
             original: `${pl.quantity} ${pl.unit}`, expected: `${pl.quantity} ${alt}`, proposed: alt, actions: ["accept", "keep_original"],
-            agentNote: `Change ${pl.unit} to ${alt}. The printed price ${pl.unitPrice} USD is the price of one ${alt}${hist ? `, and this buyer used ${hist.unit} on its last ${hist.orders} orders of this item` : ""}. The quantity stays ${pl.quantity}.`,
+            agentNote: `The PO contradicts itself: it says ${pl.unit}, but ${item.sku} has no ${pl.unit} unit and the printed ${pl.unitPrice} USD is the list price of one ${alt} (${item.pack})${hist ? `. ${b!.name} ordered this item in ${hist.unit} on its last ${hist.orders} orders` : ""}. Read the line as ${pl.quantity} ${alt}; the quantity and price stay as printed. The buyer's own system most likely carries the wrong unit for this item, so the acknowledgement tells them about the change and asks them to correct it, or the same mismatch arrives on the next order.`,
             evidence: [
               { kind: "source", text: `Printed line ${pl.line}: ${pl.quantity} ${pl.unit} at ${pl.unitPrice} USD`, source: src("unit") },
               { kind: "reference", text: `${item.sku} orderable units: ${item.units.join(", ")} (${item.unitNote.toLowerCase()})`, source: null },
               { kind: "reference", text: `List price per ${alt}: ${priceOn(item, alt, po.orderDate).current!.price} USD (${PRICE_LIST_VERSION})`, source: src("price") },
               ...(hist ? [{ kind: "history" as const, text: `${b!.name} ordered ${item.sku} in ${hist.unit} on its last ${hist.orders} orders (latest ${hist.last})`, source: null }] : []),
+              { kind: "rule" as const, text: `Told to the buyer on the acknowledgement: line ${pl.line} unit changed from ${pl.unit} to ${alt}, quantity and price unchanged`, source: null },
             ] });
           const d = apply(f.unit, id, ["accepted_recommendation"]);
           if (d && d.outcome !== "deferred") { iss.status = "resolved"; iss.decisionId = d.id; }
@@ -380,6 +381,11 @@ function send(o: OpsOrder, at: string) {
   if (response.status === "accepted") {
     o.erp.status = "accepted"; o.erp.erpOrderId = response.erpOrderId; o.state = "accepted";
     event(o, respondedAt, ERP, "erp_accepted", `Accepted by your ERP as ${response.erpOrderId}.`);
+    // D72: a changed line is never silent. The buyer is told so its own item setup can be corrected.
+    const changed = o.lines.flatMap((l, i) => l.fields.unit.extracted && l.fields.unit.value !== l.fields.unit.extracted
+      ? [`line ${i + 1} unit ${l.fields.unit.extracted} changed to ${l.fields.unit.value}, quantity and price unchanged`] : []);
+    if (changed.length) event(o, respondedAt, SYSTEM, "acknowledgement",
+      `Acknowledgement to ${b?.name ?? "the buyer"} (simulated) shows the change: ${changed.join("; ")}. Please correct the unit for this item in your ordering system.`);
   } else {
     rebuild(o);
     o.erp.status = "rejected"; o.state = "rejected";

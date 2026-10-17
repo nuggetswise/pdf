@@ -15,6 +15,7 @@ import { needsAttention } from "../lib/domain/ops/engine";
 import { findingCounts, supplierFindings } from "../lib/domain/command-center";
 import { CommandCenter, type OpenTarget } from "./CommandCenter";
 import { RunProvider, useAgent, useHealth } from "./run/RunProvider";
+import bundledReference from "../lib/domain/reference-data.v1.json";
 
 // D55: one product, two audiences. A toggle at the top switches between the supplier's workspace and what the
 // retailer receives; each has its own short navigation. The data underneath is one run.
@@ -22,7 +23,7 @@ type View = "supplier" | "retailer";
 type Tab = "ops" | "work" | "command" | "memory" | "erp" | "edi" | "settings" | "received" | "suppliers" | "rcommand";
 const NAV: Record<View, [Tab, string, LucideIcon, string][]> = {
   supplier: [
-    ["ops", "Order operations", Home, "Orders received by email, checked and sent to the ERP"],
+    ["ops", "Orders", Home, "Orders received by email, checked and sent to the ERP"],
     ["work", "Intake", Inbox, "Every forwarded document, how the agent read it, and any decision waiting"],
     ["command", "Command Center", Activity, "Findings from order, ERP and outbox records, with owner, action and verification"],
     ["memory", "Agent memory", Brain, "Corrections an administrator approved for reuse"],
@@ -49,7 +50,6 @@ function App() {
   const [focus, setFocus] = useState<number | null>(null);
   const [section, setSection] = useState<string | null>(null);
   const [fromCc, setFromCc] = useState(false);
-  const [retailer, setRetailer] = useState<string | null>(null);
   // One signed-in user with full rights. Switching to a restricted demo user stays possible (role checks are
   // an acceptance check, P15) but is tucked away in the account menu.
   const [role, setRole] = useState<Role>("administrator");
@@ -65,9 +65,9 @@ function App() {
   const ops = useOps();
   const ccOpen = (agent.ready ? findingCounts(supplierFindings(agent.state)).open : 0) + (ops.state?.orders.filter(needsAttention).length ?? 0);
   const openFromCc = (t: OpenTarget) => { setFocus(t.docId); setSection(t.section); setFromCc(true); setTab("work"); };
-  // D66: the retailer view is scoped to one retailer at a time; it sees only its own orders.
-  const retailers = agent.ready ? [...new Set(agent.state.orders.map((o) => o.customerId).filter(Boolean))] as string[] : [];
-  const viewingAs = retailer && retailers.includes(retailer) ? retailer : retailers[0] ?? null;
+  // D72: one retailer view, with no picker. It is the retailer of the first order in the run and sees only its own orders.
+  const viewingAs = agent.ready ? agent.state.orders.map((o) => o.customerId).find(Boolean) ?? null : null;
+  const retailerName = viewingAs ? bundledReference.customers.find((c) => c.customer_id === viewingAs)?.name ?? viewingAs : null;
   const current = NAV[view].find((n) => n[0] === tab) ?? NAV[view][0];
 
   const pilot = agent.ready && agent.state.orders.length > 0 && (
@@ -87,7 +87,7 @@ function App() {
     <div className="app">
       <header className="masthead">
         <div className="brand"><span className="logo" aria-hidden><Bot size={20} /></span>
-          <span>Trading Grid <b>Order Agent</b></span><small>prototype</small></div>
+          <span>Trading Grid <b>Portal</b></span><small>prototype</small></div>
         <div className="viewswitch" role="group" aria-label="View as">
           <button aria-pressed={view === "supplier"} onClick={() => switchView("supplier")}><Building2 size={16} aria-hidden /> Supplier</button>
           <button aria-pressed={view === "retailer"} onClick={() => switchView("retailer")}><Store size={16} aria-hidden /> Retailer</button>
@@ -109,14 +109,7 @@ function App() {
       <div className="shell">
         <nav className="sidenav" role="tablist" aria-label="Sections" aria-orientation="vertical">
           <div className="nav-label">{view === "supplier" ? "Supplier workspace" : "Retailer workspace"}</div>
-          {view === "retailer" && (
-            <label className="viewing-as">Viewing as
-              <select aria-label="Viewing as retailer" value={viewingAs ?? ""} onChange={(e) => setRetailer(e.target.value || null)}>
-                {retailers.length === 0 && <option value="">No retailers yet</option>}
-                {retailers.map((r) => <option key={r} value={r}>{r}</option>)}
-              </select>
-            </label>
-          )}
+          {view === "retailer" && <div className="viewing-as">Signed in as <b>{retailerName ?? "No retailer yet"}</b></div>}
           {NAV[view].map(([k, label, Icon]) => (
             <button key={k} role="tab" aria-selected={tab === k} onClick={() => goTab(k)}>
               <Icon size={18} aria-hidden /><span>{label}</span>

@@ -13,7 +13,7 @@ const issue = (page: Page, title: string) => page.getByRole("region", { name: ti
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  await expect(page.getByRole("tab", { name: "Order operations", selected: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Orders", exact: true, selected: true })).toBeVisible();
 });
 
 test("home shows operational state first, attention items first, counts from state", async ({ page }) => {
