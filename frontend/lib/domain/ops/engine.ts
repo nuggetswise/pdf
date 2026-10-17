@@ -2,6 +2,7 @@
 // reference data, validate it, record human decisions, rerun validation, and send it to the simulated ERP.
 // Behaviour model: sufficient evidence -> process automatically; correctable discrepancy -> recommend a change;
 // material ambiguity -> ask a person to choose; missing critical information -> block.
+import { addDays } from "../dates";
 import { Dec, money } from "../money";
 import { BUYERS, CATALOGUE, ERP_MASTER, ORDER_HISTORY, PRICE_LIST_VERSION, SUPPLIER, type Buyer, type Item } from "./reference";
 import { SAMPLES, type SampleEmail } from "./samples";
@@ -11,7 +12,7 @@ import {
 } from "./types";
 
 export const SYSTEM: Actor = { kind: "system", name: "Order agent" };
-export const AGENT: Actor = { kind: "agent", name: "Order agent (AI)" };
+export const AGENT: Actor = { kind: "agent", name: "Order agent (rules)" };
 export const ERP: Actor = { kind: "erp", name: "Your ERP (simulated)" };
 
 const HEADER_LABEL: Record<HeaderKey, string> = { po_number: "PO number", buyer: "Buyer", supplier: "Supplier",
@@ -21,6 +22,19 @@ const LINE_LABEL: Record<LineKey, string> = { description: "Description", sku: "
 export const FIELD_LABEL: Record<FieldKey, string> = { ...HEADER_LABEL, ...LINE_LABEL };
 
 export class OpsRefused extends Error {}
+
+/** Every check the order agent applies to an order, with the reference data it reads (shown in Rules, D73). */
+export const ORDER_RULES: { id: string; text: string; reads: string; owner: string }[] = [
+  { id: "R1", text: "Every order carries the buyer's PO number.", reads: "The PO document", owner: "Order desk" },
+  { id: "R2", text: "The sender and buyer match one trading partner on file.", reads: "Trading partners", owner: "Order desk" },
+  { id: "R3", text: "The ship-to is printed on the order and on file for the buyer.", reads: "Buyer locations", owner: "Order desk, with the buyer" },
+  { id: "R4", text: "Every order carries a requested delivery date.", reads: "The PO document", owner: "Order desk" },
+  { id: "R5", text: "Each line matches exactly one catalogue item.", reads: "Catalogue, order history", owner: "Order desk" },
+  { id: "R6", text: "The unit is an orderable unit for the item.", reads: "Catalogue units, price list, order history", owner: "Order desk" },
+  { id: "R7", text: "The unit price matches the price list in force on the order date.", reads: PRICE_LIST_VERSION, owner: "Pricing" },
+  { id: "R8", text: "The requested delivery date allows the lead time of every item on the order.", reads: "Catalogue lead times", owner: "Planning" },
+  { id: "R9", text: "A PO number already received from the buyer is treated as a revision, never as a new order.", reads: "Orders received", owner: "Order desk" },
+];
 
 const addSeconds = (iso: string, s: number) => new Date(new Date(iso).getTime() + s * 1000).toISOString();
 const buyerById = (id: string | null) => BUYERS.find((b) => b.id === id) ?? null;
@@ -59,12 +73,12 @@ function field(key: FieldKey, extracted: string | null, source: OpsField["source
 }
 
 function issue(p: Partial<OpsIssue> & Pick<OpsIssue, "id" | "type" | "field" | "title" | "summary" | "whyItMatters" | "rule">): OpsIssue {
-  return { severity: "blocking", lineIndex: null, original: null, expected: null, proposed: null, agentNote: null, options: [],
+  return { severity: "blocking", lineIndex: null, owner: "Order desk", original: null, expected: null, proposed: null, agentNote: null, options: [],
     evidence: [], actions: ["defer"], status: "open", decisionId: null, attemptId: null, ...p };
 }
 
 /** Rebuilds field values, field states and issues from what was read plus the person's active decisions. */
-export function build(o: Pick<OpsOrder, "email" | "po" | "decisions" | "erp">): Built {
+export function build(o: Pick<OpsOrder, "email" | "po" | "decisions" | "erp" | "revisionOf">): Built {
   const order = o as OpsOrder;
   const po = o.po;
   const issues: OpsIssue[] = [];
@@ -107,7 +121,7 @@ export function build(o: Pick<OpsOrder, "email" | "po" | "decisions" | "erp">): 
       const missing = !loc.extracted;
       const id = missing ? "missing:delivery_location" : "invalid:delivery_location";
       const iss = issue({ id, type: missing ? "missing_required_data" : "validation_failure", field: "delivery_location",
-        title: missing ? "Delivery location missing" : "Delivery location not on file",
+        title: missing ? "Delivery location missing" : "Delivery location not on file", owner: "Order desk, with the buyer",
         summary: missing ? "The PDF and the email do not name a ship-to location." : `Ship-to ${loc.extracted} is not on file for ${b.name}.`,
         whyItMatters: "The order cannot be routed or delivered without a confirmed ship-to.",
         rule: { id: "R3", text: "The ship-to is printed on the order and on file for the buyer." },
@@ -135,7 +149,7 @@ export function build(o: Pick<OpsOrder, "email" | "po" | "decisions" | "erp">): 
       details: [["Address", s.address], ["Status in ERP", "Active"]], recommended: !!rejected && s.address === rejected.address }));
     const rec = options.find((x) => x.recommended);
     const iss = issue({ id, type: "downstream_rejection", field: a.response.field ?? "delivery_location", attemptId: a.id,
-      title: "Rejected by your ERP", summary: a.response.message,
+      title: "ERP declined the ship-to", owner: "ERP master data", summary: a.response.message,
       whyItMatters: "The ERP holds no order. The buyer's order is not confirmed until the ERP accepts it.",
       rule: { id: a.response.code, text: "Orders must use a ship-to that is active for the account in your ERP." },
       original: a.request.shipTo, expected: rec?.value ?? null, proposed: rec?.value ?? null, options, actions: ["select", "defer"],
@@ -178,7 +192,7 @@ export function build(o: Pick<OpsOrder, "email" | "po" | "decisions" | "erp">): 
         const hist = (sku: string) => ORDER_HISTORY.find((h) => h.buyerId === b?.id && h.sku === sku);
         const iss = issue({ id, type: "ambiguous_match", field: "sku", lineIndex: i, title: "Product needs a choice",
           summary: `"${pl.description}" matches ${cands.length} catalogue items.`,
-          whyItMatters: "Shipping the wrong item creates a return and a short shipment.",
+          whyItMatters: "Shipping a different item than ordered creates a return and a short shipment.",
           rule: { id: "R5", text: "Each line matches exactly one catalogue item." }, original: pl.description, actions: ["select", "defer"],
           agentNote: "The printed description fits each option equally. Size is not printed, and no option is proposed.",
           options: cands.map((c) => {
@@ -221,13 +235,12 @@ export function build(o: Pick<OpsOrder, "email" | "po" | "decisions" | "erp">): 
             whyItMatters: `${pl.unit} is not an orderable unit for ${item.sku}, so the ERP cannot take the line as printed.`,
             rule: { id: "R6", text: "The unit is an orderable unit for the item." },
             original: `${pl.quantity} ${pl.unit}`, expected: `${pl.quantity} ${alt}`, proposed: alt, actions: ["accept", "keep_original"],
-            agentNote: `The PO contradicts itself: it says ${pl.unit}, but ${item.sku} has no ${pl.unit} unit and the printed ${pl.unitPrice} USD is the list price of one ${alt} (${item.pack})${hist ? `. ${b!.name} ordered this item in ${hist.unit} on its last ${hist.orders} orders` : ""}. Read the line as ${pl.quantity} ${alt}; the quantity and price stay as printed. The buyer's own system most likely carries the wrong unit for this item, so the acknowledgement tells them about the change and asks them to correct it, or the same mismatch arrives on the next order.`,
+            agentNote: `Change ${pl.unit} to ${alt}. ${item.sku} has no ${pl.unit} unit, and the printed price ${pl.unitPrice} USD is the list price of one ${alt}${hist ? `. ${b!.name} used ${hist.unit} on its last ${hist.orders} orders of this item` : ""}. The quantity stays ${pl.quantity}.`,
             evidence: [
               { kind: "source", text: `Printed line ${pl.line}: ${pl.quantity} ${pl.unit} at ${pl.unitPrice} USD`, source: src("unit") },
               { kind: "reference", text: `${item.sku} orderable units: ${item.units.join(", ")} (${item.unitNote.toLowerCase()})`, source: null },
               { kind: "reference", text: `List price per ${alt}: ${priceOn(item, alt, po.orderDate).current!.price} USD (${PRICE_LIST_VERSION})`, source: src("price") },
               ...(hist ? [{ kind: "history" as const, text: `${b!.name} ordered ${item.sku} in ${hist.unit} on its last ${hist.orders} orders (latest ${hist.last})`, source: null }] : []),
-              { kind: "rule" as const, text: `Told to the buyer on the acknowledgement: line ${pl.line} unit changed from ${pl.unit} to ${alt}, quantity and price unchanged`, source: null },
             ] });
           const d = apply(f.unit, id, ["accepted_recommendation"]);
           if (d && d.outcome !== "deferred") { iss.status = "resolved"; iss.decisionId = d.id; }
@@ -260,7 +273,8 @@ export function build(o: Pick<OpsOrder, "email" | "po" | "decisions" | "erp">): 
       if (current && current.price !== pl.unitPrice) {
         const stale = previous?.price === pl.unitPrice;
         const id = `price:l${i}`;
-        const iss = issue({ id, type: "correctable_discrepancy", field: "unit_price", lineIndex: i, title: "Price differs from price list",
+        const iss = issue({ id, type: "correctable_discrepancy", field: "unit_price", lineIndex: i, owner: "Pricing",
+          title: stale ? "Order uses the previous price list" : "Price differs from the price list",
           summary: `Printed ${pl.unitPrice} USD; price list ${current.price} USD per ${unit}.`,
           whyItMatters: "An unexplained price difference becomes an invoice dispute with the buyer.",
           rule: { id: "R7", text: "The unit price matches the price list in force on the order date." },
@@ -289,6 +303,65 @@ export function build(o: Pick<OpsOrder, "email" | "po" | "decisions" | "erp">): 
     return { index: i, fields: f, amount };
   });
 
+  // Lead time (R8): the requested date must allow the longest lead time on the order.
+  const dd = header.delivery_date;
+  const leads = lines.map((l) => itemBySku(l.fields.sku.value)?.leadDays ?? 0);
+  if (po.deliveryDate && leads.length && leads.every((n) => n > 0)) {
+    const lead = Math.max(...leads);
+    const earliest = addDays(po.orderDate, lead);
+    dd.reference = `Earliest delivery ${earliest} (${lead} days from order date ${po.orderDate})`;
+    if (po.deliveryDate < earliest) {
+      const id = "lead:delivery_date";
+      const slow = lines.filter((l, i) => leads[i] === lead).map((l) => l.fields.sku.value).join(", ");
+      const iss = issue({ id, type: "correctable_discrepancy", field: "delivery_date", owner: "Planning",
+        title: "Requested date is inside lead time", summary: `Requested ${po.deliveryDate}; earliest delivery is ${earliest}.`,
+        whyItMatters: "Confirming a date that cannot be met creates a late delivery against the buyer's appointment.",
+        rule: { id: "R8", text: "The requested delivery date allows the lead time of every item on the order." },
+        original: po.deliveryDate, expected: earliest, proposed: earliest, actions: ["accept", "defer"],
+        agentNote: `Confirm ${earliest}, the earliest date the lead time allows. The acknowledgement gives the buyer the confirmed date before the order ships.`,
+        evidence: [
+          { kind: "source", text: `Order date ${po.orderDate}; requested delivery ${po.deliveryDate}`, source: { doc: "pdf", page: 1, region: "delivery_date" } },
+          { kind: "reference", text: `Lead time ${lead} days for ${slow}`, source: null },
+        ] });
+      const d = apply(dd, id, ["accepted_recommendation"]);
+      if (d?.outcome === "accepted_recommendation") { iss.status = "resolved"; iss.decisionId = d.id; }
+      if (d?.outcome === "deferred") { iss.decisionId = d.id; dd.note = "Waiting on the buyer"; }
+      issues.push(iss);
+    }
+  }
+
+  // Revision (R9): the same PO number from the same buyer arrived before with different content.
+  const rev = (o as OpsOrder).revisionOf;
+  if (rev) {
+    const prevDate = rev.previous.deliveryDate;
+    const changes: { f: OpsField; lineIndex: number | null; from: string }[] = [];
+    if (prevDate !== po.deliveryDate && prevDate) changes.push({ f: dd, lineIndex: null, from: prevDate });
+    lines.forEach((l, i) => {
+      const was = rev.previous.lines.find((x) => x.line === po.lines[i].line);
+      if (was && was.quantity !== po.lines[i].quantity) changes.push({ f: l.fields.quantity, lineIndex: i, from: was.quantity });
+      if (was && was.unitPrice !== po.lines[i].unitPrice) changes.push({ f: l.fields.unit_price, lineIndex: i, from: was.unitPrice });
+    });
+    for (const c of changes) {
+      const where = c.lineIndex === null ? FIELD_LABEL[c.f.key] : `Line ${c.lineIndex + 1} ${FIELD_LABEL[c.f.key].toLowerCase()}`;
+      const id = `revision:${c.f.key}${c.lineIndex === null ? "" : `:l${c.lineIndex}`}`;
+      const iss = issue({ id, type: "revision", field: c.f.key, lineIndex: c.lineIndex, owner: "Order desk",
+        title: "Revised PO received", summary: `Revision ${rev.revision} of ${po.poNumber}: ${where.toLowerCase()} ${c.from} → ${c.f.extracted}.`,
+        whyItMatters: rev.erpOrderId ? `Your ERP holds revision ${rev.revision - 1} as ${rev.erpOrderId}. Applying the revision updates that order; no second order is created.`
+          : `Revision ${rev.revision - 1} is not in your ERP yet. Applying the revision sends this version only.`,
+        rule: { id: "R9", text: "A PO number already received from the buyer is treated as a revision, never as a new order." },
+        original: c.from, expected: c.f.extracted, proposed: c.f.extracted, actions: ["accept", "defer"],
+        agentNote: `Apply the revision. The buyer sent the same PO number with a new ${FIELD_LABEL[c.f.key].toLowerCase()}.`,
+        evidence: [
+          { kind: "source", text: `Email: "${o.email.body.join(" ")}"`, source: { doc: "email", page: 1, region: "body" } },
+          { kind: "history", text: `Revision ${rev.revision - 1} (${rev.orderId}): ${where.toLowerCase()} ${c.from}`, source: null },
+        ] });
+      const d = apply(c.f, id, ["accepted_recommendation"]);
+      if (d?.outcome === "accepted_recommendation") { iss.status = "resolved"; iss.decisionId = d.id; }
+      if (d?.outcome === "deferred") iss.decisionId = d.id;
+      issues.push(iss);
+    }
+  }
+
   // Field states, from the issues and decisions just computed.
   const fieldOf = (iss: OpsIssue): OpsField => (iss.lineIndex === null ? header[iss.field as HeaderKey] : lines[iss.lineIndex].fields[iss.field as LineKey]);
   for (const f of [...Object.values(header), ...lines.flatMap((l) => Object.values(l.fields))]) {
@@ -298,7 +371,7 @@ export function build(o: Pick<OpsOrder, "email" | "po" | "decisions" | "erp">): 
   for (const iss of issues) {
     if (iss.status !== "open") continue;
     const f = fieldOf(iss);
-    if (iss.type === "ambiguous_match" || iss.type === "correctable_discrepancy") f.state = "uncertain";
+    if (iss.type === "ambiguous_match" || iss.type === "correctable_discrepancy" || iss.type === "revision") f.state = "uncertain";
     else if (iss.type === "missing_required_data" && f.value === null) f.state = "missing";
     else f.state = "invalid";
   }
@@ -353,7 +426,7 @@ function settle(o: OpsOrder, at: string) {
 // ---------- simulated downstream ERP ----------
 
 /** Deterministic ERP rules over its own customer master. No random failures. */
-export function erpRespond(req: ErpAttempt["request"], orderId: string): ErpAttempt["response"] {
+export function erpRespond(req: ErpAttempt["request"], orderId: string, updates: string | null = null): ErpAttempt["response"] {
   const acct = ERP_MASTER.find((m) => m.account === req.account);
   if (!acct) return { status: "rejected", code: "ACCOUNT_UNKNOWN", message: `Customer account ${req.account ?? "(none)"} does not exist in the ERP.`, field: "buyer", erpOrderId: null };
   const st = acct.shipTos.find((s) => s.code === req.shipTo);
@@ -361,6 +434,7 @@ export function erpRespond(req: ErpAttempt["request"], orderId: string): ErpAtte
     return { status: "rejected", code: "SHIPTO_INACTIVE", field: "delivery_location", erpOrderId: null,
       message: `Ship-to ${req.shipTo} is not active for customer account ${req.account}${st?.note ? ` (${st.note.toLowerCase()})` : ""}. Use an active ship-to for this account.` };
   }
+  if (updates) return { status: "accepted", code: "UPDATED", message: `Sales order ${updates} updated.`, field: null, erpOrderId: updates };
   return { status: "accepted", code: "CREATED", message: "Sales order created.", field: null, erpOrderId: `SIM-SO-${60000 + Number(orderId.replace(/\D/g, ""))}` };
 }
 
@@ -373,19 +447,16 @@ function send(o: OpsOrder, at: string) {
     lines: o.lines.map((l) => ({ sku: l.fields.sku.value, quantity: l.fields.quantity.value, unit: l.fields.unit.value, unitPrice: l.fields.unit_price.value })) };
   event(o, at, SYSTEM, "erp_sent", `Sent to your ERP (simulated). Request key ${key}.`);
   const earlier = o.erp.attempts.find((a) => a.idempotencyKey === key);
-  const response = earlier ? earlier.response : erpRespond(request, o.id);
+  const response = earlier ? earlier.response : erpRespond(request, o.id, o.revisionOf?.erpOrderId ?? null);
   const respondedAt = addSeconds(at, 1);
   o.erp.attempts.push({ id: o.erp.attempts.length + 1, idempotencyKey: key, version: o.version, sentAt: at, respondedAt, request, response, reconciled: !!earlier });
   o.erp.status = "response_received";
   event(o, respondedAt, ERP, "erp_response", earlier ? "Response matched an earlier request with the same key. No duplicate order created." : `Response received: ${response.code}.`);
   if (response.status === "accepted") {
     o.erp.status = "accepted"; o.erp.erpOrderId = response.erpOrderId; o.state = "accepted";
-    event(o, respondedAt, ERP, "erp_accepted", `Accepted by your ERP as ${response.erpOrderId}.`);
-    // D72: a changed line is never silent. The buyer is told so its own item setup can be corrected.
-    const changed = o.lines.flatMap((l, i) => l.fields.unit.extracted && l.fields.unit.value !== l.fields.unit.extracted
-      ? [`line ${i + 1} unit ${l.fields.unit.extracted} changed to ${l.fields.unit.value}, quantity and price unchanged`] : []);
-    if (changed.length) event(o, respondedAt, SYSTEM, "acknowledgement",
-      `Acknowledgement to ${b?.name ?? "the buyer"} (simulated) shows the change: ${changed.join("; ")}. Please correct the unit for this item in your ordering system.`);
+    event(o, respondedAt, ERP, "erp_accepted", response.code === "UPDATED" ? `Your ERP updated ${response.erpOrderId} to revision ${o.revisionOf!.revision}.` : `Accepted by your ERP as ${response.erpOrderId}.`);
+    const ack = acknowledgement(o);
+    if (ack) event(o, respondedAt, SYSTEM, "acknowledgement", ack);
   } else {
     rebuild(o);
     o.erp.status = "rejected"; o.state = "rejected";
@@ -395,9 +466,21 @@ function send(o: OpsOrder, at: string) {
   }
 }
 
+/** What the buyer is told on the order acknowledgement (simulated): every value that differs from their PO (D73). */
+export function acknowledgement(o: OpsOrder): string | null {
+  const b = buyerById(o.buyerId);
+  const lines = [...Object.values(o.header), ...o.lines.flatMap((l) => Object.values(l.fields).map((f) => ({ f, i: l.index })))]
+    .map((x) => ("f" in x ? x : { f: x, i: null }))
+    .filter(({ f }) => f.decisionId !== null && f.value !== f.extracted)
+    .map(({ f, i }) => `${i === null ? f.label.toLowerCase() : `line ${i + 1} ${f.label.toLowerCase()}`} confirmed as ${f.value} (PO shows ${f.extracted ?? "none"})`);
+  if (o.revisionOf) lines.unshift(`revision ${o.revisionOf.revision} of ${o.header.po_number.value} accepted`);
+  if (!lines.length) return null;
+  return `Acknowledgement to ${b?.name ?? "the buyer"} (simulated): ${lines.join("; ")}.`;
+}
+
 // ---------- receiving and reading a sample email ----------
 
-export function receiveSample(s: SampleEmail, now: string): OpsOrder {
+export function receiveSample(s: SampleEmail, now: string, prior: OpsOrder[] = []): OpsOrder | null {
   const receivedAt = new Date(new Date(now).getTime() - s.minutesAgo * 60_000).toISOString();
   const b = BUYERS.find((x) => x.id === s.buyerId)!;
   const email = { from: `${s.fromUser}@${b.domain}`, fromName: s.fromName, to: SUPPLIER.mailbox, subject: s.subject, receivedAt, body: s.body };
@@ -405,15 +488,27 @@ export function receiveSample(s: SampleEmail, now: string): OpsOrder {
     id: s.id, sample: true, channel: "email_pdf", email,
     attachment: { filename: `${s.po.poNumber ?? s.id}.pdf`, sizeKb: 84 + s.po.lines.length * 6, pages: 1, recognizedAs: "purchase_order" },
     po: s.po, buyerId: null, header: {} as OpsOrder["header"], lines: [], total: "0.00", issues: [], decisions: [], approval: null,
-    state: "received", version: 1, erp: { status: "not_sent", attempts: [], erpOrderId: null }, history: [],
+    state: "received", version: 1, erp: { status: "not_sent", attempts: [], erpOrderId: null }, history: [], revisionOf: null,
   };
+  // R9: the same PO number from the same buyer. Identical content is a duplicate and makes no order;
+  // different content is a revision of the latest version.
+  const same = prior.filter((p) => p.email.from.split("@")[1] === email.from.split("@")[1] && p.po.poNumber && p.po.poNumber === s.po.poNumber);
+  const latest = same.at(-1);
+  if (latest && JSON.stringify(latest.po) === JSON.stringify(s.po)) {
+    event(latest, receivedAt, SYSTEM, "duplicate", `The same PO arrived again from ${email.from}. No new order created.`);
+    return null;
+  }
+  if (latest) {
+    o.revisionOf = { orderId: latest.id, revision: same.length + 1, erpOrderId: latest.erp.erpOrderId, previous: latest.po };
+    event(latest, receivedAt, SYSTEM, "revision_received", `Revision ${same.length + 1} received as ${o.id}. It replaces this version once applied.`);
+  }
   event(o, receivedAt, SYSTEM, "received", `Email received from ${email.from} with 1 PDF attachment.`);
   o.state = "understanding";
   const t = (n: number) => addSeconds(receivedAt, n);
   event(o, t(2), SYSTEM, "pdf_identified", `${o.attachment.filename} identified as a purchase order.`);
   rebuild(o);
   const read = 5 + o.lines.length * 5;
-  event(o, t(6), SYSTEM, "extracted", `Order fields extracted: ${read} values from page 1, each linked to its place in the PDF.`);
+  event(o, t(6), SYSTEM, "extracted", `Sample order loaded: ${read} values from page 1, each linked to its place in the PDF. Fictional sample, not read by AI.`);
   o.state = "validating";
   const buyer = matchBuyer(email, s.po.buyerName);
   o.buyerId = buyer?.id ?? null;
@@ -430,7 +525,9 @@ export function receiveSample(s: SampleEmail, now: string): OpsOrder {
 }
 
 export function seedInbox(now: string): OpsState {
-  return { schema: OPS_SCHEMA, seededAt: now, orders: SAMPLES.map((s) => receiveSample(s, now)) };
+  const orders: OpsOrder[] = [];
+  for (const s of SAMPLES) { const o = receiveSample(s, now, orders); if (o) orders.push(o); }
+  return { schema: OPS_SCHEMA, seededAt: now, orders };
 }
 
 // ---------- a person's actions ----------
@@ -525,7 +622,7 @@ export function approveAndSend(state: OpsState, orderId: string, actor: Actor, a
   return edit(state, orderId, (o) => {
     if (stateFor(o) !== "ready_to_send" || o.state !== "ready_to_send") throw new OpsRefused("Resolve every blocking issue before sending.");
     o.approval = { actor, at, version: o.version };
-    event(o, at, actor, "approved", o.erp.attempts.length ? "Correction approved; order resent." : "Order approved for sending.");
+    event(o, at, actor, "approved", o.erp.attempts.length ? "Correction approved; order resent." : o.revisionOf ? "Revision approved for sending." : "Order approved for sending.");
     send(o, at);
   });
 }
@@ -553,7 +650,7 @@ export const needsAttention = (o: OpsOrder) => ["needs_review", "blocked", "reje
 
 /** The first open issue, most severe first: downstream rejection, blocked, then review. */
 export function primaryIssue(o: OpsOrder): OpsIssue | null {
-  const rank: Record<string, number> = { downstream_rejection: 0, missing_required_data: 1, validation_failure: 2, ambiguous_match: 3, correctable_discrepancy: 4 };
+  const rank: Record<string, number> = { downstream_rejection: 0, missing_required_data: 1, validation_failure: 2, revision: 3, ambiguous_match: 4, correctable_discrepancy: 5 };
   return [...o.issues].filter((i) => i.status === "open").sort((a, b) => rank[a.type] - rank[b.type])[0] ?? null;
 }
 

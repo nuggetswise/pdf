@@ -8,7 +8,7 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  await page.getByRole("tab", { name: "Intake" }).click();
+  await page.getByRole("tab", { name: "Orders", exact: true }).click(); await page.getByRole("button", { name: "All documents" }).click();
   await asRole(page, "reviewer");
   await page.getByLabel("Upload a purchase order").setInputFiles("../fixtures/demo/generated/VIDEO-DEMO-005.pdf");
   await page.getByRole("button", { name: "Approve order" }).click();
@@ -65,11 +65,11 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
   const text = readFileSync(await file.path(), "utf8");
   expect(text.split("\r\n")[0]).toContain("po_number,customer_id,received_at");
   expect(text).toMatch(/VIDEO-DEMO-005,DEMO-CUST-01,.*,1,/);
-  await page.getByRole("tab", { name: "Intake" }).click();
+  await page.getByRole("tab", { name: "Orders", exact: true }).click(); await page.getByRole("button", { name: "All documents" }).click();
   await page.screenshot({ path: "../docs/screenshots/app-04-supplier-portal.png", fullPage: true });
 
   // The EDI tab lists the messages with raw X12 and a plain-language mapping.
-  await page.getByRole("tab", { name: "Trading Grid outbox" }).click();
+  await page.getByRole("tab", { name: "Sent" }).click();
   await expect(page.locator(".edi-card[data-kind=DESADV]")).toHaveCount(1);
   await expect(page.locator(".edi-card[data-kind=INVOIC]")).toHaveCount(1);
   await expect(page.locator(".edi-card[data-kind=ORDRSP]")).toHaveCount(1);
@@ -92,11 +92,11 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
 test("a held EDI message shows the mixed state and a safe retry delivers it", async ({ page }) => {
   test.setTimeout(90_000);
   await page.goto("/");
-  await page.getByRole("tab", { name: "Intake" }).click();
+  await page.getByRole("tab", { name: "Orders", exact: true }).click(); await page.getByRole("button", { name: "All documents" }).click();
   await asRole(page, "administrator");
   await page.getByRole("tab", { name: "Settings" }).click();
   await page.getByLabel("Retailer EDI outbox next message").selectOption("hold_next");
-  await page.getByRole("tab", { name: "Intake" }).click();
+  await page.getByRole("tab", { name: "Orders", exact: true }).click(); await page.getByRole("button", { name: "All documents" }).click();
   await page.getByLabel("Upload a purchase order").setInputFiles("../fixtures/demo/generated/VIDEO-DEMO-005.pdf");
   await page.getByRole("button", { name: "Approve order" }).click();
   const confirmation = page.getByLabel("Order confirmation");

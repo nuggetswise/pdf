@@ -28,10 +28,10 @@ export function MemoryView({ role }: { role: Role }) {
     } catch (e) { setError((e as Error).message); }
   }
   return (
-    <section className="memory" aria-label="Agent memory">
-      <div className="eyebrow">Agent memory</div>
-      <h3>Approved corrections the agent may reuse</h3>
-      <p className="muted">A reviewer's correction becomes a candidate. Only an administrator can activate it. It applies only within its scope, to future orders, and can be revoked. This is rule reuse, not model training.</p>
+    <section className="memory" aria-label="Approved rules">
+      <div className="eyebrow">Approved rules</div>
+      <h3>Corrections approved for reuse</h3>
+      <p className="muted">A reviewer's correction becomes a candidate rule. An administrator activates it for a scope; it applies to future orders and can be revoked. No model is retrained.</p>
       {error && <div className="alert bad" role="alert">{error}</div>}
       {rules?.length === 0 && <p className="placeholder">No memory yet. Corrections saved for future orders appear here.</p>}
       {rules?.map((r) => (
@@ -253,7 +253,7 @@ export function Workspace({ role, focus = null, section = null }: { role: Role; 
     <div className="workspace">
       <aside className="inbox" aria-label="Inbox" onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) addFile(f); }}>
-        <h3>Intake</h3>
+        <h3>Documents</h3>
         <label className="dropzone">
           <input type="file" accept=".pdf,application/pdf,.eml,message/rfc822,.x12,.edi,.850" aria-label="Upload a purchase order"
             onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) addFile(f); }} />

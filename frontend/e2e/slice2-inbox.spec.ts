@@ -3,9 +3,9 @@ import { expect, test } from "@playwright/test";
 test("forwarded email is processed automatically and shows evidence", async ({ page, request }) => {
   await request.post("/api/demo/reset", { headers: { "X-Demo-Role": "administrator", "X-Demo-User": "alex" } });
   await page.goto("/");
-  await page.getByRole("tab", { name: "Intake" }).click();
+  await page.getByRole("tab", { name: "Orders", exact: true }).click(); await page.getByRole("button", { name: "All documents" }).click();
   await expect(page.getByText("Scripted reader, not live AI")).toBeVisible();
-  await page.getByRole("tab", { name: "Intake" }).click();
+  await page.getByRole("tab", { name: "Orders", exact: true }).click(); await page.getByRole("button", { name: "All documents" }).click();
   await expect(page.getByText("No orders yet")).toBeVisible();
 
   await page.getByLabel("Upload a purchase order").setInputFiles("../fixtures/demo/generated/VIDEO-DEMO-001.pdf");

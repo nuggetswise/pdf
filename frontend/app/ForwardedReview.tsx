@@ -63,7 +63,7 @@ export function ForwardedReview({ docId, role, onBack, onOpenIntake }: { docId: 
     <article className="ops-review" aria-label={`Order ${row?.po ?? docId}`}>
       <div className="review-top btns">
         <button className="ghost" onClick={onBack}><ArrowLeft size={16} aria-hidden /> Back to order operations</button>
-        <button className="ghost" onClick={() => onOpenIntake(docId)}><ExternalLink size={16} aria-hidden /> Open in Intake</button>
+        <button className="ghost" onClick={() => onOpenIntake(docId)}><ExternalLink size={16} aria-hidden /> View document</button>
       </div>
       <header className="review-head">
         <div>

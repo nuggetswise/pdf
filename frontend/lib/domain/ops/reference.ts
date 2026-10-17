@@ -28,29 +28,29 @@ export const BUYERS: Buyer[] = [
 
 export type Price = { unit: string; price: string; from: string; to: string | null };
 export type Item = { sku: string; gtin: string; description: string; size: string; pack: string; units: string[];
-  unitNote: string; prices: Price[] };
+  unitNote: string; prices: Price[]; /** Days from order date to the earliest delivery (D73). */ leadDays: number };
 
 export const CATALOGUE: Item[] = [
   { sku: "NB-1001", gtin: "00614141300011", description: "Fizz Zero Cola 330 mL x 24", size: "330 mL can", pack: "24 per case",
-    units: ["CASE"], unitNote: "Sold by the case", prices: [{ unit: "CASE", price: "16.80", from: "2026-01-01", to: null }] },
+    units: ["CASE"], unitNote: "Sold by the case", prices: [{ unit: "CASE", price: "16.80", from: "2026-01-01", to: null }], leadDays: 5 },
   { sku: "NB-1002", gtin: "00614141300028", description: "Fizz Zero Cola 500 mL x 24", size: "500 mL bottle", pack: "24 per case",
-    units: ["CASE"], unitNote: "Sold by the case", prices: [{ unit: "CASE", price: "16.80", from: "2026-01-01", to: null }] },
+    units: ["CASE"], unitNote: "Sold by the case", prices: [{ unit: "CASE", price: "16.80", from: "2026-01-01", to: null }], leadDays: 5 },
   { sku: "NB-1003", gtin: "00614141300035", description: "Fizz Classic Cola 330 mL x 24", size: "330 mL can", pack: "24 per case",
-    units: ["CASE"], unitNote: "Sold by the case", prices: [{ unit: "CASE", price: "16.20", from: "2026-01-01", to: null }] },
+    units: ["CASE"], unitNote: "Sold by the case", prices: [{ unit: "CASE", price: "16.20", from: "2026-01-01", to: null }], leadDays: 5 },
   { sku: "NB-2001", gtin: "00614141300042", description: "Sparkling Water Lemon 355 mL tray", size: "355 mL can", pack: "12-can tray",
-    units: ["EA"], unitNote: "Sold by the tray (EA); no case unit", prices: [{ unit: "EA", price: "9.60", from: "2026-01-01", to: null }] },
+    units: ["EA"], unitNote: "Sold by the tray (EA); no case unit", prices: [{ unit: "EA", price: "9.60", from: "2026-01-01", to: null }], leadDays: 5 },
   { sku: "NB-3001", gtin: "00614141300059", description: "Cold Brew Coffee 250 mL x 12", size: "250 mL bottle", pack: "12 per case",
     units: ["CASE"], unitNote: "Sold by the case", prices: [
       { unit: "CASE", price: "18.75", from: "2026-01-01", to: "2026-09-30" },
-      { unit: "CASE", price: "18.50", from: "2026-10-01", to: null }] },
+      { unit: "CASE", price: "18.50", from: "2026-10-01", to: null }], leadDays: 10 },
   { sku: "NB-4001", gtin: "00614141300066", description: "Still Spring Water 500 mL x 24", size: "500 mL bottle", pack: "24 per case",
-    units: ["CASE"], unitNote: "Sold by the case", prices: [{ unit: "CASE", price: "6.40", from: "2026-01-01", to: null }] },
+    units: ["CASE"], unitNote: "Sold by the case", prices: [{ unit: "CASE", price: "6.40", from: "2026-01-01", to: null }], leadDays: 5 },
   { sku: "NB-4002", gtin: "00614141300073", description: "Still Spring Water 1.5 L x 12", size: "1.5 L bottle", pack: "12 per case",
-    units: ["CASE"], unitNote: "Sold by the case", prices: [{ unit: "CASE", price: "7.90", from: "2026-01-01", to: null }] },
+    units: ["CASE"], unitNote: "Sold by the case", prices: [{ unit: "CASE", price: "7.90", from: "2026-01-01", to: null }], leadDays: 5 },
   { sku: "NB-5001", gtin: "00614141300080", description: "Ginger Ale 355 mL x 24", size: "355 mL can", pack: "24 per case",
-    units: ["CASE"], unitNote: "Sold by the case", prices: [{ unit: "CASE", price: "14.10", from: "2026-01-01", to: null }] },
+    units: ["CASE"], unitNote: "Sold by the case", prices: [{ unit: "CASE", price: "14.10", from: "2026-01-01", to: null }], leadDays: 5 },
   { sku: "NB-6001", gtin: "00614141300097", description: "Iced Tea Peach 500 mL x 12", size: "500 mL bottle", pack: "12 per case",
-    units: ["CASE"], unitNote: "Sold by the case", prices: [{ unit: "CASE", price: "11.25", from: "2026-01-01", to: null }] },
+    units: ["CASE"], unitNote: "Sold by the case", prices: [{ unit: "CASE", price: "11.25", from: "2026-01-01", to: null }], leadDays: 5 },
 ];
 
 /** Recent orders per buyer and item: the unit used and the last order date. Evidence for recommendations. */

@@ -20,9 +20,9 @@ export function AgentWorkPanel({ d }: { d: DocDetail }) {
       <ol>
         <li><b>Read the PDF{payload.extractor.is_ai ? " with AI" : " (rehearsal adapter, not AI)"}.</b> Pulled {fieldsRead.length} values from {d.pages.length} page{d.pages.length === 1 ? "" : "s"}; {verified} were found word for word in the PDF text, so you can click any value and see where it came from.</li>
         <li><b>Matched it to your records.</b> Customer {v.customer_name ?? "not recognised"}{v.customer_id ? ` (${v.customer_id})` : ""}, and {matched} of {v.lines.length} lines to products in your catalogue.</li>
-        <li><b>Checked every line</b> against your price list, minimum order quantities and retired GTINs: {issues.length === 0 ? "nothing wrong." : `found ${issues.length} problem${issues.length === 1 ? "" : "s"}: ${issues.map((i) => i.title).join("; ")}.`}</li>
+        <li><b>Checked every line</b> against your price list, minimum order quantities and retired GTINs: {issues.length === 0 ? "all checks passed." : `${issues.length} item${issues.length === 1 ? "" : "s"} need${issues.length === 1 ? "s" : ""} a decision: ${issues.map((i) => i.title).join("; ")}.`}</li>
         {fromMemory > 0 && <li><b>Fixed {fromMemory} line{fromMemory === 1 ? "" : "s"} from memory</b>, using a correction an administrator approved on an earlier order.</li>}
-        <li><b>{delivered ? "Sent it to your ERP" : open > 0 ? `Waiting on you for ${open} decision${open === 1 ? "" : "s"}` : "Ready to approve"}.</b> {delivered ? "Nothing was retyped. The ASN and invoice are pre-filled in the Trading Grid outbox." : "Once decided, it goes to your ERP by itself and the ASN and invoice are pre-filled. "}</li>
+        <li><b>{delivered ? "Sent it to your ERP" : open > 0 ? `Waiting on you for ${open} decision${open === 1 ? "" : "s"}` : "Ready to approve"}.</b> {delivered ? "Nothing was retyped. The ASN and invoice are pre-filled under Sent." : "Once decided, it goes to your ERP by itself and the ASN and invoice are pre-filled. "}</li>
       </ol>
     </section>
   );

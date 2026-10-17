@@ -14,15 +14,14 @@ export type SampleEmail = {
   body: string[];
   po: PrintedPo;
   /** Developer note: which scenario of the brief this sample exercises. */
-  scenario: "straight_through" | "unit_recommendation" | "ambiguous_product" | "blocked_location" | "erp_rejection"
-    | "price_recommendation";
+  scenario: "straight_through" | "lead_time" | "erp_rejection" | "price_recommendation" | "revision" | "test";
 };
 
 const buyer = (id: string) => BUYERS.find((b) => b.id === id)!;
-const ln = (line: number, itemCode: string | null, description: string, quantity: string, unit: string, unitPrice: string): PrintedLine =>
+export const ln = (line: number, itemCode: string | null, description: string, quantity: string, unit: string, unitPrice: string): PrintedLine =>
   ({ line, itemCode, description, quantity, unit, unitPrice });
 
-function po(buyerId: string, poNumber: string | null, shipTo: string | null | "none", orderDate: string, deliveryDate: string,
+export function po(buyerId: string, poNumber: string | null, shipTo: string | null | "none", orderDate: string, deliveryDate: string,
   lines: PrintedLine[], notes: string[] = []): PrintedPo {
   const b = buyer(buyerId);
   const loc = shipTo && shipTo !== "none" ? b.locations.find((l) => l.code === shipTo) : null;
@@ -66,16 +65,16 @@ export const SAMPLES: SampleEmail[] = [
     po: po("PRAIRIE", "PF-7724", "PF-DC2", "2026-10-16", "2026-10-27", [ln(1, "NB-4002", "Still Spring Water 1.5 L x 12", "64", "CASE", "7.90"),
       ln(2, "NB-5001", "Ginger Ale 355 mL x 24", "20", "CASE", "14.10")]) },
   { id: "ord-1009", minutesAgo: 248, fromName: "Dana Ruiz", fromUser: "buying", buyerId: "SUMMIT", subject: "PO SG-55120",
-    body: ["Hello,", "Attached is PO SG-55120 for the Fort Wayne DC.", "Thanks, Dana"], scenario: "unit_recommendation",
-    po: po("SUMMIT", "SG-55120", "SG-DC03", "2026-10-16", "2026-10-26", [ln(1, "NB-2001", "Sparkling Water Lemon 355 mL", "24", "CASE", "9.60"),
+    body: ["Hello,", "Attached is PO SG-55120 for the Fort Wayne DC.", "Thanks, Dana"], scenario: "lead_time",
+    po: po("SUMMIT", "SG-55120", "SG-DC03", "2026-10-16", "2026-10-23", [ln(1, "NB-3001", "Cold Brew Coffee 250 mL x 12", "30", "CASE", "18.50"),
       ln(2, "NB-5001", "Ginger Ale 355 mL x 24", "10", "CASE", "14.10")]) },
   { id: "ord-1010", minutesAgo: 219, fromName: "Maya Chen", fromUser: "purchasing", buyerId: "HARBORVIEW", subject: "Purchase order HV-88213",
-    body: ["Hi team,", "PO HV-88213 attached. Please confirm.", "Maya"], scenario: "ambiguous_product",
-    po: po("HARBORVIEW", "HV-88213", "HV-DC1", "2026-10-16", "2026-10-29", [ln(1, null, "Fizz Zero 24 Pack", "40", "CASE", "16.80"),
+    body: ["Hi team,", "PO HV-88213 attached. Please confirm.", "Maya"], scenario: "straight_through",
+    po: po("HARBORVIEW", "HV-88213", "HV-DC1", "2026-10-16", "2026-10-29", [ln(1, "NB-1001", "Fizz Zero Cola 330 mL x 24", "40", "CASE", "16.80"),
       ln(2, "NB-4001", "Still Spring Water 500 mL x 24", "30", "CASE", "6.40")]) },
   { id: "ord-1011", minutesAgo: 187, fromName: "Priya Nair", fromUser: "replenishment", buyerId: "PRAIRIE", subject: "Purchase order PF-7731",
-    body: ["Hello,", "Please deliver as usual.", "Priya"], scenario: "blocked_location",
-    po: po("PRAIRIE", "PF-7731", "none", "2026-10-17", "2026-10-30", [ln(1, "NB-6001", "Iced Tea Peach 500 mL x 12", "20", "CASE", "11.25")]) },
+    body: ["Hello,", "Please deliver as usual.", "Priya"], scenario: "straight_through",
+    po: po("PRAIRIE", "PF-7731", "PF-DC1", "2026-10-17", "2026-10-30", [ln(1, "NB-6001", "Iced Tea Peach 500 mL x 12", "20", "CASE", "11.25")]) },
   { id: "ord-1012", minutesAgo: 163, fromName: "Dana Ruiz", fromUser: "buying", buyerId: "SUMMIT", subject: "PO SG-55134",
     body: ["Hello,", "PO SG-55134 for the Indianapolis DC is attached.", "Dana"], scenario: "erp_rejection",
     po: po("SUMMIT", "SG-55134", "SG-DC14", "2026-10-17", "2026-10-28", [ln(1, "NB-1003", "Fizz Classic Cola 330 mL x 24", "50", "CASE", "16.20"),
@@ -97,7 +96,8 @@ export const SAMPLES: SampleEmail[] = [
     body: NORMAL_BODY, scenario: "straight_through",
     po: po("SUMMIT", "SG-55141", "SG-DC03", "2026-10-17", "2026-10-29", [ln(1, "NB-6001", "Iced Tea Peach 500 mL x 12", "24", "CASE", "11.25"),
       ln(2, "NB-1003", "Fizz Classic Cola 330 mL x 24", "36", "CASE", "16.20")]) },
-  { id: "ord-1018", minutesAgo: 17, fromName: "Maya Chen", fromUser: "purchasing", buyerId: "HARBORVIEW", subject: "Purchase order HV-88231",
-    body: NORMAL_BODY, scenario: "straight_through",
-    po: po("HARBORVIEW", "HV-88231", "HV-DC2", "2026-10-17", "2026-10-30", [ln(1, "NB-4002", "Still Spring Water 1.5 L x 12", "40", "CASE", "7.90")]) },
+  { id: "ord-1018", minutesAgo: 17, fromName: "Maya Chen", fromUser: "purchasing", buyerId: "HARBORVIEW", subject: "Revised purchase order HV-88220",
+    body: ["Hello,", "Please replace PO HV-88220 with the attached revision. Line 1 is now 60 cases.", "Maya"], scenario: "revision",
+    po: po("HARBORVIEW", "HV-88220", "HV-DC1", "2026-10-17", "2026-10-29", [ln(1, "NB-5001", "Ginger Ale 355 mL x 24", "60", "CASE", "14.10")],
+      ["Revision 2. Replaces the order sent earlier today."]) },
 ];

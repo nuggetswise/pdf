@@ -293,3 +293,14 @@ Mandip's follow-up to D71: close the gaps, fix the phone view, and say where an 
 - The retailer view is one retailer with no picker: the retailer of the first order in the run. The demo data spans several fictional retailers, so a hard-coded one would hide the order in the two-sides flow.
 - Unit mismatch (SG-55120): NB-2001 is sold only by the 12-can tray (EA) and has no CASE unit. The reason now states the conflict, the price and history evidence, and that quantity and price stay as printed. After ERP acceptance a simulated acknowledgement event tells the buyer which line changed and asks them to fix the unit in their own system, so the mismatch does not repeat. Reversible: one block in lib/domain/ops/engine.ts.
 - Not done in this slice (proposed): credit-hold ERP rejection variant; duplicate/revised PO and short-lead-time cases in the Orders queue; an X12 855 line-change segment for the Orders acknowledgement.
+
+## D73 Credible exceptions, visible rules and AI, five supplier tabs (2026-10-17)
+- Sample inbox: 4 of 18 orders need attention (was 5). Removed the unit, ambiguous-product and missing-location samples; added a date inside lead time (R8) and a revised PO (R9). Three of the four arise on the supplier's side (lead time, price list, ERP master data). The removed rules stay in the engine and are tested on built POs, which also shows the rules are not tied to the samples.
+- R8 lead time: per-item `leadDays` in the catalogue; NB-3001 is 10 days. Proposes the earliest date; the acknowledgement carries it (855 practice).
+- R9 revision and duplicate: the same PO number from the same buyer. Identical content makes no order; different content is held with a per-field diff. Applying it updates the existing ERP order (`UPDATED`, same order number). Line additions or removals are not compared yet.
+- Each issue has an `owner` (Order desk, Pricing, Planning, ERP master data). No fault wording toward trading partners.
+- The order agent's recommendations are labelled "rules" and cite the rule. Samples show "Read by: sample data, not AI".
+- Tabs: Orders, Command Center, Sent (ERP records + outbox), Rules (rule list + approved rules), Settings. Intake is opened from Orders as "All documents".
+- Each order shows "What <buyer> receives", the simulated acknowledgement. Generalises the D72 unit-change acknowledgement.
+- Next slice (decided, not built): one engine and one dataset for samples and uploads; real 855/860 segments; credit-hold response.
+- Schema `order-ops-v2`; a browser holding v1 state reseeds.
