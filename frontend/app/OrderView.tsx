@@ -51,7 +51,7 @@ export function Timeline({ d }: { d: DocDetail }) {
   );
 }
 
-const FIELD_LABEL: Record<string, string> = {
+export const FIELD_LABEL: Record<string, string> = {
   customer_name: "Customer", customer_id: "Customer ID", supplier: "Supplier", po_number: "PO number", ship_to_id: "Ship-to",
   order_date: "Order date", requested_delivery_date: "Requested delivery", currency: "Currency", subtotal: "Subtotal",
   tax: "Tax", shipping: "Freight", total: "Total", source_line_id: "Line", gtin: "Product code", customer_item_code: "Retailer item",
@@ -67,8 +67,8 @@ const ISSUE_FIELD: Record<string, string> = {
   unknown_customer: "customer_name", unknown_ship_to: "ship_to_id", currency_mismatch: "currency", total_mismatch: "total",
   possible_revision: "po_number",
 };
-const fieldOfIssue = (i: Issue) => (i.code === "unverified_field" ? i.field : ISSUE_FIELD[i.code]) ?? null;
-const targetId = (i: Issue) => {
+export const fieldOfIssue = (i: Issue) => (i.code === "unverified_field" ? i.field : ISSUE_FIELD[i.code]) ?? null;
+export const targetId = (i: Issue) => {
   const f = fieldOfIssue(i);
   return f ? (i.line_index === null ? `h:${f}` : `l:${i.line_index}:${f}`) : null;
 };
@@ -109,7 +109,7 @@ type RunFn = (action: Action) => Promise<void>;
 type Line = NonNullable<DocDetail["order"]>["validation"]["order"]["lines"][number];
 
 /** D46: add the customer or product this real PO uses, for this session. Never automatic. */
-function Onboard({ issue, docId, role, onRun, line, currency }: { issue: Issue; docId: number; role: Role; onRun: RunFn;
+export function Onboard({ issue, docId, role, onRun, line, currency }: { issue: Issue; docId: number; role: Role; onRun: RunFn;
   line?: Line; currency: string | null }) {
   const agent = useAgent();
   const r = role as "reviewer" | "administrator";
@@ -261,7 +261,7 @@ function IssueCard({ issue, onAct, role, focused, onFocus, onRun, docId, line, c
 }
 
 /** D59: the PO's own terms and the buyer's notes, as printed. Notes are shown to people, never acted on. */
-function OrderTerms({ d, onPick }: { d: DocDetail; onPick: (id: string) => void }) {
+export function OrderTerms({ d, onPick }: { d: DocDetail; onPick: (id: string) => void }) {
   const t = d.latest_version?.payload.terms;
   if (!t) return null;
   const rows = (["payment_terms", "freight_terms", "ship_not_before", "ship_no_later_than", "delivery_window", "ship_complete"] as const)

@@ -18,8 +18,8 @@ test("a supplier replies in plain words and the retailer receives the changes as
   await expect(card).toContainText("waiting for one approval");
   await expect(card).toContainText("from orders@northfield-demo.example");
   await card.getByRole("button").click();
-  await page.getByRole("button", { name: "Approve order" }).click();
-  await expect(page.locator(".order .erp h3")).toContainText("ERP order SIM-ERP-");
+  await page.getByRole("button", { name: "Approve and send to ERP" }).click();
+  await expect(page.getByText(/Accepted by your ERP as SIM-ERP-/).first()).toBeVisible();
   await page.getByRole("tab", { name: "Order operations" }).click();
   await expect(card).toContainText("In your ERP as SIM-ERP-");
   await asRetailer();

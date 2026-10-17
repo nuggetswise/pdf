@@ -216,6 +216,9 @@ tr.pick { cursor: pointer; } tr.pick:hover td { background: var(--subtle); } tr.
 .portal, .portal .flow, .portal-form { min-width: 0; }
 .portal-form { overflow-x: auto; }
 .allowances .row-inline select { max-width: 100%; }
+fieldset { min-width: 0; }
+.issue-card, .decision-zone { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.options.correct select { width: 100%; }
 .portal-form table.lines { font-size: 13px; }
 .portal-form td input.qty { width: 4.5em; }
 .row-inline > * { min-width: 0; }
@@ -339,9 +342,10 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .workspace { gap: 16px; }
 .inbox, .order, .manual-route, .agent-work, .erp-card, .edi-card, .rule { border-radius: 12px; }
 @media (max-width: 900px) {
-  .shell { grid-template-columns: 1fr; } .sidenav { position: static; height: auto; flex-direction: row; overflow-x: auto; }
+  .shell { grid-template-columns: 1fr; } .shell { background: none; } .sidenav { position: sticky; top: 0; z-index: 5; height: auto; flex-direction: row; overflow-x: auto; padding: 8px 10px; border-right: 0; border-bottom: 1px solid var(--line); scrollbar-width: none; }
+  .sidenav button { white-space: nowrap; flex: none; padding: 8px 12px; } .sidenav button[aria-selected="true"] { box-shadow: inset 0 -3px 0 var(--electric); }
   .nav-label, .nav-foot { display: none; } .today-grid { grid-template-columns: 1fr; } .viewswitch { margin: 0; }
-  .masthead { height: auto; flex-wrap: wrap; padding: 10px 16px; } .shell main { padding: 16px; }
+  .masthead { height: auto; flex-wrap: wrap; padding: 10px 16px; gap: 10px; position: static; } .shell main { padding: 16px; }
 }
 
 .today-grid > *, .shell main > * { min-width: 0; }
@@ -394,7 +398,7 @@ button.tiny { padding: 2px 8px; font-size: 12px; margin-left: 6px; }
 .mailrow svg { color: var(--cobalt); flex: none; }
 .shipping-settings { border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 8px; max-width: 520px; }
 .shipping-settings legend { font-weight: 600; padding: 0 4px; }
-.shipping-settings label { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.shipping-settings label { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 
 /* Stock and ship date beside the ASN; stacks on narrow screens. */
 .ship-asn { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; margin-top: 12px; }
@@ -566,3 +570,18 @@ table.fields tr.f-changed { background: #f5f9ff; }
   .evidence li { grid-template-columns: minmax(0, 1fr); }
 }
 .option .pill { justify-self: start; }
+/* Phone width: tables marked .stack-table become one card per row (no sideways scrolling). */
+select { max-width: 100%; }
+.ops-review, .admin { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 720px) {
+  .stack-table thead { display: none; }
+  .stack-table, .stack-table tbody, .stack-table tr, .stack-table td { display: block; width: 100%; }
+  .stack-table tr { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; background: #fff; }
+  .stack-table td { white-space: normal; border: 0; padding: 3px 0; display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 8px; align-items: baseline; }
+  .stack-table td::before { content: attr(data-label); font-size: 12px; color: var(--muted); }
+  .stack-table td.row-open { display: block; padding-top: 6px; } .stack-table td.row-open::before { content: none; }
+  .stack-table td.row-open button { width: 100%; }
+  .ops-table .wrap { max-width: none; }
+  .masthead .role select, .mast-right { max-width: 100%; min-width: 0; }
+  table.lines { display: block; overflow-x: auto; }
+}

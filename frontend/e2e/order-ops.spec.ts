@@ -37,10 +37,10 @@ test("home shows operational state first, attention items first, counts from sta
 test("scenario 1: a straight-through order needs no person and shows how it was processed", async ({ page }) => {
   await page.getByRole("button", { name: "View order HV-88190" }).click();
   await expect(page.getByLabel("Order state: Completed automatically")).toBeVisible();
-  await expect(page.getByText("Accepted by simulated downstream ERP as SIM-SO-61001.")).toBeVisible();
+  await expect(page.locator(".outcome").getByText("Accepted by your ERP as SIM-SO-61001.")).toBeVisible();
   const h = history(page);
   for (const t of ["Email received", "identified as a purchase order", "Order fields extracted", "Buyer matched", "Validation completed. All checks passed.",
-    "Structured order created", "Sent to simulated ERP", "Accepted by simulated ERP as SIM-SO-61001"]) await expect(h).toContainText(t);
+    "Structured order created", "Sent to your ERP, simulated", "Accepted by your ERP as SIM-SO-61001"]) await expect(h).toContainText(t);
   await expect(h.locator(".ev-person")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Approve|Resend/ })).toHaveCount(0);
 });
@@ -77,7 +77,7 @@ test("scenario 2: unit recommendation with evidence, accept, undo, accept again 
   await issue(page, "Unit of measure mismatch").getByRole("button", { name: "Accept change" }).click();
   await page.getByRole("button", { name: "Approve and send to ERP" }).click();
   await expect(page.getByLabel("Order state: Completed after review")).toBeVisible();
-  await expect(page.getByRole("region", { name: "Simulated downstream ERP" })).toContainText("Accepted");
+  await expect(page.getByRole("region", { name: "Your ERP (simulated)" })).toContainText("Accepted");
   await expect(page.getByRole("region", { name: "Decisions on this order" }).getByRole("button", { name: "Undo" })).toHaveCount(0);
   await back(page);
   await expect(tile(page, "Need review")).toContainText("2");
@@ -121,7 +121,7 @@ test("scenario 4: a blocked order cannot be sent and offers no automatic fix", a
   await expect(card).toContainText("no location is proposed");
   await expect(card.getByRole("button", { name: "Accept change" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Approve|Resend/ })).toHaveCount(0);
-  await expect(page.getByRole("region", { name: "Simulated downstream ERP" })).toContainText("Blocked orders cannot be sent.");
+  await expect(page.getByRole("region", { name: "Your ERP (simulated)" })).toContainText("Blocked orders cannot be sent.");
   await expect(page.locator(".po-page .hl")).toContainText("Not printed");
   await shot(page, "04-blocked");
   await card.getByRole("button", { name: "Mark as waiting on buyer" }).click();
@@ -141,12 +141,14 @@ test("scenario 4: a blocked order cannot be sent and offers no automatic fix", a
 test("scenario 5: ERP rejection is distinct from validation, corrected and resent", async ({ page }) => {
   await review(page, "SG-55134");
   await expect(page.getByLabel("Order state: Rejected by ERP")).toBeVisible();
-  const card = issue(page, "Rejected by simulated ERP");
+  const card = issue(page, "Rejected by your ERP");
   await expect(card).toContainText("ERP rejection");
   await expect(card).toContainText("Ship-to SG-DC14 is not active for customer account 40017");
   await expect(history(page)).toContainText("Validation completed. All checks passed.");
-  const erp = page.getByRole("region", { name: "Simulated downstream ERP" });
+  const erp = page.getByRole("region", { name: "Your ERP (simulated)" });
   await expect(erp).toContainText("SHIPTO_INACTIVE");
+  // The decision to reject belongs to the ERP; the Order Agent reports it and proposes the fix.
+  await expect(erp).toContainText("Your ERP, using its own checks such as active ship-to codes in its customer master.");
   await expect(card.getByRole("radio", { name: /SG-DC14N/ })).toBeChecked();
   await shot(page, "05-erp-rejection");
   await card.getByRole("button", { name: "Use selected ship-to" }).click();
@@ -170,7 +172,7 @@ test("scenario 6: rejecting a price recommendation keeps the printed price and s
   await expect(page.getByRole("region", { name: "Decisions on this order" })).toContainText("Original value kept");
   await page.getByRole("button", { name: "Approve and send to ERP" }).click();
   await expect(page.getByLabel("Order state: Completed after review")).toBeVisible();
-  await expect(page.getByRole("region", { name: "Simulated downstream ERP" })).toContainText("1 line(s) · 750.00 USD");
+  await expect(page.getByRole("region", { name: "Your ERP (simulated)" })).toContainText("1 line(s) · 750.00 USD");
 });
 
 test("evidence: switch between PDF and email, history marks each actor", async ({ page }) => {
@@ -203,4 +205,53 @@ test("narrow screens stack the source and keep the decision first", async ({ pag
   expect(decision!.y).toBeLessThan(source!.y);
   const width = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(width).toBeLessThanOrEqual(390);
+});
+
+// D72: every screen fits a phone. Measured, not eyeballed: the page never scrolls sideways.
+test("phone width: no screen scrolls sideways", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  const fits = async (where: string) => {
+    const w = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(w, where).toBeLessThanOrEqual(390);
+  };
+  await fits("home");
+  for (const po of ["SG-55134", "PF-7731", "SG-55120", "HV-88213", "LF-20419"]) {
+    await review(page, po);
+    await fits(`review ${po}`);
+    await back(page);
+  }
+  await page.getByRole("region", { name: "Forward a purchase order" }).getByRole("button", { name: "Forward to agent" }).click();
+  await page.locator("[data-po=\"PO-2026-104587\"]").getByRole("button").click();
+  await expect(page.getByRole("heading", { name: "Structured order" })).toBeVisible();
+  await fits("forwarded order review");
+  for (const t of ["Intake", "Command Center", "Agent memory", "ERP records", "Trading Grid outbox", "Settings"]) {
+    await page.getByRole("tab", { name: t }).click();
+    await fits(t);
+  }
+  await page.getByRole("button", { name: "Retailer", exact: true }).click();
+  for (const t of ["Documents received", "Suppliers", "Command Center"]) {
+    await page.getByRole("tab", { name: t }).click();
+    await fits(`retailer ${t}`);
+  }
+});
+
+// D72: a forwarded order opens in the same review as the sample inbox and one approval sends it.
+test("a forwarded order opens in the order review with field states and your ERP", async ({ page }) => {
+  await page.getByRole("region", { name: "Forward a purchase order" }).getByRole("button", { name: "Forward to agent" }).click();
+  await page.locator("[data-po=\"PO-2026-104587\"]").getByRole("button").click();
+  await expect(page.getByLabel("Order state: Ready to send")).toBeVisible();
+  await expect(page.locator(".pdfpage img")).toBeVisible();
+  await expect(page.locator("tr[data-field=po_number]")).toContainText("Accepted");
+  const erp = page.getByRole("region", { name: "Your ERP (simulated)" });
+  await expect(erp).toContainText("Not sent. Sending starts after approval.");
+  await page.getByRole("button", { name: "Approve and send to ERP" }).click();
+  await expect(page.locator(".outcome")).toContainText("Accepted by your ERP as SIM-ERP-");
+  await expect(page.getByRole("region", { name: "Stock and ship date" })).toBeVisible();
+  const h = history(page);
+  await expect(h.locator(".ev-person").first()).toContainText("Approved");
+  await expect(h.locator(".ev-erp")).toContainText("Accepted by your ERP as SIM-ERP-");
+  await shot(page, "09-forwarded-review");
+  await page.getByRole("button", { name: "Open in Intake" }).click();
+  await expect(page.getByRole("tab", { name: "Intake", selected: true })).toBeVisible();
 });

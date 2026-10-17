@@ -161,6 +161,15 @@ Manual observations (headless Chromium screenshots, not automated assertions): a
 with Unassigned, Not available and Not established, app-22 verified and pending side by side, app-23 retailer view
 with no supplier stock text, app-24 supervision table. Copy reviewed against the enterprise writing standard.
 
+## 2026-10-17: Forwarded orders in the review, phone layout, ERP attribution (D72)
+
+Command: `scripts/verify.sh` from the repository root. Result: exit 0. Backend 47 passed; Vitest 537 passed; typecheck
+clean; production build ok; pydifact 5 of 5; Playwright 29 passed, including "phone width: no screen scrolls sideways"
+(home, five reviews, a forwarded order, six supplier tabs and three retailer tabs measured at 390 px) and "a forwarded
+order opens in the order review with field states and your ERP". Scenario 5 also checks that the ERP panel names your
+ERP as the one that accepts or rejects. Not run: a physical phone (Mandip's screenshot was from one; the fix was
+measured in Chromium at 390 px).
+
 ## 2026-10-17: Order Operations (D71)
 
 Command: `scripts/verify.sh` from the repository root. Result: exit 0. Backend 47 passed; Vitest 537 passed (25 files,

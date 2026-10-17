@@ -270,3 +270,20 @@ moved to the home side panel) and "Orders" is renamed "Intake".
   requires one approval, which sends (no separate send step). Decisions can be undone until an ERP submission follows.
 - No confidence scores. Orders forwarded in the session appear in the same queue and open in Intake.
 Details, gap analysis and capability boundaries: docs/13-order-operations.md.
+
+## D72 Forwarded orders in the order review, phone layout, and who rejects an order (2026-10-17)
+Mandip's follow-up to D71: close the gaps, fix the phone view, and say where an ERP rejection comes from.
+- Forwarded and uploaded orders now open in the same order review as the sample inbox (`app/ForwardedReview.tsx`):
+  source beside the structured order, decision first, field states, your ERP (simulated), and a history that names
+  System, AI agent, Person and ERP. Decisions still run on the reading pipeline's workflow (MOQ, price, GTIN, stock,
+  shipping, invoicing unchanged); "Open in Intake" keeps the full workspace one click away. The two engines remain
+  (one queue, one review layout, two data models); undo exists only on the sample inbox.
+- Phone width: the header no longer sticks (it took a quarter of the screen), the section strip scrolls in one
+  line, tables marked `.stack-table` become one card per row, fieldsets and long selects no longer widen the page.
+  A browser test measures every screen at 390 px.
+- Who rejects: the accept-or-reject decision belongs to the supplier's own ERP (for example an inactive ship-to in
+  its customer master). The Order Agent's part is to send once, record the ERP's response, explain it and propose a
+  correction from the ERP's own data, then resend with the same idempotency rules. The ERP panel says so, and the
+  ERP is named "Your ERP (simulated)". This assumes an ERP connection that returns errors; no Trading Grid capability
+  is claimed for it.
+
