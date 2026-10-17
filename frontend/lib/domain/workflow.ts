@@ -9,9 +9,10 @@ import bundledReference from "./reference-data.v1.json";
 import {
   type Approval, type AuditEvent, type Decision, type DeliveryAttempt, type MemoryRule, type Order,
   type OrderVersion, type PolicyChange, ReferenceData, type RunState, type SourceDocument, type ValidationResult,
-  emptyOverlay, emptyRunState,
+  type Channel, HoldReason, RejectReason, emptyOverlay, emptyRunState,
 } from "./run-state";
 import { type Overrides, type Reference, validate } from "./validation";
+import { applyChecks } from "./checks";
 import { confirmOrder } from "./portal";
 
 export const SYSTEM = "system:order-agent";
@@ -102,16 +103,35 @@ export interface IncomingEnvelope {
 }
 export interface IncomingDocument {
   originalFilename: string | null; sha256: string; sizeBytes: number; pageCount: number; pageText: string[];
+  /** D62: absent for a PDF. */
+  kind?: "email_body" | "edi";
+}
+/** D62: the email's own text and every attachment it carried, kept as evidence on the envelope. */
+export interface IncomingEmail {
+  bodyText: string | null;
+  seen: { filename: string | null; mimeType: string | null; sizeBytes: number; sha256: string;
+    handling: "order_candidate" | "evidence_only"; note: string | null }[];
+}
+
+/** D62: the route an order arrived by. Supervision is set per retailer and route (D64). */
+export function channelOf(s: RunState, docId: number): Channel {
+  const d = s.documents.find((x) => x.id === docId);
+  if (d?.kind === "email_body") return "email_body";
+  if (d?.kind === "edi") return "edi";
+  const env = d ? s.envelopes.find((e) => e.id === d.envelopeId) : undefined;
+  return env?.intakeMode === "demo_envelope_upload" ? "upload" : "email_attachment";
 }
 
 /** intake.store_intake: one envelope and its PDFs. An identical file is marked duplicate and not processed. */
 export function receive(state: RunState, envelope: IncomingEnvelope, attachments: IncomingDocument[], actor: string,
-  clock: Clock = systemClock): { state: RunState; documentIds: number[] } {
+  clock: Clock = systemClock, email?: IncomingEmail | null): { state: RunState; documentIds: number[] } {
   const documentIds: number[] = [];
   const next = act(state, clock, (r) => {
     const envelopeId = r.nextId(r.s.envelopes);
-    r.s.envelopes.push({ id: envelopeId, ...envelope, receivedAt: envelope.receivedAt || r.now(), createdAt: r.now() });
-    r.audit("envelope", envelopeId, "received", actor, { intake_mode: envelope.intakeMode, attachments: attachments.length });
+    r.s.envelopes.push({ id: envelopeId, ...envelope, receivedAt: envelope.receivedAt || r.now(), createdAt: r.now(),
+      ...(email ? { bodyText: email.bodyText, attachments: email.seen } : {}) });
+    r.audit("envelope", envelopeId, "received", actor, { intake_mode: envelope.intakeMode, attachments: attachments.length,
+      ...(email ? { evidence_only: email.seen.filter((a) => a.handling === "evidence_only").length } : {}) });
     for (const att of attachments) {
       const original = r.s.documents.filter((d) => d.sha256 === att.sha256 && d.duplicateOf === null)
         .sort((a, b) => a.id - b.id)[0];
@@ -121,7 +141,7 @@ export function receive(state: RunState, envelope: IncomingEnvelope, attachments
         id, envelopeId, originalFilename: att.originalFilename, sha256: att.sha256, sizeBytes: att.sizeBytes,
         pageCount: att.pageCount, pageText: att.pageText, status: original ? "duplicate" : "received",
         statusDetail: original ? `Identical to document ${original.id}` : null, duplicateOf: original?.id ?? null,
-        createdAt: ts, updatedAt: ts,
+        createdAt: ts, updatedAt: ts, ...(att.kind ? { kind: att.kind } : {}),
       });
       r.audit("document", id, "received", actor,
         { envelope_id: envelopeId, sha256: att.sha256, duplicate_of: original?.id ?? null });
@@ -160,9 +180,13 @@ export function failExtraction(state: RunState, docId: number, kind: ExtractionF
   return act(state, clock, (r) => extractionStatus(r, docId, kind, detail));
 }
 
-/** pipeline.process_document success path, then workflow.process_after_extraction. */
+/** D62: whether the reader found a purchase order. Absent = an order (runs and callers before D62). */
+export interface Classification { result: "order" | "not_order"; reason: string }
+
+/** pipeline.process_document success path, then workflow.process_after_extraction. D62: a document the reader
+ *  classed as not an order keeps its reading but makes no order; a person can correct that (treatAsOrder). */
 export function recordExtraction(state: RunState, docId: number, payload: OrderVersion["payload"],
-  clock: Clock = systemClock): RunState {
+  clock: Clock = systemClock, classification?: Classification | null): RunState {
   return act(state, clock, (r) => {
     if (r.doc(docId).status !== "extracting") throw new Conflict("Document is not being extracted");
     r.s.versions.push({
@@ -170,11 +194,38 @@ export function recordExtraction(state: RunState, docId: number, payload: OrderV
       extractor: payload.extractor.name, payload, createdBy: SYSTEM, createdAt: r.now(),
     });
     const d = r.doc(docId);
+    d.updatedAt = r.now();
+    if (classification) {
+      d.classification = { ...classification, by: payload.extractor.name, at: r.now(), correctedBy: null, correctedAt: null };
+    }
+    if (classification?.result === "not_order") {
+      d.status = "not_order";
+      d.statusDetail = classification.reason;
+      r.audit("document", docId, "classified_not_order", SYSTEM, { extractor: payload.extractor.name,
+        is_ai: payload.extractor.is_ai, reason: classification.reason });
+      return;
+    }
+    d.status = "extracted";
+    d.statusDetail = null;
+    r.audit("document", docId, "extracted", SYSTEM,
+      { extractor: payload.extractor.name, is_ai: payload.extractor.is_ai, lines: payload.lines.length });
+    processAfterExtraction(r, docId);
+  });
+}
+
+/** D62: a person corrects a false "Not an order". The reading already made is checked like any other order. */
+export function treatAsOrder(state: RunState, docId: number, who: Who, clock: Clock = systemClock): RunState {
+  requireReviewer(who.role);
+  return act(state, clock, (r) => {
+    const d = r.doc(docId);
+    if (d.status !== "not_order") throw new Conflict("Only a message classed as not an order can be corrected");
+    if (!r.latestVersion(docId)) throw new Conflict("Nothing was read from this message");
+    d.classification = { ...(d.classification ?? { result: "not_order", reason: "", by: SYSTEM, at: r.now() }),
+      result: "order", correctedBy: who.actor, correctedAt: r.now() };
     d.status = "extracted";
     d.statusDetail = null;
     d.updatedAt = r.now();
-    r.audit("document", docId, "extracted", SYSTEM,
-      { extractor: payload.extractor.name, is_ai: payload.extractor.is_ai, lines: payload.lines.length });
+    r.audit("document", docId, "classification_corrected", who.actor, { to: "order" });
     processAfterExtraction(r, docId);
   });
 }
@@ -226,6 +277,12 @@ function evaluate(r: Run, docId: number): ValidationResult {
   const rules = existing ? existing.validation.rules_snapshot
     : r.s.memoryRules.filter((m) => m.state === "active").sort((a, b) => a.id - b.id).map(ruleRow);
   const out = validate(structuredClone(ver.payload), r.reference(), structuredClone(rules), overrides(r, docId), others);
+  // D63, D65: checks on top of the parity port (dates, email vs attachment, value on the wrong line, ship-to choices).
+  const doc = r.doc(docId);
+  const env = r.s.envelopes.find((e) => e.id === doc.envelopeId);
+  applyChecks(out as never, { payload: ver.payload, pages: doc.pageText, kind: doc.kind ?? "pdf", reference: r.reference(),
+    decisions: r.decisionsFor(docId),
+    email: env && (env.bodyText || env.subjectMetadata) ? { subject: env.subjectMetadata, bodyText: env.bodyText ?? null } : null });
   const resolved = new Map<string, Decision>();
   for (const d of r.decisionsFor(docId)) resolved.set(JSON.stringify([d.issueKey, d.fingerprint ?? ""]), d);
   for (const issue of out.issues) {
@@ -268,7 +325,7 @@ function processAfterExtraction(r: Run, docId: number) {
 function settle(r: Run, docId: number) {
   let deliverNow = false;
   const order = r.order(docId);
-  if (!order || ["rejected", "awaiting_customer", "amendment_held"].includes(order.reviewState)) return;
+  if (!order || ["rejected", "awaiting_customer", "amendment_held", "on_hold"].includes(order.reviewState)) return;
   const blocking = openBlocking(order.validation);
   const version = order.currentVersion;
   if (r.validApproval(docId, version)) {
@@ -279,7 +336,7 @@ function settle(r: Run, docId: number) {
       r.status(docId, "needs_review", { open_issues: blocking.map((i) => i.code) });
     }
   } else {
-    const policy = r.policy();
+    const policy = effectivePolicy(r.s, docId);
     // D46: an order a reviewer onboarded a customer or product for waits for an explicit approval.
     const onboarded = r.s.audit.some((a) => a.entityType === "document" && a.entityId === docId
       && a.event.startsWith("reference_"));
@@ -328,7 +385,8 @@ function newVersion(r: Run, docId: number, actor: string, decisionId: number): n
 export interface DecisionInput {
   issueKey: string;
   action: Decision["action"];
-  params?: { sku?: string; save_for_future?: boolean; value?: string; note?: string };
+  params?: { sku?: string; save_for_future?: boolean; value?: string; note?: string; date?: string; ship_to_id?: string;
+    reason_code?: string };
   reason?: string | null;
 }
 
@@ -379,6 +437,19 @@ export function decide(state: RunState, docId: number, input: DecisionInput, who
       stored = { line_index: issue.line_index!, value: value.toString(), authorised_by: who.actor };
     } else if (action === "request_customer_correction") {
       stored = { note: params.note || "Customer asked to correct the order" };
+    } else if (action === "choose_date") {
+      const date = params.date ?? "";
+      const found = issue as Issue;
+      const options = found.candidate_dates;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) throw new Conflict("Choose a date (YYYY-MM-DD)");
+      if (options?.length && !options.includes(date)) throw new Conflict("Choose one of the dates the printed value can mean");
+      stored = { date, field: found.field };
+    } else if (action === "choose_ship_to") {
+      const options = (issue as Issue).candidate_ship_tos ?? [];
+      if (!params.ship_to_id || !options.includes(params.ship_to_id)) throw new Conflict("Choose a ship-to on file for this customer");
+      stored = { ship_to_id: params.ship_to_id };
+    } else if (action === "reject_order" && params.reason_code) {
+      stored = { reason_code: RejectReason.parse(params.reason_code) };
     }
     const decisionId = r.nextId(r.s.decisions);
     const decision: Decision = { id: decisionId, documentId: docId, issueKey, fingerprint: issue.fingerprint, action,
@@ -391,7 +462,7 @@ export function decide(state: RunState, docId: number, input: DecisionInput, who
       reason, role: who.role, version, ...stored });
     if (action === "reject_order") {
       order.reviewState = "rejected";
-      r.status(docId, "rejected", { actor: who.actor, reason });
+      r.status(docId, "rejected", { actor: who.actor, reason, reason_code: stored.reason_code ?? null });
     } else if (action === "request_customer_correction") {
       order.reviewState = "awaiting_customer";
       r.status(docId, "awaiting_customer", { actor: who.actor });
@@ -400,7 +471,7 @@ export function decide(state: RunState, docId: number, input: DecisionInput, who
     const after = evaluate(r, docId);
     // Approving the final exception is the reviewer's approval of this exact version (no Send click).
     if (!openBlocking(after).length && !["rejected", "awaiting_customer"].includes(r.order(docId)!.reviewState)) {
-      approveVersion(r, docId, version, "human", who.actor, r.policy());
+      approveVersion(r, docId, version, "human", who.actor, effectivePolicy(r.s, docId));
     }
     settle(r, docId);
   });
@@ -412,8 +483,68 @@ export function approve(state: RunState, docId: number, who: Who, clock: Clock =
   return act(state, clock, (r) => {
     const order = r.order(docId);
     if (!order || order.reviewState !== "ready") throw new Conflict("Only a validated order with no open issues can be approved");
-    approveVersion(r, docId, order.currentVersion, "human", who.actor, r.policy());
+    approveVersion(r, docId, order.currentVersion, "human", who.actor, effectivePolicy(r.s, docId));
     settle(r, docId);
+  });
+}
+
+/** D64: states in which a person can still hold or reject the whole order (nothing has gone to the ERP). */
+function beforeErp(order: Order) {
+  return order.deliveryState === "not_started" || order.deliveryState === "failed";
+}
+
+/** D64: an internal hold. The order stops where it is until a person releases it; nothing is sent meanwhile.
+ *  Separate from "Waiting on customer", which records that the customer was asked to correct the order. */
+export function holdOrder(state: RunState, docId: number, reason: string, who: Who, clock: Clock = systemClock): RunState {
+  requireReviewer(who.role);
+  const code = HoldReason.safeParse(reason);
+  if (!code.success) throw new Conflict("Choose a hold reason");
+  return act(state, clock, (r) => {
+    const order = r.order(docId);
+    if (!order) throw new Conflict("Order has not been validated");
+    if (!beforeErp(order)) throw new Conflict("The order is already in the ERP; hold it there");
+    if (["rejected", "on_hold"].includes(order.reviewState)) throw new Conflict("The order is already rejected or on hold");
+    for (const a of r.s.approvals.filter((x) => x.documentId === docId && x.invalidatedAt === null)) {
+      a.invalidatedAt = r.now();
+      a.invalidatedReason = "order put on hold";
+    }
+    r.s.holds = r.s.holds ?? [];
+    r.s.holds.push({ id: r.nextId(r.s.holds), documentId: docId, reason: code.data, heldBy: who.actor, heldAt: r.now(),
+      releasedBy: null, releasedAt: null });
+    order.reviewState = "on_hold";
+    r.status(docId, "on_hold", { actor: who.actor, reason_code: code.data });
+  });
+}
+
+export function releaseHold(state: RunState, docId: number, who: Who, clock: Clock = systemClock): RunState {
+  requireReviewer(who.role);
+  return act(state, clock, (r) => {
+    const order = r.order(docId);
+    const hold = (r.s.holds ?? []).find((h) => h.documentId === docId && h.releasedAt === null);
+    if (!order || order.reviewState !== "on_hold" || !hold) throw new Conflict("The order is not on hold");
+    Object.assign(hold, { releasedBy: who.actor, releasedAt: r.now() });
+    order.reviewState = "validating";
+    r.audit("document", docId, "hold_released", who.actor, { hold_id: hold.id });
+    evaluate(r, docId);
+    settle(r, docId);
+  });
+}
+
+/** D64: reject the whole order, with an optional short reason choice (no typed explanation is required). */
+export function rejectOrder(state: RunState, docId: number, reasonCode: string | null, who: Who, clock: Clock = systemClock): RunState {
+  requireReviewer(who.role);
+  const code = reasonCode ? RejectReason.safeParse(reasonCode) : null;
+  if (code && !code.success) throw new Conflict("Unknown reject reason");
+  return act(state, clock, (r) => {
+    const order = r.order(docId);
+    if (!order) throw new Conflict("Order has not been validated");
+    if (!beforeErp(order)) throw new Conflict("The order is already in the ERP; cancel it there");
+    if (order.reviewState === "rejected") throw new Conflict("The order is already rejected");
+    for (const h of (r.s.holds ?? []).filter((x) => x.documentId === docId && x.releasedAt === null)) {
+      Object.assign(h, { releasedBy: who.actor, releasedAt: r.now() });
+    }
+    order.reviewState = "rejected";
+    r.status(docId, "rejected", { actor: who.actor, reason_code: code?.data ?? null });
   });
 }
 
@@ -698,13 +829,41 @@ export function recoverDeliveries(state: RunState, clock: Clock = systemClock): 
 
 // ---------- administration ----------
 
-export function setPolicy(state: RunState, mode: string, who: Who, clock: Clock = systemClock): RunState {
+/** D64: the policy for this order: its retailer's setting for the route it came by, else the default. */
+export function effectivePolicy(s: RunState, docId: number): PolicyChange {
+  const order = s.orders.find((o) => o.documentId === docId);
+  const channel = channelOf(s, docId);
+  const own = order?.customerId
+    ? [...s.policyHistory].reverse().find((p) => p.customerId === order.customerId && p.channel === channel) : undefined;
+  return own ?? [...s.policyHistory].reverse().find((p) => !p.customerId)!;
+}
+
+const MIN_REASON = 3;
+/** The default for routes with no setting of their own. D64: automatic needs an administrator and a reason. */
+export function setPolicy(state: RunState, mode: string, who: Who, clock: Clock = systemClock, reason: string | null = null): RunState {
   if (who.role !== "administrator") throw new Forbidden("Only an administrator can change the automation mode");
   if (mode !== "review_all" && mode !== "exception_only") throw new Conflict("Unknown mode");
+  const why = reason?.trim() ?? "";
+  if (mode === "exception_only" && why.length < MIN_REASON) throw new Conflict("Enter the reason for automatic processing");
   return act(state, clock, (r) => {
     const id = r.nextId(r.s.policyHistory);
-    r.s.policyHistory.push({ id, mode, setBy: who.actor, effectiveAt: r.now() });
-    r.audit("policy", id, "policy_changed", who.actor, { mode });
+    r.s.policyHistory.push({ id, mode, setBy: who.actor, effectiveAt: r.now(), ...(why ? { reason: why } : {}) });
+    r.audit("policy", id, "policy_changed", who.actor, { mode, ...(why ? { reason: why } : {}) });
+  });
+}
+
+/** D64: supervision for one retailer's orders on one route. New routes stay supervised until an administrator
+ *  switches this on with a reason; blocking issues stop an order in either mode. */
+export function setRoutePolicy(state: RunState, customerId: string, channel: Channel, mode: string, reason: string | null,
+  who: Who, clock: Clock = systemClock): RunState {
+  if (who.role !== "administrator") throw new Forbidden("Only an administrator can change supervision");
+  if (mode !== "review_all" && mode !== "exception_only") throw new Conflict("Unknown mode");
+  const why = reason?.trim() ?? "";
+  if (mode === "exception_only" && why.length < MIN_REASON) throw new Conflict("Enter the reason for automatic processing");
+  return act(state, clock, (r) => {
+    const id = r.nextId(r.s.policyHistory);
+    r.s.policyHistory.push({ id, mode, setBy: who.actor, effectiveAt: r.now(), customerId, channel, ...(why ? { reason: why } : {}) });
+    r.audit("policy", id, "route_policy_changed", who.actor, { customer_id: customerId, channel, mode, ...(why ? { reason: why } : {}) });
   });
 }
 
@@ -765,7 +924,7 @@ export function summary(state: RunState) {
     orders_received: state.documents.length,
     delivered_to_erp: rows.filter((o) => o.deliveryState === "erp_created").length,
     auto_approved_by_policy: state.approvals.filter((a) => a.kind === "system" && a.invalidatedAt === null).length,
-    held_for_review: rows.filter((o) => ["needs_review", "ready", "awaiting_customer", "amendment_held"]
+    held_for_review: rows.filter((o) => ["needs_review", "ready", "awaiting_customer", "amendment_held", "on_hold"]
       .includes(o.reviewState)).length,
     resolved_by_memory: state.audit.filter((a) => a.event === "memory_rule_applied").length,
     delivery_problems: rows.filter((o) => o.deliveryState === "failed" || o.deliveryState === "unknown").length,

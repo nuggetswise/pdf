@@ -1,7 +1,9 @@
-// Printed dates to calendar dates (D59). Purchase orders print dates every which way: 2026-11-20, 11/20/2026,
-// November 20, 2026, Nov 20 2026, 20-Nov-2026. US layouts are read month first. A date with no year takes the year
-// of a reference date (the PO date), rolling forward if that would put it more than two months before it.
-// Anything ambiguous or unreadable returns null; a date is never guessed.
+// Printed dates to calendar dates (D59, D63). Purchase orders print dates every which way: 2026-11-20, 11/20/2026,
+// 20/11/2026, November 20, 2026, Nov 20 2026, 20-Nov-2026, and EDI's 20261120. A numeric date is read only when one
+// reading is possible: 11/20/2026 can only be month first and 20/11/2026 only day first, but 03/04/2026 could be
+// either, so it returns null and the order waits for a person (D63; no US month-first assumption). A date with no
+// year takes the year of a reference date (the PO date), rolling forward if that would put it more than two months
+// before it. Anything ambiguous or unreadable returns null; a date is never guessed.
 
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -23,8 +25,17 @@ export function isoDate(printed: string | null | undefined, reference?: string |
   const t = printed.trim().replace(/\s+/g, " ").replace(/(\d)(st|nd|rd|th)\b/gi, "$1");
   let m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(t);
   if (m) return valid(+m[1], +m[2], +m[3]);
-  m = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(t);
-  if (m) return valid(m[3].length === 2 ? 2000 + +m[3] : +m[3], +m[1], +m[2]);
+  m = /^(\d{4})(\d{2})(\d{2})$/.exec(t);
+  if (m) return valid(+m[1], +m[2], +m[3]);
+  m = /^(\d{1,2})[/.](\d{1,2})[/.](\d{2}|\d{4})$/.exec(t);
+  if (m) {
+    const y = m[3].length === 2 ? 2000 + +m[3] : +m[3];
+    const [a, b] = [+m[1], +m[2]];
+    if (a === b) return valid(y, a, b);
+    if (a > 12) return valid(y, b, a); // day first
+    if (b > 12) return valid(y, a, b); // month first
+    return null; // both readings possible
+  }
   m = /^(?:[A-Za-z]+,? )?([A-Za-z]{3,9})\.? (\d{1,2}),? (\d{4})$/.exec(t);
   if (m && monthOf(m[1])) return valid(+m[3], monthOf(m[1])!, +m[2]);
   m = /^(\d{1,2})[ -]([A-Za-z]{3,9})\.?[ -](\d{2}|\d{4})$/.exec(t);
@@ -78,3 +89,18 @@ export const minDate = (...ds: (string | null | undefined)[]) => ds.filter(Boole
 /** "Fri, Nov 20" for screens. */
 export const showDate = (d: string | null | undefined) => (d && /^\d{4}-\d{2}-\d{2}$/.test(d)
   ? new Date(`${d}T00:00:00Z`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }) : "—");
+
+/** D63: what a printed date can mean. "ambiguous" lists both calendar readings; "unclear" covers relative or
+ *  unreadable dates such as "Thursday" or "next week". */
+export type DateReading = { kind: "date"; iso: string } | { kind: "ambiguous"; candidates: string[] } | { kind: "unclear" };
+export function readDate(printed: string, reference?: string | null): DateReading {
+  const iso = isoDate(printed, reference);
+  if (iso) return { kind: "date", iso };
+  const m = /^(\d{1,2})[/.](\d{1,2})[/.](\d{2}|\d{4})$/.exec(printed.trim());
+  if (m) {
+    const y = m[3].length === 2 ? 2000 + +m[3] : +m[3];
+    const both = [valid(y, +m[1], +m[2]), valid(y, +m[2], +m[1])].filter((d): d is string => d !== null);
+    if (both.length === 2) return { kind: "ambiguous", candidates: both };
+  }
+  return { kind: "unclear" };
+}

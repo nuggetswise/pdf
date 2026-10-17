@@ -3,7 +3,7 @@
 // sends each action to the server one at a time, and runs the agent's background work: reading forwarded PDFs
 // and asking the server to extract them. The original PDFs are kept in this browser (IndexedDB) for the page view.
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { DEMO_EMAILS, demoEmailPath, intakeEml, intakeUpload, type Intake } from "../../lib/intake/intake";
+import { DEMO_EMAILS, demoEmailPath, ediText, intakeEdi, intakeEml, intakeUpload, type Intake } from "../../lib/intake/intake";
 import { IntakeRejected } from "../../lib/intake/pdf";
 import { browserPdfjs } from "../../lib/intake/pdfjs-browser";
 import { emptyRunState, RunState, runStateSizeBytes, SESSION_STORAGE_WARN_BYTES } from "../../lib/domain/run-state";
@@ -111,9 +111,10 @@ export function RunProvider({ children }: { children: ReactNode }) {
       let outcome: { ok: true; payload: unknown } | { ok: false; status: string; detail: string };
       try {
         const rehearsal = stateRef.current.settings.rehearsalMode;
-        const media = rehearsal ? {} : await mediaFor(await pdfBytesOf(docId), doc.pageText);
+        const kind = doc.kind ?? "pdf";
+        const media = rehearsal || kind !== "pdf" ? {} : await mediaFor(await pdfBytesOf(docId), doc.pageText);
         const r = await fetch("/api/extract", { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pages: doc.pageText, rehearsal, ...media }) });
+          body: JSON.stringify({ pages: doc.pageText, rehearsal, kind, ...media }) });
         outcome = r.ok ? await r.json() : { ok: false, status: "extraction_failed",
           detail: `Extraction failed (${r.status === 413 ? "the page text is too large to send" : `the server answered HTTP ${r.status}`}). Use Retry extraction.` };
       } catch {
@@ -121,7 +122,9 @@ export function RunProvider({ children }: { children: ReactNode }) {
       }
       // A reset while extraction ran means this document is gone; its result must not land on a new one.
       if (!same()) return;
+      const classification = (outcome as { classification?: { result: "order" | "not_order"; reason: string } }).classification;
       if (outcome.ok) await run({ type: "recordExtraction", docId, payload: outcome.payload as never,
+        ...(classification ? { classification } : {}),
         ...((outcome as { transcript?: string[] }).transcript ? { transcript: (outcome as { transcript?: string[] }).transcript } : {}) });
       else await run({ type: "failExtraction", docId, kind: outcome.status as "extraction_failed", detail: outcome.detail });
     } catch (e) {
@@ -130,11 +133,14 @@ export function RunProvider({ children }: { children: ReactNode }) {
   }, [run, pdfBytesOf]);
 
   const receive = useCallback(async (intake: Intake) => {
-    const ids = await run({ type: "receive", envelope: intake.envelope, attachments: intake.attachments });
+    const ids = await run({ type: "receive", envelope: intake.envelope, attachments: intake.attachments,
+      ...(intake.email ? { email: intake.email } : {}) });
     ids.forEach((id, i) => {
-      pdfs.current.set(id, intake.pdfBytes[i]);
+      const bytes = intake.pdfBytes[i];
+      if (!bytes) return; // an email text or an EDI file: the run holds its text
+      pdfs.current.set(id, bytes);
       const sha = stateRef.current.documents.find((d) => d.id === id)?.sha256;
-      if (sha) void savePdf(sha, intake.pdfBytes[i]);
+      if (sha) void savePdf(sha, bytes);
     });
     for (const id of ids) void process(id);
     return ids;
@@ -159,9 +165,11 @@ export function RunProvider({ children }: { children: ReactNode }) {
 
   const importEml = useCallback(async (raw: Uint8Array) => receive(await readEml(raw, "eml_import")), [receive, readEml]);
 
-  /** A PDF purchase order the user uploads directly: no email around it, so sender and subject are empty. */
+  /** A PDF purchase order the user uploads directly: no email around it, so sender and subject are empty.
+   *  D62: an X12 order file is accepted the same way and read as structured data. */
   const uploadPdf = useCallback(async (pdf: Uint8Array, filename: string) => {
     try {
+      if (ediText(pdf)) return await receive(await intakeEdi(pdf, filename));
       return await receive(await intakeUpload(pdf, filename, { sender: "" }, { pdfjs: await browserPdfjs() }));
     } catch (e) {
       if (e instanceof IntakeRejected) throw new Error(e.message);

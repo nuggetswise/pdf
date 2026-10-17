@@ -23,7 +23,7 @@ import {
 } from "./run-state";
 import { Conflict, type Clock, Forbidden, type Who, systemClock } from "./workflow";
 import { choose, consumeStock, firstShipOn, freeStock, planFulfilment, stockOf } from "./fulfilment";
-import { isoDate } from "./dates";
+import { orderDate } from "./checks";
 
 const REVIEWERS = new Set(["reviewer", "administrator"]);
 const requireReviewer = (role: string) => {
@@ -177,7 +177,7 @@ function ordrspFor(s: RunState, o: OrderRow, createdAt: string, reply?: Supplier
   });
   const ref = `ORDRSP-${erpOrderId.replace(/^SIM-ERP-/, "")}${n ? `-C${n}` : ""}`;
   const msg = (ctx.profile === "x12_retail" ? buildOrdrspX12 : buildOrdrsp)({ ref, createdAt, erpOrderId,
-    orderDate: isoDate(o.validation.order.order_date) ?? o.validation.order.order_date,
+    orderDate: orderDate(o.validation.order, "order_date", o.validation.order.order_date) ?? o.validation.order.order_date,
     shipDate: reply?.shipDate ?? firstShipOn(parts) ?? null, ...ctx.parties }, lines);
   return { msg, check: checkMessage("ORDRSP", msg.text, ctx.profile) };
 }
@@ -467,7 +467,7 @@ export function draftAsn(s: RunState, docId: number, input: AsnInput, actor: str
   if (!anyShipped) throw new Conflict("Nothing is shipped: at least one line needs a quantity above zero");
 
   const despatchDate = input.despatchDate?.trim() || dateOnly(now);
-  const requested = isoDate(o.validation.order.requested_delivery_date) ?? "";
+  const requested = orderDate(o.validation.order, "requested_delivery_date", o.validation.order.requested_delivery_date) ?? "";
   const estimatedDelivery = input.estimatedDelivery === undefined
     ? (isIsoDate(requested) ? requested : "") : (input.estimatedDelivery ?? "").trim();
   for (const [v, what] of [[despatchDate, "Despatch date"], [estimatedDelivery, "Estimated delivery date"]] as const) {

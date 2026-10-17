@@ -42,7 +42,7 @@ describe("the guided demo through the server action", () => {
     vi.setSystemTime(new Date("2026-10-15T15:00:00.000Z"));
     let s = go(emptyRunState(), { type: "resetDemo", role: "administrator" });
     s = go(s, { type: "setDemoSetting", role: "administrator", key: "rehearsal_mode", value: "on" });
-    s = go(s, { type: "setPolicy", role: "administrator", mode: "exception_only" });
+    s = go(s, { type: "setPolicy", role: "administrator", mode: "exception_only", reason: "Pilot evidence reviewed" });
     s = await forward(s, "VIDEO-DEMO-001");
     s = go(s, { type: "decide", role: "reviewer", docId: 1, issueKey: "moq_violation:0", action: "one_off_exception",
       reason: "Customer confirmed a one-off trial quantity (fictional)" });
@@ -62,14 +62,18 @@ describe("the guided demo through the server action", () => {
     s = go(s, { type: "approve", role: "reviewer", docId: 5 });
     s = go(s, { type: "retryDelivery", role: "reviewer", docId: 5 });
     s = await forward(s, "VIDEO-DEMO-005");
-    expect(maskTimes(s)).toStrictEqual(maskTimes(replayGuidedDemo()));
+    // D66: the server action also brings Command Center findings up to date; the workflow replay has none.
+    const { commandCenter, ...rest } = s;
+    expect(maskTimes(rest as RunState)).toStrictEqual(maskTimes(replayGuidedDemo()));
+    const keys = commandCenter!.findings.map((f) => f.key);
+    expect(new Set(keys).size).toBe(keys.length);
     expect(s.erpOrders).toHaveLength(3);
     vi.useRealTimers();
   });
 
   it("the exported server action is the same function", async () => {
     const s = emptyRunState();
-    expect(await runAction(s, { type: "setPolicy", role: "administrator", mode: "exception_only" }))
+    expect(await runAction(s, { type: "setPolicy", role: "administrator", mode: "exception_only", reason: "Pilot evidence reviewed" }))
       .toMatchObject({ ok: true, state: { policyHistory: [{ mode: "review_all" }, { mode: "exception_only" }] } });
   });
 });
@@ -107,7 +111,7 @@ describe("the server action refuses", () => {
 
   it("never changes the run it was given", async () => {
     const before = structuredClone(s);
-    go(s, { type: "setPolicy", role: "administrator", mode: "exception_only" });
+    go(s, { type: "setPolicy", role: "administrator", mode: "exception_only", reason: "Pilot evidence reviewed" });
     expect(s).toStrictEqual(before);
   });
 });

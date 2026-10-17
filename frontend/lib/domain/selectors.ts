@@ -69,7 +69,8 @@ export type ErpOrder = { erp_order_id: string; idempotency_key: string; created_
 const byIdDesc = <T extends { id: number }>(rows: T[]) => [...rows].sort((a, b) => b.id - a.id);
 
 export function currentPolicy(s: RunState): Policy {
-  const p = s.policyHistory.reduce((a, b) => (b.id > a.id ? b : a));
+  // The default for routes without their own setting; per-retailer route entries (D64) are listed separately.
+  const p = s.policyHistory.filter((x) => !x.customerId).reduce((a, b) => (b.id > a.id ? b : a));
   return { id: p.id, mode: p.mode, set_by: p.setBy, effective_at: p.effectiveAt };
 }
 

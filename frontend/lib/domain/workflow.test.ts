@@ -396,7 +396,7 @@ describe("slice 4 review, roles and modes", () => {
   it("P22 exception-only: a clean order auto-delivers without Send", () => {
     let { s, clock } = fresh();
     expect(() => setPolicy(s, "exception_only", REVIEWER, clock)).toThrow(Forbidden);
-    s = setPolicy(s, "exception_only", ADMIN, clock);
+    s = setPolicy(s, "exception_only", ADMIN, clock, "Pilot evidence reviewed");
     expect(s.policyHistory.at(-1)!.mode).toBe("exception_only");
     let d1: number;
     ({ state: s, docId: d1 } = forward(s, "VIDEO-DEMO-001", clock));
@@ -495,7 +495,7 @@ describe("slice 4 review, roles and modes", () => {
 describe("slice 5 ERP delivery", () => {
   it("P07 re-uploading an identical file creates no second ERP order", () => {
     let { s, clock } = fresh();
-    s = setPolicy(s, "exception_only", ADMIN, clock);
+    s = setPolicy(s, "exception_only", ADMIN, clock, "Pilot evidence reviewed");
     let first: number;
     ({ state: s, docId: first } = forward(s, "VIDEO-DEMO-001", clock));
     s = resolveDemo001(s, first, clock);
@@ -586,7 +586,7 @@ describe("slice 5 ERP delivery", () => {
 describe("slice 6 agent memory and administration", () => {
   it("P25 and P26 memory rule lifecycle and scope", () => {
     let { s, clock } = fresh();
-    s = setPolicy(s, "exception_only", ADMIN, clock);
+    s = setPolicy(s, "exception_only", ADMIN, clock, "Pilot evidence reviewed");
     let d1: number;
     ({ state: s, docId: d1 } = forward(s, "VIDEO-DEMO-001", clock));
     s = resolveDemo001(s, d1, clock);
@@ -630,7 +630,7 @@ describe("slice 6 agent memory and administration", () => {
 
   it("reset restores the known starting state", () => {
     let { s, clock } = fresh();
-    s = setPolicy(s, "exception_only", ADMIN, clock);
+    s = setPolicy(s, "exception_only", ADMIN, clock, "Pilot evidence reviewed");
     ({ state: s } = forward(s, "VIDEO-DEMO-001", clock));
     expect(() => resetDemo(s, REVIEWER, clock)).toThrow(Forbidden);
     s = resetDemo(s, ADMIN, clock);
@@ -644,7 +644,7 @@ describe("slice 6 agent memory and administration", () => {
 
   it("reference import is versioned, admin only, and triggers rule revalidation", () => {
     let { s, clock } = fresh();
-    s = setPolicy(s, "exception_only", ADMIN, clock);
+    s = setPolicy(s, "exception_only", ADMIN, clock, "Pilot evidence reviewed");
     let d1: number;
     ({ state: s, docId: d1 } = forward(s, "VIDEO-DEMO-001", clock));
     s = resolveDemo001(s, d1, clock);

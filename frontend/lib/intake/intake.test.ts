@@ -86,16 +86,23 @@ describe("intake safety checks", () => {
     expect([notPdf.kind, notPdf.message]).toEqual(["invalid", "Attachment is not a PDF"]);
     const big = await rejection(intakeUpload(new TextEncoder().encode("%PDF-" + "0".repeat(5000)), "big.pdf", { sender: "x" }, opts));
     expect([big.kind, big.message]).toEqual(["too_large", "PDF exceeds 2000 byte limit"]);
+    // D62: an email without a PDF is no longer refused; its text becomes the document the agent reads.
     const noPdf = new TextEncoder().encode("From: x@example.invalid\r\nSubject: no attachment\r\n\r\nhello\r\n");
-    expect((await rejection(intakeEml(noPdf, "eml_import", opts))).message).toBe("Email has no PDF attachment");
+    const body = await intakeEml(noPdf, "eml_import", opts);
+    expect(body.attachments).toHaveLength(1);
+    expect(body.attachments[0]).toMatchObject({ kind: "email_body", pageText: ["hello"], originalFilename: null });
+    expect(body.pdfBytes).toEqual([null]);
     const hugeEml = new Uint8Array(4001);
     expect((await rejection(intakeEml(hugeEml, "eml_import", opts))).kind).toBe("too_large");
   });
 
-  it("an email is accepted whole or not at all", async () => {
+  it("D62 an unreadable attachment is kept as evidence; the readable PDF is read", async () => {
     const good = bytes(join(GEN, "VIDEO-DEMO-001.pdf"));
     const raw = emlWith([{ filename: "a.pdf", data: good }, { filename: "b.pdf", data: new TextEncoder().encode("not a pdf") }]);
-    expect((await rejection(intakeEml(raw, "eml_import", { pdfjs }))).message).toBe("Attachment is not a PDF");
+    const got = await intakeEml(raw, "eml_import", { pdfjs });
+    expect(got.attachments).toHaveLength(1);
+    expect(got.email!.seen.map((a) => [a.filename, a.handling, a.note])).toEqual([
+      ["a.pdf", "order_candidate", null], ["b.pdf", "evidence_only", "Attachment is not a PDF. Kept as evidence."]]);
     const ok = await intakeEml(emlWith([{ filename: "a.pdf", data: good }, { filename: "b.pdf", data: good }]),
       "eml_import", { pdfjs });
     expect(ok.attachments).toHaveLength(2);

@@ -17,8 +17,12 @@ describe("guided demo replay", () => {
 
   for (const key of Object.keys(expected) as (keyof RunState)[]) {
     it(`matches the Python run: ${key}`, () => {
-      // D61's stock plan is TypeScript-only; the Python run has none.
-      const value = key === "orders" ? actual.orders.map(({ fulfilment: _f, ...o }) => o) : actual[key];
+      // D61's stock plan is TypeScript-only; the Python run has none. D64 records the reason for switching to
+      // automatic processing, which the Python prototype did not ask for.
+      const value = key === "orders" ? actual.orders.map(({ fulfilment: _f, ...o }) => o)
+        : key === "policyHistory" ? actual.policyHistory.map(({ reason: _r, ...p }) => p)
+          : key === "audit" ? actual.audit.map((a) => (a.event === "policy_changed" ? { ...a, detail: { mode: a.detail.mode } } : a))
+            : actual[key];
       expect(value).toStrictEqual(expected[key]);
     });
   }

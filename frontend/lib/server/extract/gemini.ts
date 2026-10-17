@@ -21,6 +21,9 @@ export const RESPONSE_SCHEMA = {
     // D59: terms and printed instructions, from any layout.
     terms: { type: "OBJECT", properties: { ...Object.fromEntries(termFields.map((f) => [f, FIELD_SCHEMA])),
       instructions: { type: "ARRAY", items: FIELD_SCHEMA } } },
+    // D62: is this a purchase order at all? A deterministic floor applies on top (extract/run.ts classify).
+    document_type: { type: "STRING", enum: ["purchase_order", "not_an_order"] },
+    document_type_reason: { type: "STRING" },
   },
   required: ["header", "lines"],
 };
@@ -50,7 +53,14 @@ export const SYSTEM_INSTRUCTION =
   "terms: payment_terms (e.g. Net 30), freight_terms (e.g. FOB Destination, Incoterms), ship_not_before and " +
   "ship_no_later_than (the ship window's start and end, or 'do not ship before' / 'cancel if not shipped by' dates), " +
   "delivery_window (a receiving time window), ship_complete (the printed sentence if the PO asks for complete " +
-  "shipments or forbids backorders); instructions: each printed order note or instruction, word for word.";
+  "shipments or forbids backorders); instructions: each printed order note or instruction, word for word. " +
+  "document_type: purchase_order when the document places an order; not_an_order for anything else (a question, " +
+  "an invoice, a confirmation, a newsletter, internal discussion), with document_type_reason in one short sentence. " +
+  "Never return a date in another format than printed and never resolve a relative date such as 'Thursday'.";
+/** D62: an order written in the body of an email. The same fields; the email text is the only source. */
+export const EMAIL_INSTRUCTION = SYSTEM_INSTRUCTION.replace("from a purchase order PDF sent by a retailer to its supplier",
+  "from the text of an email a retailer sent to its supplier, which may place an order in plain words") +
+  " The evidence for each value is the exact text from the email. Quoted earlier messages and signatures are context only.";
 export const SCAN_INSTRUCTION = SYSTEM_INSTRUCTION + " This PDF has no text layer: the pages are images. First " +
   "transcribe every page into transcript (page number and its full text, line by line as printed), then take every " +
   "value and its evidence from your transcript.";
@@ -88,7 +98,10 @@ export class GeminiExtractor {
    * Read a PO. The PDF itself goes to the model when given, so it sees the layout; the page text goes with it as
    * the reference every value's evidence is checked against. A scan (no text layer) sends page images instead.
    */
-  async extract(pages: string[], media: { pdf?: string | null; images?: string[] | null } = {}): Promise<unknown> {
+  async extract(pages: string[], media: { pdf?: string | null; images?: string[] | null; emailText?: boolean } = {}): Promise<unknown> {
+    if (media.emailText) {
+      return this.generate(EMAIL_INSTRUCTION, RESPONSE_SCHEMA, `<email>\n${pages.join("\n")}\n</email>`);
+    }
     if (media.images?.length) {
       return this.generate(SCAN_INSTRUCTION, SCAN_RESPONSE_SCHEMA, "<document>Scanned purchase order: the pages follow as images.</document>",
         media.images.map((data) => ({ inlineData: { mimeType: "image/jpeg", data } })));
