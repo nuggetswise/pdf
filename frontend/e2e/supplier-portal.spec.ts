@@ -47,8 +47,8 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
   await expect(page.getByLabel("Amounts", { exact: true })).toContainText("Lines 312.00");
   await expect(page.locator(".invtotal")).toContainText("312.00 USD");
   await page.getByRole("button", { name: "Submit invoice" }).click();
-  await expect(portal.getByLabel("Invoice")).toContainText("INV-00001");
-  await expect(portal.getByLabel("Invoice").locator(".flowstate")).toContainText("ERP synced, EDI to retailer delivered");
+  await expect(portal.getByLabel("Invoice", { exact: true })).toContainText("INV-00001");
+  await expect(portal.getByLabel("Invoice", { exact: true }).locator(".flowstate")).toContainText("ERP synced, EDI to retailer delivered");
   await expect(portal.getByLabel("Payment terms")).toContainText("Terms 2% 10, net 30 · due ");
   // The 2 cases of line A not shipped stay open as a backorder until shipped or cancelled.
   await expect(portal.getByLabel("Backorder")).toContainText("2 CASE line A");

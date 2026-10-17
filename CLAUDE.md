@@ -27,6 +27,8 @@
 - Regenerate the demo inbox the Vitest workflow tests forward: `backend/.venv/bin/python scripts/demo_inbox.py`
 - Regenerate the FastAPI read-endpoint answers the selectors are compared with: `backend/.venv/bin/python scripts/read_models.py`
 - Regenerate the edge-case intake PDFs (encrypted, text-free): `backend/.venv/bin/python scripts/intake_fixtures.py`
+- Regenerate the fictional intake test pack (expected results are hand-written, not regenerated): `backend/.venv/bin/python scripts/test_pack.py`
+- Run only the test pack: `cd frontend && npx vitest run lib/test-pack.test.ts`
 - Export SQLite state as RunState JSON: `backend/.venv/bin/python scripts/export_run_state.py <sqlite> <out.json>`
 - Independent EDIFACT syntax check (pydifact): `backend/.venv/bin/python scripts/edi_syntax_check.py`
 - Regenerate the EDI samples it reads: `cd frontend && UPDATE_EDI_SAMPLES=1 npx vitest run edifact-independent`
@@ -57,4 +59,5 @@
 - Learning means approved scoped rule reuse, not autonomous model retraining.
 - EDI mapping and retailer rules: docs/08-edi-mapping.md (provisional).
 - Read docs/07-demo-scenario.md for the video-aligned fictional demonstration.
+- v1.2 spec and status labels: docs/09-spec-v1.2.md; Command Center: docs/10-command-center.md; records: docs/11-system-of-record.md; pilot: docs/12-pilot-readiness.md.
 - New session? Read HANDOFF.md first.

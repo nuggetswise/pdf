@@ -534,7 +534,7 @@ export function submitAsn(state: RunState, docId: number, input: AsnInput, who: 
   });
 }
 
-// ---------- step 3: invoice with tax, allowances and a three-way match ----------
+// ---------- step 3: invoice with tax, allowances and an order, ASN and invoice check (supplier records only; no goods receipt) ----------
 
 export const ALLOWANCE_CODES = {
   allowance: { DI: "Discount" },
@@ -686,7 +686,7 @@ export function submitInvoice(state: RunState, asnId: number, input: InvoiceInpu
   return act(state, clock, (s, now) => {
     const { invoice: inv, message, compliance, match } = draftInvoice(s, asnId, input, who.actor, now);
     const bad = match.filter((m) => m.status === "mismatch");
-    if (bad.length) throw new Conflict(`Three-way match failed: ${bad.map((m) => `line ${m.sourceLineId}: ${m.note}`).join("; ")}`);
+    if (bad.length) throw new Conflict(`Order, ASN and invoice check failed: ${bad.map((m) => `line ${m.sourceLineId}: ${m.note}`).join("; ")}`);
     if (blocking(compliance).length) throw new Conflict(refusal(compliance));
     const asn = s.portal.asns.find((a) => a.id === asnId)!;
     s.portal.invoices.push(inv);

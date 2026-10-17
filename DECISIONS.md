@@ -176,3 +176,56 @@ less transit days. If stock is short, the confirmation waits for a person: hold 
 on time or the PO asks to ship complete), ship now and backorder, or ship now and cancel. The 855 then carries one
 ACK per part (IA/IB/IR with 068 and its date) and the ERP gets the schedule. Shipping takes what stock covers and
 lowers stock. Settings: packing days, transit days, short-stock rule. Lateness is a warning, never a hold.
+
+## D62 Email-body orders, non-orders and evidence-only attachments (2026-10-17)
+An email is never refused for having no PDF. Every attachment is listed with its hash and handling. PDFs and X12
+files are read as possible orders; spreadsheets, images and unreadable files are kept as evidence with a note. When
+no attachment can carry an order, the email text becomes the document the agent reads, so body and attachment never
+both make an order. A reading with neither a PO number nor lines is classed Not an order (a deterministic floor the
+AI cannot lower), kept in intake history with its reason, and Treat as order corrects it. An X12 850 is read from
+its segments without AI. The email subject or text naming a different PO than the attachment is a blocking
+"Email and attachment disagree" issue.
+
+## D63 Dates are never assumed (2026-10-17)
+Supersedes the US month-first reading in D59. A numeric date reads only when one reading is possible (a part above
+12). 04/11/2026 offers 2026-04-11 and 2026-11-04; a weekday or relative date takes a date input. Both block the
+order. The person's choice is stored in resolved_dates beside the printed value and is what ship dates, the ERP
+and EDI use.
+
+## D64 Supervision per retailer and route, internal hold, reject reason (2026-10-17)
+Supervision is set per retailer and route (email attachment, email text, upload, EDI). Routes without a setting use
+the default, which starts supervised. Automatic needs an administrator and a recorded reason (also for the default).
+Blocking issues stop an order in both modes. Internal hold (reason from a short list) is separate from Waiting on
+customer; it withdraws approval and nothing is sent while held. Reject needs no typed explanation and takes an
+optional reason choice. Hold and reject apply before the ERP only.
+
+## D65 Provenance and line placement, no confidence numbers (2026-10-17)
+Each value shows separate statements: how it was read (AI, structured EDI reader, test adapter), whether its text is
+in the source, whether it sits on the row of the line it was read for (the identifier's row and up to two more,
+stopping at another line's identifier, matched as a whole number), what reference data matched, and what a person
+confirmed. A value on another line blocks with "Value is not on the line it was read for". No confidence numbers are
+shown or invented. An unknown ship-to offers the locations on file; the choice replaces the code on the order and
+the printed code is kept.
+
+## D66 Retail Command Center as a proposed composition (2026-10-17)
+A thin working slice: Detect, Prioritise, Act, Verify over this app's records, recomputed by the server after every
+action without AI. Four finding types (stock short, revised delivery, ERP order not confirmed, document not delivered).
+One open finding per condition; history kept; action status separate from verification; each type states its
+resolution condition and required evidence first; missing evidence keeps verification pending; sending is not
+acceptance. Financial exposure shows Not available and root cause Not established. Supplier-private findings never
+reach the retailer view, which is scoped to one retailer. Labelled "Proposed composition"; no CCIM or CCPM link.
+Spec: docs/10-command-center.md.
+
+## D67 Pilot export extended, no savings claimed (2026-10-17)
+Adds route, supervision mode, minutes from receipt to checked, minutes waiting for a person (elapsed, not effort),
+exception reasons, ERP attempts, confirmed outcome and per-order findings (types, first detection, owners, action,
+verified count and time, pending count). chargeback_exposure_avoided is renamed chargeback_exposure_assumed: it comes
+from the administrator's manual-route assumptions and is not a measured saving.
+
+## D68 Intake test pack with independent expected results (2026-10-17)
+fixtures/test-pack holds fictional emails, PDFs and an X12 850 made by scripts/test_pack.py, and hand-written
+expected results. lib/test-pack.test.ts runs each case through intake and the server actions and never branches on a
+case id or file name. The wrong-line case uses a hand-written stand-in for an AI result, labelled as such, because a
+deterministic reader cannot produce it. The invoice check formerly called a three-way match is renamed "Order, ASN
+and invoice check": it compares the supplier's PO line, ASN and invoice; there is no goods receipt
+(docs/11-system-of-record.md).

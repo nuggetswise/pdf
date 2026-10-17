@@ -125,3 +125,38 @@ Owner's real sample PO (not committed): its text with a Gemini-like extraction r
 production build ok; Playwright 12 passed, including the new `stock.spec.ts` (example PO page view, short stock,
 split with backorder, retailer sees per-line dates, ship lowers stock). Live AI reading of varied layouts and scans:
 Not run (no Gemini key in this container); the request shape is covered by mocked tests in `lib/server/extract.test.ts`.
+
+## 2026-10-17: v1.2 runtime verification (D62-D68)
+Established first by running the app before changes: verify.sh passed; an email without a PDF was refused (now fixed);
+duplicate detection worked; a duplicate's timeline showed "Received" in red with a Processing label (minor, unchanged).
+
+`scripts/verify.sh` -> VERIFY PASSED (exit 0): backend 47 passed; parity, demo-inbox and read-model fixtures
+byte-identical; Vitest 520 passed (24 files); pydifact 5 of 5; typecheck clean; production build ok; Playwright 14
+passed. Client bundle check for the AI key name and endpoint: nothing found.
+
+| Item | Result | How verified |
+|---|---|---|
+| Email + PDF order (TP-01) | Passed | Vitest test pack; e2e app-flow |
+| Order in email text, embedded instruction ignored (TP-02) | Passed | Vitest test pack; e2e command-center (Email text chip, Supervised, text shown, approval still required) |
+| Not an order kept and correctable (TP-03) | Passed | Vitest test pack; e2e (Not an order pill, Treat as order button) |
+| Unknown customer, unknown product (TP-04, TP-05) | Passed | Vitest test pack |
+| Ambiguous date, choice applied (TP-06); weekday date | Passed | Vitest test pack; governance.test.ts |
+| Repeat makes no second order (TP-07) | Passed | Vitest test pack; e2e app-flow |
+| Email and attachment conflict (TP-08) | Passed | Vitest test pack; mutation check (expected result changed to no issue -> test failed) |
+| Multiple attachments, CSV evidence-only (TP-09) | Passed | Vitest test pack; e2e (attachments table, search, outcome filter) |
+| ERP failure and unknown outcome, verified after retry (TP-10, TP-11) | Passed, simulated | Vitest test pack (ERP simulator) |
+| Wrong field or line (TP-12) | Passed with a simulated AI result | Vitest test pack; hand-written stand-in, not model output |
+| Stock shortage finding, condition change, pending, verified, access (TP-13 to TP-17) | Passed, outcomes simulated | Vitest test pack; e2e command-center (supplier and retailer) |
+| Structured X12 850 without AI (TP-18) | Passed | Vitest test pack |
+| Hold with reason, release, reject reason | Passed | governance.test.ts; e2e (hold and release, history entries) |
+| Supervision per retailer and route with reason | Passed | governance.test.ts; e2e (Settings row, reason shown, other route unchanged); e2e app-flow refuses Automatic without a reason |
+| Location choice from those on file | Passed (workflow) | governance.test.ts; Not run in the browser |
+| Findings idempotent and never duplicated | Passed | asserted after every test pack step |
+| Pilot export columns | Passed | pilot.test.ts (column order); values not checked against a baseline (none exists) |
+| Live AI reading of email text, classification and dates | Not run | No AI key in this environment |
+| Real ERP, Trading Grid, retailer systems | Not tested | Simulated by design |
+| Multi-user permissions | Not tested | One browser tab with demo identities |
+
+Manual observations (headless Chromium screenshots, not automated assertions): app-20 intake history, app-21 finding
+with Unassigned, Not available and Not established, app-22 verified and pending side by side, app-23 retailer view
+with no supplier stock text, app-24 supervision table. Copy reviewed against the enterprise writing standard.

@@ -9,6 +9,15 @@ Purpose: a working prototype to show leadership how the forwarded-email/PDF orde
 
 Video moments to mirror (owner-supplied): 0:19-0:31 automated extraction and entry; 0:34-0:38 business rule validation; 0:36-0:44 MOQ check; 0:45-0:53 price verification; 0:54-1:04 outdated GTIN; 1:05-1:10 learning from corrections. Our learning is approved, scoped rule reuse with an administrator gate (DECISIONS.md D03), not autonomous retraining. Present it as "agent memory with provenance".
 
+## Update (2026-10-17, v1.2: intake, governance, Command Center, D62-D68)
+Branch `claude/project-thread-qjo9d5`. Email-text and X12 850 intake, Not an order with correction, evidence-only
+attachments, dates never assumed, email/attachment conflict, line placement check, provenance per value, internal
+hold and reject reason, supervision per retailer and route with a recorded reason, location choice, order history
+and technical trace, intake search and filters, the proposed Command Center (stock shortage first) with a scoped
+retailer view, extended pilot export, and a fictional test pack with hand-written expected results. Status per use
+case: docs/09-spec-v1.2.md. Open: live Gemini on email text and on document classification is untested (no key);
+UK/Morrisons pilot items conflict with the USD/North America scope and are listed in docs/12-pilot-readiness.md.
+
 ## Update (2026-10-15, retailer EDI compliance, D47)
 Branch `claude/edi-retailer-compliance-ly1pbc`. EANCOM 2002 D.01B messages, EDI setup, SSCC pallet/carton ASN, invoice tax/allowances/three-way match, send blocked by retailer rules, ts-edifact and pydifact checks. Mapping in docs/08-edi-mapping.md is provisional: waiting on real PO PDFs and the retailer's MIG PDFs from the owner. gs1.org and edi.mediamarktsaturn.com cannot be fetched from the cloud environment.
 
