@@ -346,7 +346,7 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 
 .today-grid > *, .shell main > * { min-width: 0; }
 .forward-panel .forward { flex-wrap: wrap; } .forward-panel .forward select { min-width: 0; width: 100%; flex: 1 1 100%; }
-.flowbar { list-style: none; margin: 0; padding: 14px 16px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px;
+.flowbar { list-style: none; margin: 0; padding: 14px 16px; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px;
   background: linear-gradient(90deg, var(--cobalt), #0a3fd0 60%, var(--electric)); border-radius: 14px; color: #fff; box-shadow: 0 6px 20px rgba(0,24,137,.25); }
 .flowbar li { display: flex; align-items: center; gap: 10px; position: relative; min-width: 0; }
 .flowbar .fi { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: rgba(255,255,255,.16); flex: none; }
@@ -443,3 +443,10 @@ button.tiny { padding: 2px 8px; font-size: 12px; margin-left: 6px; }
 .finding .verify { margin-top: 8px; }
 .ok-text { color: var(--ok); }
 @media (max-width: 720px) { .finding .next { flex-direction: column; align-items: flex-start; } }
+
+/* Demo-readiness: the forward box keeps its text readable and the button on its own line. */
+.forward-panel .mailrow { flex-wrap: wrap; }
+.forward-panel .mailrow > div { flex: 1 1 160px; }
+.forward-panel .mailrow button { flex: 1 1 100%; }
+.forward-panel .how { margin: 0 0 10px; }
+@media (max-width: 1200px) { .flowbar { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

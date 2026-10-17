@@ -39,7 +39,8 @@ const firstOrdrsp = (s: RunState, docId: number): OutboundMessage | undefined =>
 const receivedAt = (s: RunState, docId: number) => {
   const d = s.documents.find((x) => x.id === docId);
   const env = d && s.envelopes.find((e) => e.id === d.envelopeId);
-  const t = env?.receivedAt && !Number.isNaN(Date.parse(env.receivedAt)) ? env.receivedAt : d?.createdAt;
+  // When the agent's mailbox received it, not the sender's Date header: the PO's clock starts at supplier receipt.
+  const t = env?.createdAt ?? d?.createdAt;
   return t ?? null;
 };
 const hoursBetween = (a: string, b: string) => (Date.parse(b) - Date.parse(a)) / 3_600_000;
@@ -54,7 +55,7 @@ function shortageDeadline(s: RunState, docId: number): Finding["deadline"] {
     const from = receivedAt(s, docId);
     if (m && from) {
       const hours = Number.parseInt(m[1], 10) * (/^d/i.test(m[2]) ? 24 : 1);
-      return { at: new Date(Date.parse(from) + hours * 3_600_000).toISOString(), source: `PO note: "${note.value}" (from order receipt)` };
+      return { at: new Date(Date.parse(from) + hours * 3_600_000).toISOString(), source: `PO note: "${note.value}" (from receipt by the order agent)` };
     }
   }
   return null;

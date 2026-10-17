@@ -242,3 +242,10 @@ Demo-readiness changes in the same pass: the signed-in user switch shows only wi
 the test adapter reads "Scripted reader, not live AI" and stays until live AI reading is verified; the disabled
 "Invite to Trading Grid EDI" button is replaced by "Onboarding is outside this concept"; the Today tiles are hidden
 until an order exists. Currency, dates and retailer profile are unchanged (no decision yet).
+
+## D70 The shortage deadline starts at receipt by the agent (2026-10-17)
+The PO note "report shortages within 24 hours of order receipt" is now measured from when the order agent's mailbox
+received the order (the envelope's intake time), not from the sender's Date header. In production the two differ by
+seconds; for a forwarded example email dated in the past, the Date header made the deadline read "passed" before the
+demo began. No clock control or reset is added: the deadline counts down in real time. The Today flow bar now has six
+columns (it had five for six steps) and the forward box keeps its button on its own line.
