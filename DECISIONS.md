@@ -287,3 +287,9 @@ Mandip's follow-up to D71: close the gaps, fix the phone view, and say where an 
   ERP is named "Your ERP (simulated)". This assumes an ERP connection that returns errors; no Trading Grid capability
   is claimed for it.
 
+
+## D72 Product name, one retailer view, unit change told to the buyer (2026-10-17)
+- Visible name is Trading Grid Portal; the home tab is Orders. Order handling and the Command Center are features of the portal. Code identifiers keep the ops/D71 names.
+- The retailer view is one retailer with no picker: the retailer of the first order in the run. The demo data spans several fictional retailers, so a hard-coded one would hide the order in the two-sides flow.
+- Unit mismatch (SG-55120): NB-2001 is sold only by the 12-can tray (EA) and has no CASE unit. The reason now states the conflict, the price and history evidence, and that quantity and price stay as printed. After ERP acceptance a simulated acknowledgement event tells the buyer which line changed and asks them to fix the unit in their own system, so the mismatch does not repeat. Reversible: one block in lib/domain/ops/engine.ts.
+- Not done in this slice (proposed): credit-hold ERP rejection variant; duplicate/revised PO and short-lead-time cases in the Orders queue; an X12 855 line-change segment for the Orders acknowledgement.

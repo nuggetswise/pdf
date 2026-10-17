@@ -6,7 +6,7 @@ test("a supplier replies in plain words and the retailer receives the changes as
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  await expect(page.getByRole("tab", { name: "Order operations", selected: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Orders", exact: true, selected: true })).toBeVisible();
   const supplier = page.getByRole("region", { name: "Forward a purchase order" });
   const retailer = page.getByRole("region", { name: "Documents received" });
   const asRetailer = () => page.getByRole("button", { name: "Retailer", exact: true }).click();
@@ -20,12 +20,12 @@ test("a supplier replies in plain words and the retailer receives the changes as
   await card.getByRole("button").click();
   await page.getByRole("button", { name: "Approve and send to ERP" }).click();
   await expect(page.getByText(/Accepted by your ERP as SIM-ERP-/).first()).toBeVisible();
-  await page.getByRole("tab", { name: "Order operations" }).click();
+  await page.getByRole("tab", { name: "Orders", exact: true }).click();
   await expect(card).toContainText("In your ERP as SIM-ERP-");
   await asRetailer();
   await expect(retailer.locator(".rcard[data-kind=ORDRSP]")).toHaveCount(1);
   await asSupplier();
-  await page.getByRole("tab", { name: "Order operations" }).click();
+  await page.getByRole("tab", { name: "Orders", exact: true }).click();
   await card.getByRole("button").click();
   // Stock was there, so the order confirmed itself with a ship date; the reply and shipping live in the order.
   const order = page.getByRole("region", { name: "Stock and ship date" });
@@ -49,12 +49,12 @@ test("a supplier replies in plain words and the retailer receives the changes as
 
   await asSupplier();
   // Shipped in the ERP: the ship notice and invoice follow the confirmed 10, with nothing typed.
-  await page.getByRole("tab", { name: "Order operations" }).click();
+  await page.getByRole("tab", { name: "Orders", exact: true }).click();
   await card.getByRole("button").click();
   await order.getByLabel("Carrier SCAC").fill("UPSN");
   await order.getByLabel("Tracking number").fill("1ZTEST100001");
   await order.getByRole("button", { name: "Mark shipped in ERP" }).click();
-  await page.getByRole("tab", { name: "Order operations" }).click();
+  await page.getByRole("tab", { name: "Orders", exact: true }).click();
   await expect(card).toContainText("sent to the retailer.");
   await page.screenshot({ path: "../docs/screenshots/app-12-supplier-today.png", fullPage: true });
   await asRetailer();

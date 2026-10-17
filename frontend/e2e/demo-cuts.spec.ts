@@ -71,7 +71,7 @@ test("supplier cut: steps 1 to 5, then 7, plus the email-text order", async ({ p
   await expect(stock).toContainText(/ship \w{3}, \w{3} \d+ · \d+ backordered to/);
 
   // Ship and invoice in one step from the confirmed quantities.
-  await page.getByRole("tab", { name: "Order operations" }).click();
+  await page.getByRole("tab", { name: "Orders", exact: true }).click();
   await card.getByRole("button").click();
   await stock.getByLabel("Carrier SCAC").fill("UPSN");
   await stock.getByLabel("Tracking number").fill("1ZTEST200001");
