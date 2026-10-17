@@ -134,7 +134,7 @@ describe("session onboarding (D46)", () => {
 
   it("waits for an explicit approval in Exception-only mode after onboarding; the repeat order then auto-delivers", () => {
     const clock = tickClock();
-    let s = setPolicy(emptyRunState(clock.now()), "exception_only", ADMIN, clock);
+    let s = setPolicy(emptyRunState(clock.now()), "exception_only", ADMIN, clock, "Pilot evidence reviewed");
     let docId: number;
     ({ state: s, docId } = upload(s, FIRST, clock));
     s = addCustomer(s, docId, {}, REVIEWER, clock);

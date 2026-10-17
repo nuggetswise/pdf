@@ -11,8 +11,8 @@ test("a user runs the order desk end to end", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   page.on("pageerror", (e) => console.log("PAGEERR", e.message));
   await page.goto("/");
-  await expect(page.getByRole("tab", { name: "Today", selected: true })).toBeVisible();
-  await page.getByRole("tab", { name: "Orders" }).click();
+  await expect(page.getByRole("tab", { name: "Order operations", selected: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Intake" }).click();
   await expect(page.getByRole("tab", { name: "Guided demo" })).toHaveCount(0);
   const role = (r: "administrator" | "reviewer" | "viewer") => asRole(page, r);
   const card = (title: string) => page.locator(".issue", { hasText: title });
@@ -21,9 +21,15 @@ test("a user runs the order desk end to end", async ({ page }) => {
   // Administrator switches on Exception-only.
   await role("administrator");
   await page.getByRole("tab", { name: "Settings" }).click();
-  await page.getByLabel("Clean orders").selectOption("exception_only");
-  await expect(page.getByLabel("Clean orders")).toHaveValue("exception_only");
-  await page.getByRole("tab", { name: "Orders" }).click();
+  // D64: automatic processing needs a recorded reason.
+  await page.locator(".supervision > .row").getByRole("button", { name: "Change" }).click();
+  await page.getByLabel("Default supervision").selectOption("exception_only");
+  await page.locator(".supervision > .row").getByRole("button", { name: "Save" }).click();
+  await expect(page.locator(".alert.bad")).toContainText("Enter the reason for automatic processing");
+  await page.getByLabel("Reason for automatic processing").fill("Pilot evidence reviewed (fictional)");
+  await page.locator(".supervision > .row").getByRole("button", { name: "Save" }).click();
+  await expect(page.locator(".supervision > .row")).toContainText("Automatic when checks pass");
+  await page.getByRole("tab", { name: "Intake" }).click();
 
   // A reviewer uploads a PDF; three exceptions are held, resolved, and the order goes to the ERP by itself.
   await role("reviewer");
@@ -49,7 +55,7 @@ test("a user runs the order desk end to end", async ({ page }) => {
   await expect(page.locator(".rule.active")).toHaveCount(1);
 
   // Same customer, same retired code: fixed by memory and delivered with no human touch.
-  await page.getByRole("tab", { name: "Orders" }).click();
+  await page.getByRole("tab", { name: "Intake" }).click();
   await upload("VIDEO-DEMO-002");
   await expect(page.locator(".pill.memory")).toBeVisible();
   await expect(page.locator(".provenance.memory_rule")).toContainText("alex");
@@ -64,15 +70,17 @@ test("a user runs the order desk end to end", async ({ page }) => {
   await page.getByRole("tab", { name: "Agent memory" }).click();
   await page.getByRole("button", { name: "Revoke" }).click();
   await expect(page.locator(".rule.revoked")).toHaveCount(1);
-  await page.getByRole("tab", { name: "Orders" }).click();
+  await page.getByRole("tab", { name: "Intake" }).click();
   await upload("VIDEO-DEMO-004");
   await expect(page.locator(".issue.open")).toHaveCount(1);
 
   // Review-all: a clean order waits; one approval sends it; the ERP times out; a safe retry reconciles.
   await page.getByRole("tab", { name: "Settings" }).click();
-  await page.getByLabel("Clean orders").selectOption("review_all");
+  await page.locator(".supervision > .row").getByRole("button", { name: "Change" }).click();
+  await page.getByLabel("Default supervision").selectOption("review_all");
+  await page.locator(".supervision > .row").getByRole("button", { name: "Save" }).click();
   await page.getByLabel("ERP simulator next call").selectOption("timeout_next");
-  await page.getByRole("tab", { name: "Orders" }).click();
+  await page.getByRole("tab", { name: "Intake" }).click();
   await upload("VIDEO-DEMO-005");
   await expect(page.locator(".approve")).toBeVisible();
   await role("reviewer");
@@ -84,21 +92,24 @@ test("a user runs the order desk end to end", async ({ page }) => {
 
   // The same file again is a duplicate, not a second order.
   await upload("VIDEO-DEMO-005");
-  await expect(page.locator(".mail").first()).toContainText("Duplicate file");
+  await expect(page.locator(".mail").first()).toContainText("Duplicate");
   await page.getByRole("tab", { name: "ERP records" }).click();
   await expect(page.locator(".erp-card")).toHaveCount(3);
   await page.screenshot({ path: "../docs/screenshots/app-03-erp-records.png", fullPage: true });
 
-  await page.getByRole("tab", { name: "Today" }).click();
-  const kpi = (i: number) => page.locator(".kpi b").nth(i);
-  await expect(kpi(0)).toHaveText("6");
-  await expect(kpi(1)).toHaveText("3");
-  await expect(kpi(2)).toHaveText("2");
+  await page.getByRole("tab", { name: "Order operations" }).click();
+  // Forwarded orders join the sample inbox in one queue (18 samples plus 6 documents).
+  await expect(page.locator(".kpi b").first()).toHaveText("24");
+  const row = (po: string) => page.locator(`[data-po="${po}"]`).first();
+  await expect(row("VIDEO-DEMO-001")).toContainText("Completed after review");
+  await expect(row("VIDEO-DEMO-002")).toContainText("Completed automatically");
+  await expect(row("VIDEO-DEMO-003")).toContainText("Needs review");
+  await expect(row("VIDEO-DEMO-005")).toContainText("Completed after review");
 });
 
 test("a file that is not a PDF is refused with a reason", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("tab", { name: "Orders" }).click();
+  await page.getByRole("tab", { name: "Intake" }).click();
   await page.getByLabel("Upload a purchase order").setInputFiles({ name: "order.pdf", mimeType: "application/pdf",
     buffer: Buffer.from("not really a pdf") });
   await expect(page.locator(".main > .alert.bad")).toContainText("Attachment is not a PDF");

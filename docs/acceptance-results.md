@@ -125,3 +125,70 @@ Owner's real sample PO (not committed): its text with a Gemini-like extraction r
 production build ok; Playwright 12 passed, including the new `stock.spec.ts` (example PO page view, short stock,
 split with backorder, retailer sees per-line dates, ship lowers stock). Live AI reading of varied layouts and scans:
 Not run (no Gemini key in this container); the request shape is covered by mocked tests in `lib/server/extract.test.ts`.
+
+## 2026-10-17: v1.2 runtime verification (D62-D68)
+Established first by running the app before changes: verify.sh passed; an email without a PDF was refused (now fixed);
+duplicate detection worked; a duplicate's timeline showed "Received" in red with a Processing label (minor, unchanged).
+
+`scripts/verify.sh` -> VERIFY PASSED (exit 0): backend 47 passed; parity, demo-inbox and read-model fixtures
+byte-identical; Vitest 520 passed (24 files); pydifact 5 of 5; typecheck clean; production build ok; Playwright 14
+passed. Client bundle check for the AI key name and endpoint: nothing found.
+
+| Item | Result | How verified |
+|---|---|---|
+| Email + PDF order (TP-01) | Passed | Vitest test pack; e2e app-flow |
+| Order in email text, embedded instruction ignored (TP-02) | Passed | Vitest test pack; e2e command-center (Email text chip, Supervised, text shown, approval still required) |
+| Not an order kept and correctable (TP-03) | Passed | Vitest test pack; e2e (Not an order pill, Treat as order button) |
+| Unknown customer, unknown product (TP-04, TP-05) | Passed | Vitest test pack |
+| Ambiguous date, choice applied (TP-06); weekday date | Passed | Vitest test pack; governance.test.ts |
+| Repeat makes no second order (TP-07) | Passed | Vitest test pack; e2e app-flow |
+| Email and attachment conflict (TP-08) | Passed | Vitest test pack; mutation check (expected result changed to no issue -> test failed) |
+| Multiple attachments, CSV evidence-only (TP-09) | Passed | Vitest test pack; e2e (attachments table, search, outcome filter) |
+| ERP failure and unknown outcome, verified after retry (TP-10, TP-11) | Passed, simulated | Vitest test pack (ERP simulator) |
+| Wrong field or line (TP-12) | Passed with a simulated AI result | Vitest test pack; hand-written stand-in, not model output |
+| Stock shortage finding, condition change, pending, verified, access (TP-13 to TP-17) | Passed, outcomes simulated | Vitest test pack; e2e command-center (supplier and retailer) |
+| Structured X12 850 without AI (TP-18) | Passed | Vitest test pack |
+| Hold with reason, release, reject reason | Passed | governance.test.ts; e2e (hold and release, history entries) |
+| Supervision per retailer and route with reason | Passed | governance.test.ts; e2e (Settings row, reason shown, other route unchanged); e2e app-flow refuses Automatic without a reason |
+| Location choice from those on file | Passed (workflow) | governance.test.ts; Not run in the browser |
+| Findings idempotent and never duplicated | Passed | asserted after every test pack step |
+| Pilot export columns | Passed | pilot.test.ts (column order); values not checked against a baseline (none exists) |
+| Live AI reading of email text, classification and dates | Not run | No AI key in this environment |
+| Real ERP, Trading Grid, retailer systems | Not tested | Simulated by design |
+| Multi-user permissions | Not tested | One browser tab with demo identities |
+
+Manual observations (headless Chromium screenshots, not automated assertions): app-20 intake history, app-21 finding
+with Unassigned, Not available and Not established, app-22 verified and pending side by side, app-23 retailer view
+with no supplier stock text, app-24 supervision table. Copy reviewed against the enterprise writing standard.
+
+## 2026-10-17: Order Operations (D71)
+
+Command: `scripts/verify.sh` from the repository root. Result: exit 0. Backend 47 passed; Vitest 537 passed (25 files,
+including 17 new in `lib/domain/ops/engine.test.ts`); typecheck clean; production build ok; pydifact 5 of 5; Playwright 27
+passed (including 11 new in `e2e/order-ops.spec.ts`).
+
+| Brief acceptance criterion | Result | Evidence |
+|---|---|---|
+| 1 Find an order needing attention | Passed | e2e home: attention list first, most severe first |
+| 2 Explain why it needs attention | Passed | e2e scenarios 2 to 6: issue type, summary, rule, why it matters |
+| 3 Compare source with structured order | Passed | e2e: "Show in source" highlights the PDF value; field table with states |
+| 4 Inspect evidence behind a recommendation | Passed | e2e scenario 2: evidence hidden until requested, then listed with sources |
+| 5 Accept or reject a recommendation | Passed | e2e scenarios 2, 2b and 6; engine tests |
+| 6 Resolve an ambiguous product | Passed | e2e scenario 3: no recommendation, selection required, validation reruns |
+| 7 Identify why an order is blocked | Passed | e2e scenario 4: reason, affected field, no proposed fix, cannot be sent |
+| 8 Understand and resolve an ERP rejection | Passed, ERP simulated | e2e scenario 5: rejection, correction, resend, accepted |
+| 9 Determine the final outcome | Passed | e2e: state label and ERP order number on the review and home |
+| 10 Read a complete history | Passed | e2e: history with System, AI agent, Person and Simulated ERP labels |
+| 11 Normal orders need no intervention | Passed | engine test and e2e scenario 1: 13 of 18 samples, no person event |
+| 12 Uncertainty stays visible | Passed | field states Uncertain, Missing, Invalid; ambiguity has no recommendation |
+| 13 Controls change state | Passed | every journey asserts the state after each action |
+| 14 Home counts reflect changes | Passed | e2e scenarios 2 and 5 return home and check the tiles |
+| 15 Simulations labelled | Passed | e2e: "Simulated downstream ERP" and "Simulated system. No live ERP connection." |
+| 16 Existing functionality works | Passed | the 16 earlier Playwright tests and all earlier Vitest tests pass |
+| 17 Critical flows automated | Passed | 17 engine tests, 11 browser tests |
+| 18 Builds and runs | Passed | production build; Playwright runs against `next start` |
+| Narrow screens | Passed at 390 px | e2e: decision above source, no horizontal scroll |
+| Usability with an unfamiliar user | Not run | Needs a session with someone who has not seen the app |
+| Live AI on the sample inbox | Not applicable | The sample reading step is simulated (docs/13-order-operations.md) |
+
+Screenshots: docs/screenshots/ops-01-home.png to ops-05-erp-rejection.png (headless Chromium, 1440 px).

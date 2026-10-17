@@ -1,0 +1,27 @@
+{
+  "_label": "FICTIONAL TEST DATA. Hand-written stand-in for an AI extraction result that puts each line's quantity on the other line. Used only by the test pack runner; never presented as model output.",
+  "header": {
+    "po_number": { "value": "TP-2026-0812", "page": 1, "evidence": "PO: TP-2026-0812" },
+    "customer_name": { "value": "Northfield Demo Retail", "page": 1, "evidence": "Customer: Northfield Demo Retail" },
+    "customer_id": { "value": "DEMO-CUST-01", "page": 1, "evidence": "Customer ID: DEMO-CUST-01" },
+    "ship_to_id": { "value": "DEMO-DC-01", "page": 1, "evidence": "Ship-to: DEMO-DC-01" },
+    "order_date": { "value": "2026-10-16", "page": 1, "evidence": "Order date: 2026-10-16" },
+    "requested_delivery_date": { "value": "2026-10-30", "page": 1, "evidence": "Requested delivery date: 2026-10-30" },
+    "currency": { "value": "USD", "page": 1, "evidence": "Currency: USD" },
+    "total": { "value": "306.00", "page": 1, "evidence": "Total: 306.00" }
+  },
+  "lines": [
+    { "source_line_id": { "value": "1", "page": 1, "evidence": "1 | 614141000029" },
+      "gtin": { "value": "614141000029", "page": 1, "evidence": "614141000029" },
+      "description": { "value": "Demo cracker case", "page": 1, "evidence": "Demo cracker case" },
+      "quantity": { "value": "9", "page": 1, "evidence": "9" },
+      "unit": { "value": "CASE", "page": 1, "evidence": "CASE" },
+      "unit_price": { "value": "24.00", "page": 1, "evidence": "24.00" } },
+    { "source_line_id": { "value": "2", "page": 1, "evidence": "2 | 614141000036" },
+      "gtin": { "value": "614141000036", "page": 1, "evidence": "614141000036" },
+      "description": { "value": "Demo trail mix case", "page": 1, "evidence": "Demo trail mix case" },
+      "quantity": { "value": "6", "page": 1, "evidence": "6" },
+      "unit": { "value": "CASE", "page": 1, "evidence": "CASE" },
+      "unit_price": { "value": "18.00", "page": 1, "evidence": "18.00" } }
+  ]
+}

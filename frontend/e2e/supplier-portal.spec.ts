@@ -8,7 +8,7 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  await page.getByRole("tab", { name: "Orders" }).click();
+  await page.getByRole("tab", { name: "Intake" }).click();
   await asRole(page, "reviewer");
   await page.getByLabel("Upload a purchase order").setInputFiles("../fixtures/demo/generated/VIDEO-DEMO-005.pdf");
   await page.getByRole("button", { name: "Approve order" }).click();
@@ -47,8 +47,8 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
   await expect(page.getByLabel("Amounts", { exact: true })).toContainText("Lines 312.00");
   await expect(page.locator(".invtotal")).toContainText("312.00 USD");
   await page.getByRole("button", { name: "Submit invoice" }).click();
-  await expect(portal.getByLabel("Invoice")).toContainText("INV-00001");
-  await expect(portal.getByLabel("Invoice").locator(".flowstate")).toContainText("ERP synced, EDI to retailer delivered");
+  await expect(portal.getByLabel("Invoice", { exact: true })).toContainText("INV-00001");
+  await expect(portal.getByLabel("Invoice", { exact: true }).locator(".flowstate")).toContainText("ERP synced, EDI to retailer delivered");
   await expect(portal.getByLabel("Payment terms")).toContainText("Terms 2% 10, net 30 · due ");
   // The 2 cases of line A not shipped stay open as a backorder until shipped or cancelled.
   await expect(portal.getByLabel("Backorder")).toContainText("2 CASE line A");
@@ -65,7 +65,7 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
   const text = readFileSync(await file.path(), "utf8");
   expect(text.split("\r\n")[0]).toContain("po_number,customer_id,received_at");
   expect(text).toMatch(/VIDEO-DEMO-005,DEMO-CUST-01,.*,1,/);
-  await page.getByRole("tab", { name: "Orders" }).click();
+  await page.getByRole("tab", { name: "Intake" }).click();
   await page.screenshot({ path: "../docs/screenshots/app-04-supplier-portal.png", fullPage: true });
 
   // The EDI tab lists the messages with raw X12 and a plain-language mapping.
@@ -92,11 +92,11 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
 test("a held EDI message shows the mixed state and a safe retry delivers it", async ({ page }) => {
   test.setTimeout(90_000);
   await page.goto("/");
-  await page.getByRole("tab", { name: "Orders" }).click();
+  await page.getByRole("tab", { name: "Intake" }).click();
   await asRole(page, "administrator");
   await page.getByRole("tab", { name: "Settings" }).click();
   await page.getByLabel("Retailer EDI outbox next message").selectOption("hold_next");
-  await page.getByRole("tab", { name: "Orders" }).click();
+  await page.getByRole("tab", { name: "Intake" }).click();
   await page.getByLabel("Upload a purchase order").setInputFiles("../fixtures/demo/generated/VIDEO-DEMO-005.pdf");
   await page.getByRole("button", { name: "Approve order" }).click();
   const confirmation = page.getByLabel("Order confirmation");

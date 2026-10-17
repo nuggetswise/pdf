@@ -7,7 +7,7 @@ export function replayGuidedDemo(): RunState {
   const clock = tickClock();
   let s = resetDemo(emptyRunState(clock.now()), ADMIN, clock);
   s = setDemoSetting(s, "rehearsal_mode", "on", ADMIN, clock);
-  s = setPolicy(s, "exception_only", ADMIN, clock);
+  s = setPolicy(s, "exception_only", ADMIN, clock, "Pilot evidence reviewed");
   ({ state: s } = forward(s, "VIDEO-DEMO-001", clock));
   s = decide(s, 1, { issueKey: "moq_violation:0", action: "one_off_exception",
     reason: "Customer confirmed a one-off trial quantity (fictional)" }, REVIEWER, clock);

@@ -1,0 +1,140 @@
+{
+  "_label": "FICTIONAL TEST DATA. Hand-written expected results for the intake test pack (D68). Not generated from the app.",
+  "_how": "Each case starts from an empty run. Steps go through normal intake (forward an .eml, upload an EDI file) and the same server actions the screens use. 'expect' lists what must be true after the step. The runner never branches on a case id or a file name.",
+  "clock": "2026-10-16T15:00:00.000Z",
+  "cases": [
+    {
+      "id": "TP-01", "title": "Valid PDF order",
+      "steps": [{ "forward": "TP-01-valid-pdf.eml",
+        "expect": { "documents_created": 1, "docs": [{ "status": "ready_for_approval", "kind": "pdf", "review_state": "ready", "open_issues": [] }] } }]
+    },
+    {
+      "id": "TP-02", "title": "Order in the email text; embedded instruction ignored",
+      "steps": [{ "forward": "TP-02-email-body.eml",
+        "expect": { "documents_created": 1, "default_policy": "review_all",
+          "docs": [{ "status": "ready_for_approval", "kind": "email_body", "review_state": "ready", "open_issues": [], "lines": 2, "delivery_state": "not_started" }] } }]
+    },
+    {
+      "id": "TP-03", "title": "Not an order, kept in intake history, correctable",
+      "steps": [
+        { "forward": "TP-03-not-an-order.eml",
+          "expect": { "documents_created": 1, "orders": 0, "docs": [{ "status": "not_order", "kind": "email_body" }] } },
+        { "action": { "type": "treatAsOrder", "role": "reviewer", "docId": "$1" },
+          "expect": { "orders": 1, "docs": [{ "doc_id": 1, "status": "needs_review", "classification_corrected": true }] } }
+      ]
+    },
+    {
+      "id": "TP-04", "title": "Unknown customer",
+      "steps": [{ "forward": "TP-04-unknown-customer.eml",
+        "expect": { "docs": [{ "status": "needs_review", "review_state": "needs_review", "open_issues_include": ["unknown_customer"] }] } }]
+    },
+    {
+      "id": "TP-05", "title": "Unknown product",
+      "steps": [{ "forward": "TP-05-unknown-product.eml",
+        "expect": { "docs": [{ "status": "needs_review", "open_issues_include": ["unknown_item"], "issue_lines": { "unknown_item": 1 } }] } }]
+    },
+    {
+      "id": "TP-06", "title": "Date that can be read two ways stays unresolved until a person chooses",
+      "steps": [
+        { "forward": "TP-06-ambiguous-date.eml",
+          "expect": { "docs": [{ "status": "needs_review", "open_issues": ["ambiguous_date"], "candidate_dates": ["2026-04-11", "2026-11-04"] }] } },
+        { "action": { "type": "decide", "role": "reviewer", "docId": "$1", "issueKey": "ambiguous_date:requested_delivery_date",
+            "action": "choose_date", "reason": "Buyer confirmed 4 November by phone (fictional)", "params": { "date": "2026-11-04" } },
+          "expect": { "_note": "The reviewer's decision on the last blocking issue is the approval (existing rule); delivery follows without a second click.",
+            "docs": [{ "doc_id": 1, "review_state": "approved", "delivery_state": "erp_created", "open_issues": [], "resolved_date": ["requested_delivery_date", "2026-11-04"] }] } }
+      ]
+    },
+    {
+      "id": "TP-07", "title": "Repeat of the same email makes no second order",
+      "steps": [
+        { "forward": "TP-01-valid-pdf.eml", "expect": { "orders": 1 } },
+        { "forward": "TP-07-repeat-of-TP-01.eml", "expect": { "documents_created": 1, "orders": 1, "docs": [{ "status": "duplicate" }] } }
+      ]
+    },
+    {
+      "id": "TP-08", "title": "Email names a different PO than its attachment",
+      "steps": [{ "forward": "TP-08-email-attachment-conflict.eml",
+        "expect": { "docs": [{ "status": "needs_review", "open_issues": ["source_conflict"] }] } }]
+    },
+    {
+      "id": "TP-09", "title": "Several attachments: one order, one PDF that is not an order, one spreadsheet kept as evidence",
+      "steps": [{ "forward": "TP-09-multiple-attachments.eml",
+        "expect": { "documents_created": 2, "orders": 1,
+          "docs": [{ "status": "ready_for_approval", "kind": "pdf" }, { "status": "not_order", "kind": "pdf" }],
+          "attachments": [{ "filename": "TP-2026-0809.pdf", "handling": "order_candidate" },
+            { "filename": "delivery-schedule.pdf", "handling": "order_candidate" },
+            { "filename": "forecast-q4.csv", "handling": "evidence_only" }] } }]
+    },
+    {
+      "id": "TP-10", "title": "ERP delivery fails, then a retry verifies the ERP record",
+      "steps": [
+        { "forward": "TP-10-erp-failure.eml", "expect": { "docs": [{ "review_state": "ready" }] } },
+        { "action": { "type": "setDemoSetting", "role": "administrator", "key": "erp_failure_mode", "value": "fail_next" } },
+        { "action": { "type": "approve", "role": "reviewer", "docId": "$1" },
+          "expect": { "docs": [{ "doc_id": 1, "delivery_state": "failed" }],
+            "findings": [{ "type": "erp_outcome", "verification": "pending", "action": "not_started", "owner": null }] } },
+        { "action": { "type": "retryDelivery", "role": "reviewer", "docId": "$1" },
+          "expect": { "erp_orders": 1, "docs": [{ "doc_id": 1, "delivery_state": "erp_created" }],
+            "findings": [{ "type": "erp_outcome", "verification": "verified", "action": "completed" }] } }
+      ]
+    },
+    {
+      "id": "TP-11", "title": "ERP outcome unknown: the retry checks first and creates no second ERP order",
+      "steps": [
+        { "forward": "TP-11-erp-unknown-outcome.eml" },
+        { "action": { "type": "setDemoSetting", "role": "administrator", "key": "erp_failure_mode", "value": "timeout_next" } },
+        { "action": { "type": "approve", "role": "reviewer", "docId": "$1" },
+          "expect": { "erp_orders": 1, "docs": [{ "doc_id": 1, "delivery_state": "unknown" }],
+            "findings": [{ "type": "erp_outcome", "verification": "pending" }] } },
+        { "action": { "type": "retryDelivery", "role": "reviewer", "docId": "$1" },
+          "expect": { "erp_orders": 1, "docs": [{ "doc_id": 1, "delivery_state": "erp_created" }],
+            "findings": [{ "type": "erp_outcome", "verification": "verified" }] } }
+      ]
+    },
+    {
+      "id": "TP-12", "title": "AI output puts each quantity on the wrong line (simulated AI result)",
+      "steps": [{ "forward": "TP-12-wrong-line.eml", "ai_output": "TP-12-ai-output.json",
+        "expect": { "docs": [{ "status": "needs_review", "open_issues_include": ["value_not_on_line"],
+          "issue_keys_include": ["value_not_on_line:0:quantity", "value_not_on_line:1:quantity"] }] } }]
+    },
+    {
+      "id": "TP-13..17", "title": "Stock shortage finding: detect, own, act, verify, and access limits",
+      "steps": [
+        { "forward": "TP-13-stock-short.eml", "expect": { "docs": [{ "review_state": "ready" }] } },
+        { "action": { "type": "approve", "role": "reviewer", "docId": "$1" },
+          "expect": { "_case": "TP-13 stock shortage finding",
+            "findings": [{ "type": "stock_short", "verification": "pending", "action": "not_started", "owner": null, "visibility": "supplier",
+              "condition_active": true, "deadline_source_includes": "within 24 hours", "lines": 1 }] } },
+        { "action": { "type": "assignFinding", "role": "reviewer", "findingId": "$finding:stock_short", "owner": "reviewer:rita" },
+          "expect": { "findings": [{ "type": "stock_short", "owner": "reviewer:rita", "history_includes": "assigned" }] } },
+        { "action": { "type": "setEdiFailureMode", "role": "administrator", "value": "hold_next" } },
+        { "action": { "type": "decideFulfilment", "role": "reviewer", "docId": "$1", "choice": "split" },
+          "expect": { "_case": "TP-14 action changes the condition; TP-15 action done, outcome unverified",
+            "findings": [{ "type": "stock_short", "condition_active": false, "action": "completed", "verification": "pending",
+              "history_includes": "condition_cleared" },
+              { "type": "retailer_message", "verification": "pending" }] } },
+        { "action": { "type": "retryOutbound", "role": "reviewer", "messageId": "$message:ORDRSP" },
+          "expect": { "_case": "TP-16 delivered is not accepted: the shortage stays pending until the retailer responds",
+            "findings": [{ "type": "stock_short", "verification": "pending", "action": "completed" }, { "type": "retailer_message", "verification": "verified" },
+              { "type": "revised_delivery", "verification": "pending", "visibility": "shared" }] } },
+        { "retailer_view": "DEMO-CUST-01",
+          "expect": { "_case": "TP-17 another retailer sees nothing", "visible_findings": [] } },
+        { "retailer_view": "MAPLE-01",
+          "expect": { "_case": "TP-17 the order's retailer sees only the shared finding", "visible_findings": ["revised_delivery"] } },
+        { "action": { "type": "respondToRevision", "messageId": "$message:ORDRSP", "customerId": "DEMO-CUST-01", "decision": "accepted" },
+          "expect": { "_case": "TP-17 another retailer cannot answer", "refused": 403 } },
+        { "action": { "type": "assignFinding", "role": "viewer", "findingId": "$finding:stock_short", "owner": null },
+          "expect": { "_case": "TP-17 a viewer cannot assign", "refused": 403 } },
+        { "action": { "type": "respondToRevision", "messageId": "$message:ORDRSP", "customerId": "MAPLE-01", "decision": "accepted" },
+          "expect": { "_case": "retailer acceptance is the only verification, for both views of the one shortage",
+            "findings": [{ "type": "revised_delivery", "verification": "verified" }, { "type": "stock_short", "verification": "verified" }],
+            "supplier_finding_types": ["retailer_message", "stock_short"] } }
+      ]
+    },
+    {
+      "id": "TP-18", "title": "Structured X12 850 is read without AI",
+      "steps": [{ "upload_edi": "TP-18-edi-850.x12",
+        "expect": { "documents_created": 1, "docs": [{ "kind": "edi", "status": "ready_for_approval", "open_issues": [], "lines": 2, "extractor_is_ai": false }] } }]
+    }
+  ]
+}

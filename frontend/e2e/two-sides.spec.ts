@@ -6,7 +6,7 @@ test("a supplier replies in plain words and the retailer receives the changes as
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  await expect(page.getByRole("tab", { name: "Today", selected: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Order operations", selected: true })).toBeVisible();
   const supplier = page.getByRole("region", { name: "Forward a purchase order" });
   const retailer = page.getByRole("region", { name: "Documents received" });
   const asRetailer = () => page.getByRole("button", { name: "Retailer", exact: true }).click();
@@ -14,19 +14,19 @@ test("a supplier replies in plain words and the retailer receives the changes as
 
   // A clean PO: in Review-all mode it waits for one approval, made from the order screen.
   await supplier.getByLabel("Forward a purchase order").setInputFiles("../fixtures/demo/generated/VIDEO-DEMO-005.eml");
-  const card = page.getByRole("article", { name: /Order VIDEO-DEMO-005/ });
+  const card = page.locator("[data-po=\"VIDEO-DEMO-005\"]");
   await expect(card).toContainText("waiting for one approval");
-  await expect(card).toContainText("Emailed by orders@northfield-demo.example");
-  await card.getByRole("button", { name: "Open order" }).click();
+  await expect(card).toContainText("from orders@northfield-demo.example");
+  await card.getByRole("button").click();
   await page.getByRole("button", { name: "Approve order" }).click();
   await expect(page.locator(".order .erp h3")).toContainText("ERP order SIM-ERP-");
-  await page.getByRole("tab", { name: "Today" }).click();
+  await page.getByRole("tab", { name: "Order operations" }).click();
   await expect(card).toContainText("In your ERP as SIM-ERP-");
   await asRetailer();
   await expect(retailer.locator(".rcard[data-kind=ORDRSP]")).toHaveCount(1);
   await asSupplier();
-  await page.getByRole("tab", { name: "Today" }).click();
-  await card.getByRole("button", { name: "Open order" }).click();
+  await page.getByRole("tab", { name: "Order operations" }).click();
+  await card.getByRole("button").click();
   // Stock was there, so the order confirmed itself with a ship date; the reply and shipping live in the order.
   const order = page.getByRole("region", { name: "Stock and ship date" });
   await expect(order).toContainText("Ships ");
@@ -49,12 +49,12 @@ test("a supplier replies in plain words and the retailer receives the changes as
 
   await asSupplier();
   // Shipped in the ERP: the ship notice and invoice follow the confirmed 10, with nothing typed.
-  await page.getByRole("tab", { name: "Today" }).click();
-  await card.getByRole("button", { name: "Open order" }).click();
+  await page.getByRole("tab", { name: "Order operations" }).click();
+  await card.getByRole("button").click();
   await order.getByLabel("Carrier SCAC").fill("UPSN");
   await order.getByLabel("Tracking number").fill("1ZTEST100001");
   await order.getByRole("button", { name: "Mark shipped in ERP" }).click();
-  await page.getByRole("tab", { name: "Today" }).click();
+  await page.getByRole("tab", { name: "Order operations" }).click();
   await expect(card).toContainText("sent to the retailer.");
   await page.screenshot({ path: "../docs/screenshots/app-12-supplier-today.png", fullPage: true });
   await asRetailer();

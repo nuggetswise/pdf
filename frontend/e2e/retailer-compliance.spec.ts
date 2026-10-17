@@ -8,7 +8,7 @@ test("EDI is held until the retailer is set up, then the ASN and invoice pass it
   test.setTimeout(120_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  await page.getByRole("tab", { name: "Orders" }).click();
+  await page.getByRole("tab", { name: "Intake" }).click();
   await asRole(page, "reviewer");
   const card = (text: string) => page.locator(".issue.open", { hasText: text });
 
@@ -70,13 +70,13 @@ test("EDI is held until the retailer is set up, then the ASN and invoice pass it
   await page.getByRole("button", { name: "Add allowance or charge" }).click();
   await page.getByLabel("Allowance 1 percent").fill("2");
   await page.getByLabel("Allowance 1 tax rate").selectOption("19");
-  await expect(page.getByLabel("Three-way match")).toContainText("matched");
+  await expect(page.getByLabel("Order, ASN and invoice check")).toContainText("matched");
   await expect(page.getByLabel("Amounts", { exact: true })).toContainText("VAT 19% on 98.78: 18.77");
   await expect(page.locator(".invtotal")).toContainText("191.38 EUR");
-  await expect(portal.getByLabel("Invoice").getByLabel("Retailer check")).toContainText("Passes retailer check");
+  await expect(portal.getByLabel("Invoice", { exact: true }).getByLabel("Retailer check")).toContainText("Passes retailer check");
   await page.screenshot({ path: "../docs/screenshots/app-10-invoice-tax-match.png", fullPage: true });
   await page.getByRole("button", { name: "Submit invoice" }).click();
-  await expect(portal.getByLabel("Invoice").locator(".flowstate")).toContainText("ERP synced, EDI to retailer delivered");
+  await expect(portal.getByLabel("Invoice", { exact: true }).locator(".flowstate")).toContainText("ERP synced, EDI to retailer delivered");
 
   // The EDI tab shows the SSCCs, the tax subtotals and the passed check.
   await page.getByRole("tab", { name: "Trading Grid outbox" }).click();

@@ -12,7 +12,7 @@ describe("pilot rows", () => {
     const rows = pilotRows(replayGuidedDemo());
     expect(rows.map((r) => r.po_number)).toEqual(["VIDEO-DEMO-001", "VIDEO-DEMO-002", "VIDEO-DEMO-003", "VIDEO-DEMO-004", "VIDEO-DEMO-005"]);
     expect(rows[0]).toMatchObject({ approved_by: "reviewer:rita", issues_caught: "3", decisions_by_person: "3", values_extracted: "33",
-      manual_route_fields: "30", chargeback_exposure_avoided: "54.38", currency: "USD", asn_count: "0" });
+      manual_route_fields: "30", chargeback_exposure_assumed: "54.38", currency: "USD", asn_count: "0" });
     expect(rows[1]).toMatchObject({ approved_by: "policy (no human touch)", lines_fixed_by_memory: "1", decisions_by_person: "0" });
     expect(rows[2]).toMatchObject({ approved_by: "", in_erp_at: "", minutes_received_to_erp: "" });
   });

@@ -1,0 +1,13 @@
+From: buyer@northfield-demo.example
+To: orders@supplier-demo.example
+Subject: Delivery last week [FICTIONAL TEST DATA]
+Date: Fri, 16 Oct 2026 09:20:00 +0000
+Message-ID: <tp03@test-pack.invalid>
+Content-Type: text/plain; charset="utf-8"; boundary="test-pack-tp03"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER
+
+Thanks for the delivery last week. Could you send your updated price list whe=
+n you have it?

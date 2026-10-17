@@ -17,7 +17,8 @@ export const maxDuration = 300;
 const MAX_BODY_BYTES = 4_000_000;
 const base64 = z.string().regex(/^[A-Za-z0-9+/]*={0,2}$/);
 const Body = z.strictObject({ pages: z.array(z.string()).min(1).max(MAX_PAGES), rehearsal: z.boolean(),
-  pdf: base64.nullable().optional(), images: z.array(base64).max(MAX_PAGES).nullable().optional() });
+  pdf: base64.nullable().optional(), images: z.array(base64).max(MAX_PAGES).nullable().optional(),
+  kind: z.enum(["pdf", "email_body", "edi"]).optional() });
 
 export function GET() {
   return NextResponse.json(extractionHealth(loadExtractionConfig()));
@@ -33,6 +34,6 @@ export async function POST(request: Request) {
   const body = Body.safeParse(json);
   if (!body.success) return NextResponse.json({ error: "Expected {pages: string[], rehearsal: boolean}" }, { status: 400 });
   const outcome = await extractPages(body.data.pages, { rehearsal: body.data.rehearsal, config: loadExtractionConfig(),
-    pdf: body.data.pdf ?? null, images: body.data.images ?? null });
+    pdf: body.data.pdf ?? null, images: body.data.images ?? null, kind: body.data.kind });
   return NextResponse.json(outcome);
 }

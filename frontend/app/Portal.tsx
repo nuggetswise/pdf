@@ -470,7 +470,7 @@ function InvoiceForm({ docId, asnId, role, onDone }: { docId: number; asnId: num
       void wrap(async () => { await agent.run({ type: "submitInvoice", role, asnId: asn.id, lines: input.lines, allowances: input.allowances }); onDone(); });
     }}>
       <p className="muted small">Quantities come from {asn.asnNumber} (what shipped), prices from the order. Exact decimals; tax per rate rounded half-up to cents.</p>
-      <table className="lines" aria-label="Three-way match">
+      <table className="lines" aria-label="Order, ASN and invoice check">
         <thead><tr><th>Line</th><th>Item</th><th>PO qty</th><th>ASN qty</th><th>Invoice qty</th><th>Price</th><th>Amount</th><th>{sup.taxType === "SALES" ? "Sales tax" : sup.taxType} %</th><th>Match</th></tr></thead>
         <tbody>
           {shipped.map((l) => {

@@ -1,8 +1,8 @@
 // Read models over RunState, in the same JSON shapes the prototype's FastAPI read endpoints returned
 // (/api/documents, /api/documents/{id}, /api/orders, /api/memory-rules, /api/erp/orders, /api/policy).
 // The screens read these instead of polling a server. Pure functions; nothing here changes the run.
-import type { OrderTerms, RunState } from "./run-state";
-import { ruleRow } from "./workflow";
+import type { Channel, OrderTerms, RunState, SourceDocument } from "./run-state";
+import { channelOf, effectivePolicy, ruleRow } from "./workflow";
 
 export type Field = { value: string | null; page: number | null; evidence: string | null; evidence_verified: boolean; notes: string[] };
 export type Policy = { id: number; mode: "review_all" | "exception_only"; set_by: string; effective_at: string };
@@ -10,12 +10,17 @@ export type DocSummary = {
   id: number; status: string; status_detail: string | null; original_filename: string | null; duplicate_of: number | null;
   created_at: string; sender: string | null; received_at: string | null; message_id: string | null; intake_mode: string;
   subject_metadata?: string | null;
+  /** D62 */
+  kind?: "pdf" | "email_body" | "edi"; channel?: Channel; customer_id?: string | null; po_number?: string | null;
+  review_state?: string | null; open_issues?: number; issue_codes?: string[]; body_text?: string | null;
+  attachment_names?: string[];
 };
 export type Issue = {
   key: string; code: string; title: string; message: string; line_index: number | null;
   printed_value: string | null; reference_value: string | null; reference_version: string | null;
   proposed_action: string | null; evidence: string | null; page: number | null; blocking: boolean;
   actions: string[]; status: "open" | "resolved"; candidate_skus?: string[]; field?: string;
+  candidate_dates?: string[]; candidate_ship_tos?: string[];
   resolution: null | { decision_id: number; action: string; actor: string; role: string; reason: string | null; at: string };
 };
 export type Line = {
@@ -47,7 +52,14 @@ export type DocDetail = {
   document: Omit<DocSummary, "sender" | "received_at" | "message_id" | "intake_mode" | "subject_metadata">
     & { sha256: string; page_count: number | null; envelope_id: number; size_bytes: number; updated_at: string };
   envelope: { id: number; message_id: string | null; sender: string | null; received_at: string | null; subject_metadata: string | null;
-    intake_mode: string; raw_sha256: string | null; created_at: string };
+    intake_mode: string; raw_sha256: string | null; created_at: string;
+    body_text: string | null; attachments: NonNullable<RunState["envelopes"][number]["attachments"]> };
+  /** D62-D64: what kind of source this is, how it was classified, the route and its supervision. */
+  kind: NonNullable<SourceDocument["kind"]>;
+  classification: SourceDocument["classification"] | null;
+  channel: Channel;
+  supervision: { mode: "review_all" | "exception_only"; scope: "route" | "default"; set_by: string; reason: string | null };
+  hold: null | { reason: string; held_by: string; held_at: string };
   latest_version: null | { id: number; document_id: number; version: number; origin: string; extractor: string | null; created_by: string;
     created_at: string; payload: { extractor: { name: string; is_ai: boolean }; header: Record<string, Field>; lines: Record<string, Field>[];
       terms?: OrderTerms; source?: "text" | "scan" } };
@@ -69,16 +81,23 @@ export type ErpOrder = { erp_order_id: string; idempotency_key: string; created_
 const byIdDesc = <T extends { id: number }>(rows: T[]) => [...rows].sort((a, b) => b.id - a.id);
 
 export function currentPolicy(s: RunState): Policy {
-  const p = s.policyHistory.reduce((a, b) => (b.id > a.id ? b : a));
+  // The default for routes without their own setting; per-retailer route entries (D64) are listed separately.
+  const p = s.policyHistory.filter((x) => !x.customerId).reduce((a, b) => (b.id > a.id ? b : a));
   return { id: p.id, mode: p.mode, set_by: p.setBy, effective_at: p.effectiveAt };
 }
 
 export function documentsList(s: RunState): DocSummary[] {
   return byIdDesc(s.documents).map((d) => {
     const e = s.envelopes.find((x) => x.id === d.envelopeId)!;
+    const o = s.orders.find((x) => x.documentId === d.id);
+    const open = o?.validation.issues.filter((i) => i.status === "open") ?? [];
     return { id: d.id, status: d.status, status_detail: d.statusDetail, original_filename: d.originalFilename,
       duplicate_of: d.duplicateOf, created_at: d.createdAt, sender: e.sender, received_at: e.receivedAt,
-      message_id: e.messageId, intake_mode: e.intakeMode, subject_metadata: e.subjectMetadata };
+      message_id: e.messageId, intake_mode: e.intakeMode, subject_metadata: e.subjectMetadata,
+      kind: d.kind ?? "pdf", channel: channelOf(s, d.id), customer_id: o?.customerId ?? null,
+      po_number: o?.poNumber ?? null, review_state: o?.reviewState ?? null, open_issues: open.length,
+      issue_codes: [...new Set(open.map((i) => i.code))], body_text: e.bodyText ?? null,
+      attachment_names: (e.attachments ?? []).map((a) => a.filename ?? "unnamed") };
   });
 }
 
@@ -122,7 +141,19 @@ export function documentDetail(s: RunState, docId: number): DocDetail | null {
       size_bytes: d.sizeBytes, page_count: d.pageCount, status: d.status, status_detail: d.statusDetail,
       duplicate_of: d.duplicateOf, created_at: d.createdAt, updated_at: d.updatedAt },
     envelope: { id: e.id, message_id: e.messageId, sender: e.sender, received_at: e.receivedAt,
-      subject_metadata: e.subjectMetadata, intake_mode: e.intakeMode, raw_sha256: e.rawSha256, created_at: e.createdAt },
+      subject_metadata: e.subjectMetadata, intake_mode: e.intakeMode, raw_sha256: e.rawSha256, created_at: e.createdAt,
+      body_text: e.bodyText ?? null, attachments: e.attachments ?? [] },
+    kind: d.kind ?? "pdf",
+    classification: d.classification ?? null,
+    channel: channelOf(s, docId),
+    supervision: (() => {
+      const p = effectivePolicy(s, docId);
+      return { mode: p.mode, scope: p.customerId ? "route" as const : "default" as const, set_by: p.setBy, reason: p.reason ?? null };
+    })(),
+    hold: (() => {
+      const h = (s.holds ?? []).find((x) => x.documentId === docId && x.releasedAt === null);
+      return h ? { reason: h.reason, held_by: h.heldBy, held_at: h.heldAt } : null;
+    })(),
     latest_version: v ? { id: v.id, document_id: v.documentId, version: v.version, origin: v.origin, extractor: v.extractor,
       created_by: v.createdBy, created_at: v.createdAt, payload: v.payload as unknown as NonNullable<DocDetail["latest_version"]>["payload"] } : null,
     timeline: s.audit.filter((a) => a.entityType === "document" && a.entityId === docId).sort((a, b) => a.id - b.id)

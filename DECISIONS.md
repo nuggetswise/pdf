@@ -176,3 +176,97 @@ less transit days. If stock is short, the confirmation waits for a person: hold 
 on time or the PO asks to ship complete), ship now and backorder, or ship now and cancel. The 855 then carries one
 ACK per part (IA/IB/IR with 068 and its date) and the ERP gets the schedule. Shipping takes what stock covers and
 lowers stock. Settings: packing days, transit days, short-stock rule. Lateness is a warning, never a hold.
+
+## D62 Email-body orders, non-orders and evidence-only attachments (2026-10-17)
+An email is never refused for having no PDF. Every attachment is listed with its hash and handling. PDFs and X12
+files are read as possible orders; spreadsheets, images and unreadable files are kept as evidence with a note. When
+no attachment can carry an order, the email text becomes the document the agent reads, so body and attachment never
+both make an order. A reading with neither a PO number nor lines is classed Not an order (a deterministic floor the
+AI cannot lower), kept in intake history with its reason, and Treat as order corrects it. An X12 850 is read from
+its segments without AI. The email subject or text naming a different PO than the attachment is a blocking
+"Email and attachment disagree" issue.
+
+## D63 Dates are never assumed (2026-10-17)
+Supersedes the US month-first reading in D59. A numeric date reads only when one reading is possible (a part above
+12). 04/11/2026 offers 2026-04-11 and 2026-11-04; a weekday or relative date takes a date input. Both block the
+order. The person's choice is stored in resolved_dates beside the printed value and is what ship dates, the ERP
+and EDI use.
+
+## D64 Supervision per retailer and route, internal hold, reject reason (2026-10-17)
+Supervision is set per retailer and route (email attachment, email text, upload, EDI). Routes without a setting use
+the default, which starts supervised. Automatic needs an administrator and a recorded reason (also for the default).
+Blocking issues stop an order in both modes. Internal hold (reason from a short list) is separate from Waiting on
+customer; it withdraws approval and nothing is sent while held. Reject needs no typed explanation and takes an
+optional reason choice. Hold and reject apply before the ERP only.
+
+## D65 Provenance and line placement, no confidence numbers (2026-10-17)
+Each value shows separate statements: how it was read (AI, structured EDI reader, test adapter), whether its text is
+in the source, whether it sits on the row of the line it was read for (the identifier's row and up to two more,
+stopping at another line's identifier, matched as a whole number), what reference data matched, and what a person
+confirmed. A value on another line blocks with "Value is not on the line it was read for". No confidence numbers are
+shown or invented. An unknown ship-to offers the locations on file; the choice replaces the code on the order and
+the printed code is kept.
+
+## D66 Retail Command Center as a proposed composition (2026-10-17)
+A thin working slice: Detect, Prioritise, Act, Verify over this app's records, recomputed by the server after every
+action without AI. Four finding types (stock short, revised delivery, ERP order not confirmed, document not delivered).
+One open finding per condition; history kept; action status separate from verification; each type states its
+resolution condition and required evidence first; missing evidence keeps verification pending; sending is not
+acceptance. Financial exposure shows Not available and root cause Not established. Supplier-private findings never
+reach the retailer view, which is scoped to one retailer. Labelled "Proposed composition"; no CCIM or CCPM link.
+Spec: docs/10-command-center.md.
+
+## D67 Pilot export extended, no savings claimed (2026-10-17)
+Adds route, supervision mode, minutes from receipt to checked, minutes waiting for a person (elapsed, not effort),
+exception reasons, ERP attempts, confirmed outcome and per-order findings (types, first detection, owners, action,
+verified count and time, pending count). chargeback_exposure_avoided is renamed chargeback_exposure_assumed: it comes
+from the administrator's manual-route assumptions and is not a measured saving.
+
+## D68 Intake test pack with independent expected results (2026-10-17)
+fixtures/test-pack holds fictional emails, PDFs and an X12 850 made by scripts/test_pack.py, and hand-written
+expected results. lib/test-pack.test.ts runs each case through intake and the server actions and never branches on a
+case id or file name. The wrong-line case uses a hand-written stand-in for an AI result, labelled as such, because a
+deterministic reader cannot produce it. The invoice check formerly called a three-way match is renamed "Order, ASN
+and invoice check": it compares the supplier's PO line, ASN and invoice; there is no goods receipt
+(docs/11-system-of-record.md).
+
+## D69 One shortage, one finding; acceptance verifies (2026-10-17)
+The stock shortage used to produce two findings for one condition: the supplier's "Stock short" finding, verified when
+the confirmation was delivered, and a shared "Revised delivery" finding verified by the retailer's response. Delivery
+was being counted as verification. Now the supplier's confirmation is the action on the shortage finding, and when the
+confirmation ships less or later than the PO asked, only the retailer's recorded acceptance verifies it (delivery stays
+as outcome evidence). The shared finding still exists so the retailer can respond without seeing supplier stock; the
+supplier's list hides it while its shortage finding exists. A confirmation that changes nothing is still verified on
+delivery. The acceptance is a simulated retailer response and is labelled so beside the buttons.
+Demo-readiness changes in the same pass: the signed-in user switch shows only with the test adapter; the header chip for
+the test adapter reads "Scripted reader, not live AI" and stays until live AI reading is verified; the disabled
+"Invite to Trading Grid EDI" button is replaced by "Onboarding is outside this concept"; the Today tiles are hidden
+until an order exists. Currency, dates and retailer profile are unchanged (no decision yet).
+
+## D70 The shortage deadline starts at receipt by the agent (2026-10-17)
+The PO note "report shortages within 24 hours of order receipt" is now measured from when the order agent's mailbox
+received the order (the envelope's intake time), not from the sender's Date header. In production the two differ by
+seconds; for a forwarded example email dated in the past, the Date header made the deadline read "passed" before the
+demo began. No clock control or reset is added: the deadline counts down in real time. The Today flow bar now has six
+columns (it had five for six steps) and the forward box keeps its button on its own line.
+
+## D71 Order Operations: explicit order states over a sample inbox (2026-10-17)
+Mandip's brief asks the prototype to test one hypothesis: an emailed PDF order can become a trustworthy transaction
+with a person needed only for meaningful judgement. The app now opens on "Order operations": counts by state, a
+"Needs attention" queue first, and every other order with its simulated ERP result. Today is removed (its forward box
+moved to the home side panel) and "Orders" is renamed "Intake".
+- New domain `lib/domain/ops/` with explicit order states (received to accepted or rejected), issue types
+  (correctable discrepancy, ambiguous match, missing required data, validation failure, downstream rejection),
+  decision outcomes (accepted or rejected recommendation, selected option, corrected value, deferred) and field states
+  (accepted, changed, uncertain, missing, invalid). State is computed from decisions and issues, never display text.
+- Kept separate from RunState (own sessionStorage key) so saved runs, Python parity fixtures and the server action
+  contract do not change. Reversible: the module can later be fed by the live reading pipeline.
+- Eighteen fictional sample emails are read by the same rules each time the tab opens. The reading step of samples is
+  simulated (structured fixtures rendered as a document, no OCR or AI); the recommendation text is rule-generated from
+  reference data and order history and shown under "Order agent (AI)". The ERP is simulated with its own customer
+  master, so a downstream rejection can happen after the agent's checks pass.
+- Behaviour: enough evidence sends automatically; a correctable discrepancy gets a recommendation with evidence; an
+  ambiguity lists options with no recommendation; missing critical data blocks with no proposed fix. A person's change
+  requires one approval, which sends (no separate send step). Decisions can be undone until an ERP submission follows.
+- No confidence scores. Orders forwarded in the session appear in the same queue and open in Intake.
+Details, gap analysis and capability boundaries: docs/13-order-operations.md.

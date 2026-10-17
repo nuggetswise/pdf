@@ -2,9 +2,23 @@
 import PostalMime from "postal-mime";
 import { IntakeRejected, MAX_UPLOAD_BYTES } from "./pdf";
 
+export interface EmailAttachment { filename: string | null; mimeType: string | null; data: Uint8Array }
 export interface ParsedEmail {
   envelope: { messageId: string | null; sender: string | null; receivedAt: string | null; subjectMetadata: string | null };
-  attachments: { filename: string | null; data: Uint8Array }[];
+  /** D62: every attachment, whatever its type. intake.ts decides which ones the agent reads. */
+  attachments: EmailAttachment[];
+  /** D62: the email's own text (plain part, or the HTML part without tags). Untrusted data. */
+  bodyText: string;
+}
+
+export const MAX_BODY_CHARS = 20_000;
+
+/** Visible text of an HTML part: tags, scripts and styles removed, entities for the common characters decoded. */
+export function htmlToText(html: string): string {
+  return html.replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, " ").replace(/<br\s*\/?>(?!\n)/gi, "\n")
+    .replace(/<\/(p|div|tr|li|h\d)>/gi, "\n").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, " ").replace(/\n\s*\n\s*\n+/g, "\n\n").trim();
 }
 
 export async function parseEml(raw: Uint8Array, maxBytes = MAX_UPLOAD_BYTES): Promise<ParsedEmail> {
@@ -20,13 +34,12 @@ export async function parseEml(raw: Uint8Array, maxBytes = MAX_UPLOAD_BYTES): Pr
   const sender = from && "address" in from && from.address
     ? (from.name ? `${from.name} <${from.address}>` : from.address)
     : (msg.headers.find((h) => h.key === "from")?.value || null);
-  const attachments = msg.attachments
-    .filter((a) => a.mimeType === "application/pdf" || (a.filename ?? "").toLowerCase().endsWith(".pdf"))
-    .map((a) => ({
-      filename: a.filename ?? null,
-      data: typeof a.content === "string" ? new TextEncoder().encode(a.content) : new Uint8Array(a.content),
-    }));
-  if (!attachments.length) throw new IntakeRejected("invalid", "Email has no PDF attachment");
+  const attachments = msg.attachments.map((a) => ({
+    filename: a.filename ?? null,
+    mimeType: a.mimeType || null,
+    data: typeof a.content === "string" ? new TextEncoder().encode(a.content) : new Uint8Array(a.content),
+  }));
+  const bodyText = (msg.text?.trim() ? msg.text : msg.html ? htmlToText(msg.html) : "").trim().slice(0, MAX_BODY_CHARS);
   return {
     envelope: {
       messageId: msg.messageId || null,
@@ -35,6 +48,7 @@ export async function parseEml(raw: Uint8Array, maxBytes = MAX_UPLOAD_BYTES): Pr
       subjectMetadata: msg.subject || null,
     },
     attachments,
+    bodyText,
   };
 }
 

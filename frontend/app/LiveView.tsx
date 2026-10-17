@@ -1,9 +1,9 @@
 "use client";
-// D54: the two sides of the story on one screen. Left: the supplier keeps working by email (forward the PO,
-// decide the odd exception, reply in plain words, mark it shipped in their ERP). Right: the retailer receives
-// standard EDI as each of those happens. Nothing here is a script; every card is read from the run's state.
+// D54: the supplier and retailer sides. The supplier home is Order operations (D71); this file keeps the forward box,
+// the forwarded-order state line, the plain-language reply and the retailer's view of the standard EDI it receives.
+// Nothing here is a script; every card is read from the run's state.
 import { useState } from "react";
-import { ArrowRight, Boxes, CheckCircle2, FileCheck2, Mail, Network, Receipt, ScanText, ShieldCheck, Truck } from "lucide-react";
+import { FileCheck2, Mail, Network, Receipt, Truck } from "lucide-react";
 import { SAMPLE_LABELS, SAMPLE_SENDERS } from "../lib/intake/intake";
 import { portalForOrder } from "../lib/domain/portal";
 import { showDate } from "../lib/domain/dates";
@@ -27,64 +27,15 @@ function useWrap() {
   return { error, wrap };
 }
 
-/** Supplier home: what needs a person now, then everything the agent handled on its own. */
-export function SupplierToday({ role, onOpen }: { role: Role; onOpen: (docId: number) => void }) {
-  const agent = useAgent();
-  const s = agent.ready ? agent.state : null;
-  const docs = s ? [...s.documents].sort((a, b) => b.id - a.id) : [];
-  const needs = s ? docs.filter((d) => {
-    const o = s.orders.find((x) => x.documentId === d.id);
-    return !IN_FLIGHT.has(d.status) && (!o || o.fulfilment?.status === "needs_decision"
-      || (o.deliveryState !== "erp_created" && (o.validation.issues.some((i) => i.status === "open") || o.reviewState === "ready")));
-  }) : [];
-  const rest = docs.filter((d) => !needs.includes(d));
-  const inErp = s ? s.orders.filter((o) => o.erpOrderId).length : 0;
-  const sent = s ? (s.portal?.outbound ?? []).filter((m) => m.channel === "retailer_edi_outbox" && m.status === "delivered").length : 0;
-  const caught = s ? s.orders.reduce((t, o) => t + o.validation.issues.length, 0) : 0;
-  const stocked = s ? s.orders.filter((o) => o.fulfilment).length : 0;
-  const short = s ? s.orders.filter((o) => o.fulfilment?.lines.some((l) => l.short !== "0")).length : 0;
-  const steps: [typeof Mail, string, string][] = [
-    [Mail, "Forwarded", `${docs.length} purchase order${docs.length === 1 ? "" : "s"}`],
-    [ScanText, "Read by the agent", "every value tied to the PDF"],
-    [ShieldCheck, "Checked", `${caught} problem${caught === 1 ? "" : "s"} caught`],
-    [CheckCircle2, "In your ERP", `${inErp} order${inErp === 1 ? "" : "s"}`],
-    [Boxes, "Stock checked", stocked ? `${stocked} with ship dates${short ? `, ${short} short` : ""}` : "ship dates from your stock"],
-    [FileCheck2, "Sent to the retailer", `${sent} EDI document${sent === 1 ? "" : "s"}`],
-  ];
-  return (
-    <div className="today">
-      <ol className="flowbar" aria-label="How orders flow">
-        {steps.map(([I, t, d], i) => (
-          <li key={t}><span className="fi" aria-hidden><I size={18} /></span><div><b>{t}</b><span>{d}</span></div>
-            {i < steps.length - 1 && <ArrowRight className="farrow" size={16} aria-hidden />}</li>
-        ))}
-      </ol>
-      <div className="today-grid">
-        <section className="panel" aria-label="Needs you">
-          <header className="panel-head"><h3>Needs you</h3><span className="count">{needs.length}</span></header>
-          {needs.length === 0 && <p className="empty"><CheckCircle2 size={18} aria-hidden /> Nothing waiting. The agent is handling every order.</p>}
-          {s && needs.map((d) => <SupplierCard key={d.id} s={s} docId={d.id} role={role} onOpen={onOpen} />)}
-        </section>
-        <section className="panel forward-panel" aria-label="Forward a purchase order">
-          <header className="panel-head"><h3>New purchase order</h3></header>
-          <Forward />
-          <p className="muted small">Production mailboxes forward retailer POs automatically.</p>
-        </section>
-      </div>
-      <section className="panel" aria-label="Handled by the agent">
-        <header className="panel-head"><h3>Handled by the agent</h3><span className="count muted">{rest.length}</span></header>
-        {rest.length === 0 && <p className="empty">Processed orders appear here.</p>}
-        {s && rest.map((d) => <SupplierCard key={d.id} s={s} docId={d.id} role={role} onOpen={onOpen} />)}
-      </section>
-    </div>
-  );
-}
-
 /** Retailer view: standard EDI arriving from a supplier who never left email. */
-export function RetailerInbox() {
+/** D66: a retailer sees only documents for its own orders. */
+const forRetailer = (s: RunState, customerId: string | null) => (m: { documentId: number }) =>
+  s.orders.find((o) => o.documentId === m.documentId)?.customerId === customerId;
+
+export function RetailerInbox({ customerId }: { customerId: string | null }) {
   const agent = useAgent();
   const s = agent.ready ? agent.state : null;
-  const msgs = s ? [...(s.portal?.outbound ?? [])].filter((m) => m.channel === "retailer_edi_outbox").sort((a, b) => b.id - a.id) : [];
+  const msgs = s ? [...(s.portal?.outbound ?? [])].filter((m) => m.channel === "retailer_edi_outbox").filter(forRetailer(s, customerId)).sort((a, b) => b.id - a.id) : [];
   return (
     <section className="panel" aria-label="Documents received">
       <header className="panel-head"><h3>Documents received</h3><span className="count">{msgs.length}</span></header>
@@ -94,10 +45,10 @@ export function RetailerInbox() {
   );
 }
 
-export function RetailerSuppliers() {
+export function RetailerSuppliers({ customerId }: { customerId: string | null }) {
   const agent = useAgent();
   const s = agent.ready ? agent.state : null;
-  const msgs = (s?.portal?.outbound ?? []).filter((m) => m.channel === "retailer_edi_outbox");
+  const msgs = s ? (s.portal?.outbound ?? []).filter((m) => m.channel === "retailer_edi_outbox").filter(forRetailer(s, customerId)) : [];
   const orders = s?.orders ?? [];
   const untouched = orders.filter((o) => o.deliveryState === "erp_created" && o.validation.issues.length === 0).length;
   const supplier = s?.portal?.supplier?.name ?? "Fictional demo supplier";
@@ -112,7 +63,7 @@ export function RetailerSuppliers() {
             <td><span className="pill info"><Mail size={14} aria-hidden /> Email, via Order Agent</span></td>
             <td>{orders.length}</td><td>{msgs.length}</td>
             <td>{orders.length ? `${untouched} of ${orders.length}` : "–"}</td>
-            <td><button className="ghost" disabled title="Prototype: shows the next step only">Invite to Trading Grid EDI</button></td>
+            <td className="muted small">Onboarding is outside this concept</td>
           </tr>
         </tbody>
       </table>
@@ -121,7 +72,7 @@ export function RetailerSuppliers() {
   );
 }
 
-function Forward() {
+export function Forward() {
   const agent = useAgent();
   const sample = DEMO_EMAILS[0];
   const { error, wrap } = useWrap();
@@ -149,43 +100,29 @@ function Forward() {
   );
 }
 
-function SupplierCard({ s, docId, onOpen }: { s: RunState; docId: number; role: Role; onOpen: (id: number) => void }) {
+/** What a forwarded order's state means for the supplier, in one sentence, plus what was shipped. */
+export function supplierState(s: RunState, docId: number): { text: string; tone: string; shipments: string[] } {
   const d = s.documents.find((x) => x.id === docId)!;
   const o = s.orders.find((x) => x.documentId === docId);
-  const po = o?.validation.order.po_number ?? d.originalFilename ?? `Document ${docId}`;
-  const env = s.envelopes.find((e) => e.id === d.envelopeId);
-  const via = env?.sender ? `Emailed by ${env.sender}${env.receivedAt ? ` · ${new Date(env.receivedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "UTC" })} UTC` : ""} · forwarded to your agent`
-    : `PDF ${d.originalFilename ?? ""} added by you`;
   const open = o ? o.validation.issues.filter((i) => i.status === "open").length : 0;
   const p = o ? portalForOrder(s, docId) : null;
   const f = o?.fulfilment;
-  let state: string;
+  let text: string;
   let tone = "info";
-  if (IN_FLIGHT.has(d.status)) state = "The agent is reading it…";
-  else if (!o) { state = d.statusDetail ?? "Could not be read"; tone = "bad"; }
+  if (IN_FLIGHT.has(d.status)) text = "The agent is reading it…";
+  else if (!o) { text = d.statusDetail ?? "Could not be read"; tone = "bad"; }
   else if (f?.status === "needs_decision") {
     const n = f.lines.filter((l) => l.short !== "0").length;
-    state = `In your ERP as ${o.erpOrderId}. Stock is short on ${n} line${n === 1 ? "" : "s"}: choose how to ship before the retailer is told.`; tone = "warn";
+    text = `In your ERP as ${o.erpOrderId}. Stock is short on ${n} line${n === 1 ? "" : "s"}: choose how to ship before the retailer is told.`; tone = "warn";
   } else if (o.deliveryState === "erp_created") {
     const back = f?.parts.some((x) => x.kind === "backorder");
-    state = `In your ERP as ${o.erpOrderId}. Confirmed to the retailer${f ? `: ships ${showDate(firstShipOn(f.parts))}${back ? ", rest backordered" : ""}` : ""}.`; tone = "ok";
+    text = `In your ERP as ${o.erpOrderId}. Confirmed to the retailer${f ? `: ships ${showDate(firstShipOn(f.parts))}${back ? ", rest backordered" : ""}` : ""}.`; tone = "ok";
   }
-  else if (open > 0) { state = `Needs your decision on ${open} thing${open === 1 ? "" : "s"}. The agent holds it until then.`; tone = "warn"; }
-  else if (o.reviewState === "ready") { state = "Checked, waiting for one approval."; tone = "warn"; }
-  else state = "Checked.";
-  return (
-    <article className={`scard ${tone}`} aria-label={`Order ${po}`}>
-      <header>
-        <h4>{po}<span className="sub"> · {o?.validation.order.customer_name ?? "unknown customer"}</span></h4>
-        <button className="ghost" onClick={() => onOpen(docId)}>Open order</button>
-      </header>
-      <p className="via muted small">{via}</p>
-      <p className="state">{state}</p>
-      {p?.shipments.map((x) => (
-        <p key={x.asn.id} className="muted small">Shipped {x.asn.lines.filter((l) => !l.shippedQty.startsWith("0")).length} line(s) on {x.asn.despatchDate}: {x.asn.asnNumber}{x.invoice ? ` and invoice ${x.invoice.invoiceNumber}` : ""} sent to the retailer.</p>
-      ))}
-    </article>
-  );
+  else if (open > 0) { text = `Needs your decision on ${open} thing${open === 1 ? "" : "s"}. The agent holds it until then.`; tone = "warn"; }
+  else if (o.reviewState === "ready") { text = "Checked, waiting for one approval."; tone = "warn"; }
+  else text = "Checked.";
+  const shipments = (p?.shipments ?? []).map((x) => `Shipped ${x.asn.lines.filter((l) => !l.shippedQty.startsWith("0")).length} line(s) on ${x.asn.despatchDate}: ${x.asn.asnNumber}${x.invoice ? ` and invoice ${x.invoice.invoiceNumber}` : ""} sent to the retailer.`);
+  return { text, tone, shipments };
 }
 
 const poLines = (o: Order): ReplyPoLine[] => o.validation.order.lines.map((l) => ({ sourceLineId: l.source_line_id,

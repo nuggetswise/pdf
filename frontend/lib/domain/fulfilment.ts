@@ -11,7 +11,8 @@
 // (or, by setting, ship what is there and cancel the rest). The retailer's confirmation waits for that choice and
 // then carries each line's quantities and dates. Lateness alone is a warning, never a hold.
 import bundledStock from "./erp-stock.v1.json";
-import { addDays, addWorkdays, isoDate, maxDate, minDate, subtractWorkdays } from "./dates";
+import { addDays, addWorkdays, maxDate, minDate, subtractWorkdays } from "./dates";
+import { orderDate } from "./checks";
 import { Dec } from "./money";
 import { type Fulfilment, type FulfilmentSettings, type RunState, type ShipPart, type StockItem, decimalString } from "./run-state";
 
@@ -78,10 +79,11 @@ export function planFulfilment(s: RunState, docId: number, now: string): Fulfilm
   const today = now.slice(0, 10);
   const rules = retailerRules(s, ord.customer_id);
   const terms = termsOf(s, o);
-  const orderDay = isoDate(ord.order_date, today) ?? today;
-  const notBefore = isoDate(terms?.ship_not_before?.value, orderDay);
-  const noLaterThan = isoDate(terms?.ship_no_later_than?.value, orderDay);
-  const deliverBy = isoDate(ord.requested_delivery_date, orderDay);
+  // D63: a date a person chose for an unclear printed date wins; an ambiguous printed date is never read.
+  const orderDay = orderDate(ord, "order_date", ord.order_date, today) ?? today;
+  const notBefore = orderDate(ord, "ship_not_before", terms?.ship_not_before?.value, orderDay);
+  const noLaterThan = orderDate(ord, "ship_no_later_than", terms?.ship_no_later_than?.value, orderDay);
+  const deliverBy = orderDate(ord, "requested_delivery_date", ord.requested_delivery_date, orderDay);
   const shipBy = minDate(noLaterThan, deliverBy ? subtractWorkdays(deliverBy, rules.transitDays) : null);
   const dispatch = (ready: string) => maxDate(addWorkdays(ready, rules.packDays), notBefore)!;
 

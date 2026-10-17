@@ -34,9 +34,13 @@ export const DocumentStatus = z.enum([
   "received", "duplicate", "unsupported", "extracting", "extraction_unavailable", "extraction_failed",
   "extracted", "matching", "validating", "needs_review", "ready_for_approval", "approved", "rejected",
   "awaiting_customer",
+  /** D62: the agent read the message or file and found no purchase order; a person can correct it. */
+  "not_order",
+  /** D64: a person paused the order on purpose (internal hold, separate from waiting on the customer). */
+  "on_hold",
 ]);
 export const ReviewState = z.enum(["validating", "needs_review", "ready", "approved", "rejected", "awaiting_customer",
-  "amendment_held"]);
+  "amendment_held", "on_hold"]);
 export const DeliveryState = z.enum(["not_started", "queued", "submitting", "erp_created", "failed", "unknown"]);
 export const PolicyMode = z.enum(["review_all", "exception_only"]);
 export const Role = z.enum(["viewer", "reviewer", "administrator"]);
@@ -48,12 +52,23 @@ export const IssueCode = z.enum([
   "unverified_field", "missing_line_value", "unknown_item", "unknown_unit", "unit_conversion", "moq_violation",
   "price_mismatch", "outdated_identifier", "rule_needs_revalidation", "line_amount_mismatch", "total_mismatch",
   "possible_revision",
+  // D63, D65: checks added on top of the Python parity port (lib/domain/checks.ts).
+  "ambiguous_date", "unclear_date", "source_conflict", "value_not_on_line",
 ]);
 export const DecisionAction = z.enum([
   "confirm_field", "map_item", "confirm_conversion", "one_off_exception", "request_customer_correction",
   "change_quantity", "accept_printed_price", "correct_price", "apply_mapping", "acknowledge_total_difference",
   "accept_as_revision", "reject_order",
+  /** D63: a person picks the calendar date an unclear printed date means. */
+  "choose_date",
+  /** D65: a person picks the ship-to on file that an unrecognised location means. */
+  "choose_ship_to",
 ]);
+/** D64: short reason choices. Typing an explanation is never required (Mandip, 2026-10-16). */
+export const RejectReason = z.enum(["not_an_order", "duplicate", "wrong_supplier", "customer_cancelled", "cannot_supply", "other"]);
+export const HoldReason = z.enum(["checking_with_buyer", "pricing_review", "stock_review", "credit_review", "other"]);
+/** D62: how an order reached the agent. Each route has its own supervision setting per retailer. */
+export const Channel = z.enum(["email_attachment", "email_body", "upload", "edi"]);
 
 // ---------- extraction payload (order_versions.payload_json) ----------
 
@@ -148,6 +163,10 @@ export const CanonicalOrder = z.strictObject({
   }),
   reference_version: z.string(),
   policy_version: z.string(),
+  /** D63: calendar dates a person chose for unclear printed dates (the printed values above are kept as printed). */
+  resolved_dates: z.record(z.string(), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
+  /** D65: the ship-to printed on the PO when a person chose another one on file. */
+  printed_ship_to_id: maybe(z.string()).optional(),
 });
 
 const ProposedMapping = z.looseObject({
@@ -181,6 +200,10 @@ export const Issue = z.strictObject({
   proposal: maybe(ProposedMapping).optional(),
   candidate_skus: z.array(z.string()).optional(),
   other_document_id: id.optional(),
+  /** D63: the calendar dates an ambiguous printed date could mean. */
+  candidate_dates: z.array(z.string()).optional(),
+  /** D65: ship-tos on file for this customer. */
+  candidate_ship_tos: z.array(z.string()).optional(),
 });
 
 /** A memory rule exactly as frozen into a validation result at first validation (snake_case, as stored). */
@@ -222,6 +245,15 @@ export const Envelope = z.strictObject({
   intakeMode: IntakeMode,
   rawSha256: maybe(z.string().regex(/^[0-9a-f]{64}$/)),
   createdAt: isoTime,
+  /** D62: the email's own text, kept as evidence. Untrusted data; never instructions. */
+  bodyText: maybe(text).optional(),
+  /** D62: every attachment the email carried and what the agent did with it. */
+  attachments: z.array(z.strictObject({
+    filename: maybe(z.string()), mimeType: maybe(z.string()), sizeBytes: z.number().int().nonnegative(),
+    sha256: z.string().regex(/^[0-9a-f]{64}$/),
+    handling: z.enum(["order_candidate", "evidence_only"]),
+    note: maybe(z.string()),
+  })).optional(),
 });
 
 /** The PDF bytes are never part of the run; only their hash and page text are. */
@@ -238,6 +270,13 @@ export const SourceDocument = z.strictObject({
   duplicateOf: maybe(id),
   createdAt: isoTime,
   updatedAt: isoTime,
+  /** D62: what the document is. Absent = a PDF (runs saved before D62). */
+  kind: z.enum(["pdf", "email_body", "edi"]).optional(),
+  /** D62: the agent's order / not-an-order decision, and any correction by a person. */
+  classification: z.strictObject({
+    result: z.enum(["order", "not_order"]), reason: z.string(), by: z.string(), at: isoTime,
+    correctedBy: maybe(z.string()), correctedAt: maybe(isoTime),
+  }).optional(),
 });
 
 /** Append-only: each recorded decision adds a version (D20). */
@@ -283,6 +322,13 @@ export const Decision = z.strictObject({
     value: decimalString.optional(),
     authorised_by: z.string().optional(),
     note: z.string().optional(),
+    /** D63: chosen date (YYYY-MM-DD) and which field it is for. */
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    field: z.string().optional(),
+    /** D65: chosen ship-to on file. */
+    ship_to_id: z.string().optional(),
+    /** D64: reason choice on reject. */
+    reason_code: RejectReason.optional(),
   }),
   reason: maybe(z.string()),
   actor: z.string(),
@@ -304,7 +350,10 @@ export const Approval = z.strictObject({
   invalidatedReason: maybe(z.string()),
 });
 
-export const PolicyChange = z.strictObject({ id, mode: PolicyMode, setBy: z.string(), effectiveAt: isoTime });
+/** A policy entry. Without customerId it is the default for routes with no setting of their own (D64); with
+ *  customerId and channel it applies to that retailer's orders on that route. Automatic needs a reason. */
+export const PolicyChange = z.strictObject({ id, mode: PolicyMode, setBy: z.string(), effectiveAt: isoTime,
+  customerId: z.string().optional(), channel: Channel.optional(), reason: z.string().optional() });
 
 export const MemoryRule = z.strictObject({
   id,
@@ -354,7 +403,7 @@ export const ErpOrder = z.strictObject({
 
 export const AuditEvent = z.strictObject({
   id,
-  entityType: z.enum(["system", "envelope", "document", "policy", "memory_rule"]),
+  entityType: z.enum(["system", "envelope", "document", "policy", "memory_rule", "finding"]),
   entityId: z.number().int().nonnegative(),
   event: z.string(),
   actor: z.string(),
@@ -562,6 +611,9 @@ export const Portal = z.strictObject({
   /** D54: supplier replies to a PO, read by the agent and confirmed by a person. */
   replies: z.array(z.strictObject({ id, documentId: id, text: z.string(), interpretation: SupplierReplyInterpretation,
     appliedBy: z.string(), appliedAt: isoTime })).optional(),
+  /** D67: the retailer's answer to a changed order confirmation (simulated retailer system, recorded in its view). */
+  retailerResponses: z.array(z.strictObject({ id, documentId: id, messageId: id, decision: z.enum(["accepted", "declined"]),
+    by: z.string(), at: isoTime })).optional(),
 });
 export const emptyPortal = (): z.infer<typeof Portal> =>
   ({ asns: [], invoices: [], outbound: [], received: [], ediFailureMode: "none" });
@@ -642,6 +694,50 @@ export const Fulfilment = z.strictObject({
   parts: z.array(ShipPart),
 });
 
+// ---------- D66: proposed Retail Command Center (Detect, Prioritise, Act, Verify) ----------
+
+export const FindingType = z.enum(["stock_short", "revised_delivery", "erp_outcome", "retailer_message"]);
+/** Every statement on a finding says what kind of statement it is, so facts, rules and decisions never blur. */
+export const FindingEvidence = z.strictObject({
+  kind: z.enum(["observed", "rule", "human", "outcome"]),
+  text: z.string(),
+  source: z.string(),
+  at: maybe(isoTime),
+});
+export const Finding = z.strictObject({
+  id,
+  type: FindingType,
+  /** One open finding per condition: the key names the condition (type and the record it is about). */
+  key: z.string(),
+  documentId: id,
+  customerId: maybe(z.string()),
+  poNumber: maybe(z.string()),
+  lines: z.array(z.strictObject({ lineIndex: z.number().int().nonnegative(), label: z.string() })),
+  /** supplier = supplier users only (it rests on supplier-private records); shared = the retailer sees it too. */
+  visibility: z.enum(["supplier", "shared"]),
+  detectedAt: isoTime,
+  observedAt: isoTime,
+  conditionActive: z.boolean(),
+  observed: z.array(FindingEvidence),
+  rule: z.strictObject({ text: z.string(), source: z.string() }),
+  deadline: maybe(z.strictObject({ at: isoTime, source: z.string() })),
+  priority: z.strictObject({ level: z.enum(["high", "medium", "low"]), basis: z.string() }),
+  owner: maybe(z.strictObject({ actor: z.string(), source: z.enum(["configured", "assigned"]), by: z.string(), at: isoTime })),
+  nextAction: z.strictObject({ text: z.string(), target: z.enum(["stock", "delivery", "outbound", "retailer_response"]) }),
+  actionStatus: z.enum(["not_started", "completed"]),
+  resolution: z.strictObject({ condition: z.string(), evidenceRequired: z.string() }),
+  verification: z.strictObject({ status: z.enum(["pending", "verified"]), evidence: z.array(FindingEvidence), at: maybe(isoTime) }),
+  history: z.array(z.strictObject({ at: isoTime, kind: z.enum(["detected", "changed", "condition_cleared", "assigned",
+    "action", "verified", "reopened"]), actor: z.string(), text: z.string() })),
+});
+export const CommandCenterState = z.strictObject({
+  findings: z.array(Finding),
+  /** Configured owner per finding type; absent or null = Unassigned. */
+  ownership: z.record(z.string(), z.string().nullable()),
+});
+export type Finding = z.infer<typeof Finding>;
+export type CommandCenterState = z.infer<typeof CommandCenterState>;
+
 export const RUN_STATE_SCHEMA_VERSION = "run-state-v1";
 
 export const RunState = z.strictObject({
@@ -668,6 +764,11 @@ export const RunState = z.strictObject({
   erpStock: z.array(StockItem).optional(),
   /** D61: packing and transit days, and what to do when stock is short. Absent means the defaults. */
   fulfilmentSettings: FulfilmentSettings.optional(),
+  /** D64: internal holds, with the reason chosen and who released them. */
+  holds: z.array(z.strictObject({ id, documentId: id, reason: HoldReason, heldBy: z.string(), heldAt: isoTime,
+    releasedBy: maybe(z.string()), releasedAt: maybe(isoTime) })).optional(),
+  /** D66: the proposed Command Center's findings and ownership settings. */
+  commandCenter: z.lazy(() => CommandCenterState).optional(),
 });
 
 export type RunState = z.infer<typeof RunState>;
@@ -718,3 +819,5 @@ export const SESSION_STORAGE_WARN_BYTES = 4 * 1024 * 1024;
 export function runStateSizeBytes(state: RunState): number {
   return new TextEncoder().encode(JSON.stringify(state)).length;
 }
+export type Channel = z.infer<typeof Channel>;
+export type FindingType = z.infer<typeof FindingType>;

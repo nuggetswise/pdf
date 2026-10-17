@@ -8,8 +8,8 @@ test("reviewer resolves exceptions by hand and the order is delivered without a 
   await request.put("/api/demo/rehearsal-mode", { headers: ADMIN, data: { value: "on" } });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  await page.getByRole("tab", { name: "Orders" }).click();
-  await page.getByRole("tab", { name: "Orders" }).click();
+  await page.getByRole("tab", { name: "Intake" }).click();
+  await page.getByRole("tab", { name: "Intake" }).click();
   await page.getByLabel("Upload a purchase order").setInputFiles("../fixtures/demo/generated/VIDEO-DEMO-001.pdf");
   await expect(page.locator(".issue.open")).toHaveCount(3);
 
