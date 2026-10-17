@@ -400,3 +400,46 @@ button.tiny { padding: 2px 8px; font-size: 12px; margin-left: 6px; }
 .ship-asn { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; margin-top: 12px; }
 .ship-asn > .fulfil, .ship-asn > .portal { margin-top: 0; min-width: 0; }
 @media (max-width: 1100px) { .ship-asn { grid-template-columns: minmax(0, 1fr); } }
+
+/* D62-D66: order route chips, order actions, value sources, history, trace, intake filters, supervision, Command Center */
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0; }
+.chips .chip { font-size: 12px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line-strong); background: var(--subtle); color: var(--info); }
+.chips .chip.info { border-color: var(--electric); color: var(--cobalt); background: var(--electric-soft); }
+.chips .chip.ai { border-color: var(--cobalt); color: var(--cobalt); }
+.order-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0 12px; }
+.order-actions label { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+.order-actions.held { background: var(--warn-soft); border: 1px solid var(--warn-line); border-radius: 10px; padding: 8px 12px; }
+.order-foot { display: grid; gap: 8px; margin-top: 16px; }
+.order-foot details, .finding details { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+.order-foot summary, .finding summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.order-foot pre, .source-text pre { white-space: pre-wrap; word-break: break-word; background: var(--subtle); border: 1px solid var(--line); border-radius: 8px; padding: 10px; max-height: 420px; overflow: auto; }
+.order-foot pre.json { max-height: 320px; }
+.history-list { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 4px; font-size: 13px; }
+.history-list time { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 6px; }
+.filters { display: grid; gap: 6px; margin: 8px 0; }
+.filters input, .filters select { width: 100%; padding: 6px 8px; border: 1px solid var(--line-strong); border-radius: 6px; background: #fff; }
+.supervision table td { vertical-align: top; }
+.supervision .row, .ownership label { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 6px 0; }
+.viewing-as { display: grid; gap: 4px; font-size: 12px; color: var(--muted); margin: 0 8px 12px; }
+.viewing-as select { padding: 4px 6px; }
+.command-center .concept { font-size: 12px; color: var(--muted); border: 1px dashed var(--line-strong); border-radius: 8px; padding: 6px 10px; margin: 0 0 8px; }
+.command-center .kpis { padding: 0 0 12px; }
+.kpi.info b { color: var(--cobalt); }
+.segmented { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; margin-bottom: 12px; }
+.segmented button { border: 0; background: #fff; padding: 6px 14px; cursor: pointer; }
+.segmented button[aria-pressed="true"] { background: var(--cobalt); color: #fff; }
+.finding { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--line-strong); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+.finding.pending.high { border-left-color: var(--bad); } .finding.pending.medium { border-left-color: var(--warn); }
+.finding.verified { border-left-color: var(--ok); }
+.finding header { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.finding header h4 { margin: 0; flex: 1; font-size: 16px; }
+.finding h5 { margin: 12px 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.finding-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 16px; margin: 12px 0 0; }
+.finding-grid dt { font-size: 12px; color: var(--muted); } .finding-grid dd { margin: 0; }
+.evidence-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; font-size: 14px; }
+.tag { font-size: 11px; padding: 1px 6px; border-radius: 4px; background: #eef1f6; color: var(--info); margin-right: 4px; }
+.tag.outcome { background: var(--ok-soft); color: var(--ok); } .tag.human { background: var(--electric-soft); color: var(--cobalt); }
+.finding .next { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 12px; padding: 10px 12px; background: var(--subtle); border-radius: 8px; }
+.finding .verify { margin-top: 8px; }
+.ok-text { color: var(--ok); }
+@media (max-width: 720px) { .finding .next { flex-direction: column; align-items: flex-start; } }

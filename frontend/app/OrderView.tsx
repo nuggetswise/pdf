@@ -5,6 +5,8 @@ import { useAgent } from "./run/RunProvider";
 import { OrderPortal } from "./Portal";
 import { FulfilmentPanel } from "./Fulfilment";
 import { AgentWorkPanel } from "./ManualRoute";
+import { EmailEvidence, NotAnOrder, OrderActions, OrderChips, OrderHistory, Provenance, SourceText, TechnicalTrace } from "./OrderPanels";
+import { issueOwner } from "../lib/domain/command-center";
 import type { Action } from "../lib/server/run-action";
 import bundledReferenceJson from "../lib/domain/reference-data.v1.json";
 import { mergeReference } from "../lib/domain/onboarding";
@@ -167,11 +169,16 @@ function Onboard({ issue, docId, role, onRun, line, currency }: { issue: Issue; 
   return null;
 }
 
+const PEOPLE_BY_ACTOR: Record<string, string> = { "reviewer:rita": "Rita, order desk", "administrator:alex": "Alex, operations lead" };
+
 function IssueCard({ issue, onAct, role, focused, onFocus, onRun, docId, line, currency }: { issue: Issue; onAct?: Act;
   role: Role; focused: boolean; onFocus: () => void; onRun?: RunFn; docId: number; line?: Line; currency: string | null }) {
+  const owner = issueOwner(useAgent().state);
   const [reason, setReason] = useState("");
   const [value, setValue] = useState("");
   const [sku, setSku] = useState(issue.candidate_skus?.[0] ?? "");
+  const [date, setDate] = useState(issue.candidate_dates?.[0] ?? "");
+  const [shipTo, setShipTo] = useState(issue.candidate_ship_tos?.[0] ?? "");
   const [save, setSave] = useState(true);
   const [busy, setBusy] = useState(false);
   const resolved = issue.status === "resolved";
@@ -184,6 +191,8 @@ function IssueCard({ issue, onAct, role, focused, onFocus, onRun, docId, line, c
       if (action === "apply_mapping") params.save_for_future = save;
       if (action === "map_item") params.sku = sku;
       if (action === "change_quantity" || action === "correct_price") params.value = value;
+      if (action === "choose_date") { params.date = date; if (issue.field) params.field = issue.field; }
+      if (action === "choose_ship_to") params.ship_to_id = shipTo;
       await onAct(issue, action, reason, params);
     } finally {
       setBusy(false);
@@ -200,6 +209,7 @@ function IssueCard({ issue, onAct, role, focused, onFocus, onRun, docId, line, c
       <p>{issue.message}</p>
       <dl>
         <div><dt>Printed on PO</dt><dd>{issue.printed_value ?? "—"}</dd></div>
+        {!resolved && <div><dt>Owner</dt><dd>{owner ? PEOPLE_BY_ACTOR[owner] ?? owner : "Unassigned"}</dd></div>}
         <div><dt>Reference</dt><dd>{issue.reference_value ?? "—"}{issue.reference_version && <small> ({issue.reference_version})</small>}</dd></div>
         <div><dt>Proposed action</dt><dd>{issue.proposed_action ?? "Reviewer decides"}</dd></div>
         <div><dt>Who decided</dt><dd>{issue.resolution
@@ -221,10 +231,20 @@ function IssueCard({ issue, onAct, role, focused, onFocus, onRun, docId, line, c
               {issue.candidate_skus?.map((s) => <option key={s}>{s}</option>)}
             </select>
           )}
+          {issue.actions.includes("choose_date") && (issue.candidate_dates?.length
+            ? <select aria-label="Date" value={date} onChange={(e) => setDate(e.target.value)}>
+                {issue.candidate_dates.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+            : <input type="date" aria-label="Date" value={date} onChange={(e) => setDate(e.target.value)} />)}
+          {issue.actions.includes("choose_ship_to") && (
+            <select aria-label="Location" value={shipTo} onChange={(e) => setShipTo(e.target.value)}>
+              {issue.candidate_ship_tos?.map((l) => <option key={l} value={l}>{l}</option>)}
+            </select>
+          )}
           {issue.actions.includes("apply_mapping") && (
             <label className="check"><input type="checkbox" checked={save} onChange={(e) => setSave(e.target.checked)} /> Save for future matching orders (needs administrator activation)</label>
           )}
-          {issue.actions.some((a) => a !== "reject_order" && a !== "apply_mapping" && a !== "map_item") && (
+          {issue.actions.some((a) => !["reject_order", "apply_mapping", "map_item", "choose_date", "choose_ship_to"].includes(a)) && (
             <input aria-label="Reason" placeholder="Reason (recorded in the audit trail)" value={reason} onChange={(e) => setReason(e.target.value)} />
           )}
           <div className="btns">
@@ -291,6 +311,7 @@ export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight
           <h3>{v?.po_number ?? d.latest_version?.payload.header.po_number?.value ?? `Document #${d.document.id}`}
             {v?.customer_name && <span className="sub"> · {v.customer_name} ({v.customer_id ?? "unknown"})</span>}</h3>
         </div>
+        <OrderChips d={d} />
         <div className="pills">
           <Pill map={PROCESS_LABEL} value={d.document.status} prefix="Processing" />
           {o && <Pill map={REVIEW_LABEL} value={o.review_state} prefix="Approval" />}
@@ -300,13 +321,17 @@ export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight
       <Timeline d={d} />
       {d.latest_version && (
         <p className={`extractor ${isAi ? "ai" : "test"}`}>
-          {isAi ? `Read by AI: ${d.latest_version.payload.extractor.name}. Every value is checked against the PDF text.`
-            : `${d.latest_version.payload.extractor.name}. Rehearsal only; this is not AI extraction.`}
+          {isAi ? `Read by AI: ${d.latest_version.payload.extractor.name}. Every value is checked against the source text.`
+            : d.kind === "edi" ? `${d.latest_version.payload.extractor.name}. Values come from the EDI segments.`
+              : `${d.latest_version.payload.extractor.name}. Rehearsal only; this is not AI extraction.`}
         </p>
       )}
-      {d.document.status_detail && <div className={`alert ${d.document.status === "duplicate" ? "warn" : "bad"}`}>{d.document.status_detail}</div>}
+      <NotAnOrder d={d} role={role} onRun={onRun ?? (async () => {})} />
+      {!o && d.kind !== "pdf" && <SourceText d={d} />}
+      {d.document.status_detail && d.document.status !== "not_order" && <div className={`alert ${d.document.status === "duplicate" ? "warn" : "bad"}`}>{d.document.status_detail}</div>}
       {IN_FLIGHT.has(d.document.status) && <div className="alert info pulse">The agent is working on this order…</div>}
 
+      {o && onRun && <OrderActions d={d} role={role} onRun={onRun} />}
       {o && <AgentWorkPanel d={d} />}
       {o && (
         <div className="review-grid">
@@ -362,7 +387,7 @@ export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight
             </div>
             <OrderTerms d={d} onPick={(id) => setFocus({ issue: null, line: null, ids: new Set([id]) })} />
             {(o.erp_order_id || lastDelivery) && (
-              <section className={`erp ${o.delivery_state}`} aria-label="ERP record">
+              <section id="order-delivery" className={`erp ${o.delivery_state}`} aria-label="ERP record">
                 <div className="eyebrow">ERP simulator (local, not a live ERP)</div>
                 {o.erp_order_id ? <h3>ERP order {o.erp_order_id}</h3> : <h3>{DELIVERY_LABEL[o.delivery_state]?.[0]}</h3>}
                 <p className="muted small">Approved version {o.approvals.at(-1)?.version} by {o.approvals.at(-1)?.kind === "system" ? `system policy (${o.approvals.at(-1)?.policy_mode.replace("_", "-")})` : o.approvals.at(-1)?.actor.split(":")[1]}. Idempotency key {lastDelivery?.idempotency_key}.</p>
@@ -375,13 +400,19 @@ export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight
               </section>
             )}
           </div>
-          <SourcePanel d={d} focus={focus.ids} onPick={pickBox} />
+          {d.kind === "pdf" ? <SourcePanel d={d} focus={focus.ids} onPick={pickBox} /> : <SourceText d={d} />}
         </div>
       )}
+      <div className="order-foot">
+        <EmailEvidence d={d} />
+        {o && <Provenance d={d} />}
+        <OrderHistory d={d} />
+        <TechnicalTrace d={d} />
+      </div>
       {o?.delivery_state === "erp_created" && (
         <div className="ship-asn">
-          <FulfilmentPanel docId={d.document.id} role={role} />
-          <OrderPortal docId={d.document.id} role={role} />
+          <div id="order-stock"><FulfilmentPanel docId={d.document.id} role={role} /></div>
+          <div id="order-outbound"><OrderPortal docId={d.document.id} role={role} /></div>
         </div>
       )}
     </div>

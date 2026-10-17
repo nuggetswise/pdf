@@ -21,8 +21,14 @@ test("a user runs the order desk end to end", async ({ page }) => {
   // Administrator switches on Exception-only.
   await role("administrator");
   await page.getByRole("tab", { name: "Settings" }).click();
-  await page.getByLabel("Clean orders").selectOption("exception_only");
-  await expect(page.getByLabel("Clean orders")).toHaveValue("exception_only");
+  // D64: automatic processing needs a recorded reason.
+  await page.locator(".supervision > .row").getByRole("button", { name: "Change" }).click();
+  await page.getByLabel("Default supervision").selectOption("exception_only");
+  await page.locator(".supervision > .row").getByRole("button", { name: "Save" }).click();
+  await expect(page.locator(".alert.bad")).toContainText("Enter the reason for automatic processing");
+  await page.getByLabel("Reason for automatic processing").fill("Pilot evidence reviewed (fictional)");
+  await page.locator(".supervision > .row").getByRole("button", { name: "Save" }).click();
+  await expect(page.locator(".supervision > .row")).toContainText("Automatic when checks pass");
   await page.getByRole("tab", { name: "Orders" }).click();
 
   // A reviewer uploads a PDF; three exceptions are held, resolved, and the order goes to the ERP by itself.
@@ -70,7 +76,9 @@ test("a user runs the order desk end to end", async ({ page }) => {
 
   // Review-all: a clean order waits; one approval sends it; the ERP times out; a safe retry reconciles.
   await page.getByRole("tab", { name: "Settings" }).click();
-  await page.getByLabel("Clean orders").selectOption("review_all");
+  await page.locator(".supervision > .row").getByRole("button", { name: "Change" }).click();
+  await page.getByLabel("Default supervision").selectOption("review_all");
+  await page.locator(".supervision > .row").getByRole("button", { name: "Save" }).click();
   await page.getByLabel("ERP simulator next call").selectOption("timeout_next");
   await page.getByRole("tab", { name: "Orders" }).click();
   await upload("VIDEO-DEMO-005");
@@ -84,7 +92,7 @@ test("a user runs the order desk end to end", async ({ page }) => {
 
   // The same file again is a duplicate, not a second order.
   await upload("VIDEO-DEMO-005");
-  await expect(page.locator(".mail").first()).toContainText("Duplicate file");
+  await expect(page.locator(".mail").first()).toContainText("Duplicate");
   await page.getByRole("tab", { name: "ERP records" }).click();
   await expect(page.locator(".erp-card")).toHaveCount(3);
   await page.screenshot({ path: "../docs/screenshots/app-03-erp-records.png", fullPage: true });

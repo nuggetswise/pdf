@@ -90,7 +90,7 @@ export function detect(s: RunState, now: string): Condition[] {
           text: `${lineLabel(s, docId, l.lineIndex)}: ordered ${l.ordered}, free stock ${l.availableNow}, short ${l.short}` +
             (l.shortReadyOn ? `; more stock ${l.shortSource === "incoming" ? "expected" : "by lead time"} ${l.shortReadyOn}` : ""),
           source: `ERP stock check (simulated ERP), ${f.checkedOn}`, at: null })),
-        rule: { text: "Short stock waits for a person's decision before the retailer is told (short-stock rule: ask).", source: "Settings, Shipping (D61)" },
+        rule: { text: "Short stock waits for a person's decision before the retailer is told (short-stock rule: ask).", source: "Settings, ship dates and short stock" },
         deadline,
         priority: prioritise(now, deadline, f.shipBy, "the order confirmation to the retailer waits for this decision"),
         nextAction: { text: "Choose how to ship: hold and ship complete, ship now and backorder, or ship now and cancel the rest.", target: "stock" },
@@ -103,7 +103,7 @@ export function detect(s: RunState, now: string): Condition[] {
       out.push({ ...base, type: "erp_outcome", key: `erp_outcome:${docId}:v${o.currentVersion}`, visibility: "supplier", lines: [],
         observed: [{ kind: "observed", text: `Delivery ${o.deliveryState === "failed" ? "failed" : "outcome unknown"}: ${attempt?.detail ?? "no detail"}`,
           source: `Delivery attempt ${attempt?.id ?? "?"} (idempotency key ${attempt?.idempotencyKey ?? "?"})`, at: attempt?.updatedAt ?? null }],
-        rule: { text: "An approved order is in the ERP only when the ERP holds a record for its idempotency key.", source: "Delivery rules (D23)" },
+        rule: { text: "An approved order is in the ERP only when the ERP holds a record for its idempotency key.", source: "ERP delivery rules" },
         deadline: null,
         priority: prioritise(now, null, o.fulfilment?.shipBy ?? null, "the order is approved but not confirmed in the ERP"),
         nextAction: { text: "Retry delivery. The agent checks the ERP for this order before sending it again.", target: "delivery" },
@@ -121,7 +121,7 @@ export function detect(s: RunState, now: string): Condition[] {
       out.push({ ...base, type: "retailer_message", key: `retailer_message:${m.id}`, visibility: "supplier", lines: [],
         observed: [{ kind: "observed", text: `${m.kind} ${m.sourceId}: ${m.status}${last ? `, ${last.detail}` : ""}`,
           source: `Trading Grid outbox (simulated), message ${m.id}`, at: last?.at ?? m.createdAt }],
-        rule: { text: "A retailer document counts as sent only when the outbox holds it.", source: "Outbound delivery rules (D45)" },
+        rule: { text: "A retailer document counts as sent only when the outbox holds it.", source: "Outbound delivery rules" },
         deadline: null,
         priority: prioritise(now, null, o.fulfilment?.shipBy ?? null, "the retailer has not received this document"),
         nextAction: { text: m.attempts.some((a) => a.outcome === "held") ? "Fix the EDI setup named in the hold, then retry." : "Retry the delivery.", target: "outbound" },
@@ -130,7 +130,9 @@ export function detect(s: RunState, now: string): Condition[] {
     }
     // A delivered confirmation that changes what or when the retailer receives. Shared: it rests on a document
     // the retailer already holds. Only the retailer's response verifies it; sending it does not.
-    if (m.kind === "ORDRSP" && m.status === "delivered" && o.fulfilment?.status === "confirmed" && m === firstOrdrsp(s, m.documentId)) {
+    // Once the retailer accepts, the change is agreed and the condition no longer holds.
+    const accepted = (s.portal?.retailerResponses ?? []).some((r) => r.messageId === m.id && r.decision === "accepted");
+    if (m.kind === "ORDRSP" && m.status === "delivered" && o.fulfilment?.status === "confirmed" && m === firstOrdrsp(s, m.documentId) && !accepted) {
       const changed = o.fulfilment.parts.filter((p) => p.kind !== "now"
         || (o.fulfilment!.shipBy !== null && p.shipOn !== null && p.shipOn > o.fulfilment!.shipBy));
       if (changed.length) {
@@ -139,7 +141,7 @@ export function detect(s: RunState, now: string): Condition[] {
           observed: changed.map((p): Evidence => ({ kind: "observed",
             text: `${lineLabel(s, m.documentId, p.lineIndex)}: ${p.quantity} ${p.kind === "now" ? `ships ${p.shipOn} (after the PO's dates)` : p.kind === "backorder" ? `backordered to ${p.shipOn}` : "will not ship"}`,
             source: `Order confirmation ${m.sourceId} delivered as ${m.receiverRef}`, at: m.updatedAt })),
-          rule: { text: "A confirmation that ships less or later than the PO asked is a change the buyer must accept.", source: "Order confirmation rules (D61)" },
+          rule: { text: "A confirmation that ships less or later than the PO asked is a change the buyer must accept.", source: "Order confirmation rules" },
           deadline: null,
           priority: prioritise(now, null, null, null),
           nextAction: { text: "Retailer buyer: accept or decline the revised quantities and dates.", target: "retailer_response" },
@@ -184,7 +186,7 @@ function actionAndOutcome(s: RunState, f: Finding): { action: Evidence | null; o
   // revised_delivery
   const id = Number.parseInt(f.key.split(":")[1], 10);
   const resp = [...(s.portal?.retailerResponses ?? [])].reverse().find((r) => r.messageId === id);
-  const action = resp ? { kind: "human" as const, text: `Retailer ${resp.decision} the revision`, source: `Recorded by ${resp.by} in the retailer view (simulated retailer)`, at: resp.at } : null;
+  const action = resp ? { kind: "human" as const, text: `Retailer ${resp.decision} the revision (simulated retailer view)`, source: `Recorded by ${resp.by}`, at: resp.at } : null;
   const outcome: Evidence[] = resp?.decision === "accepted" ? [{ kind: "outcome", text: "Retailer accepted the revised quantities and dates", source: "Retailer response record", at: resp.at }] : [];
   const next = resp?.decision === "declined"
     ? { text: "Supplier: agree a new plan with the buyer, then send a changed confirmation from the order.", target: "stock" as const } : undefined;
@@ -204,6 +206,9 @@ export function reconcileFindings(state: RunState, clock: Clock = systemClock): 
   const open = (key: string) => cc.findings.find((f) => f.key === key && f.verification.status === "pending");
   for (const c of conds) {
     const f = open(c.key);
+    // A verified finding stands while the same condition is still in the records (no second finding for it).
+    const settled = cc.findings.some((x) => x.key === c.key && x.verification.status === "verified" && sameObserved(x.observed, c.observed));
+    if (!f && settled) continue;
     if (!f) {
       const configured = cc.ownership[c.type] ?? (c.type === "revised_delivery" && c.customerId ? retailerActor(c.customerId) : null);
       cc.findings.push({ ...c, id: nextId(), detectedAt: now, observedAt: now, conditionActive: true,
@@ -270,8 +275,8 @@ export function assignFinding(state: RunState, findingId: number, actor: string 
   return s;
 }
 
-/** The default owner for new findings of a type (administrator). */
-export function setFindingOwnership(state: RunState, type: FindingType, actor: string | null, who: Who): RunState {
+/** The default owner for new findings of a type, or for order review issues ("order_review"), set by an administrator. */
+export function setFindingOwnership(state: RunState, type: FindingType | "order_review", actor: string | null, who: Who): RunState {
   if (who.role !== "administrator") throw new Forbidden("Only an administrator can change ownership");
   if (actor !== null && !(SUPPLIER_OWNERS as readonly string[]).includes(actor)) throw new Conflict("Unknown owner");
   const s = structuredClone(state);
@@ -298,6 +303,9 @@ export function respondToRevision(state: RunState, messageId: number, customerId
     event: `retailer_revision_${decision}`, actor: retailerActor(customerId), detail: { message_id: messageId }, createdAt: now });
   return s;
 }
+
+/** Who owns an order's open review issues: the configured owner, else Unassigned. */
+export const issueOwner = (s: RunState): string | null => s.commandCenter?.ownership.order_review ?? null;
 
 // ---------- access ----------
 

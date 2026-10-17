@@ -104,15 +104,27 @@ export function applyChecks(out: { order: Order; issues: Issue[] }, ctx: CheckCo
 
   // ---- D65 a value found in the source but on another line than the one it was read for ----
   const rows = pages.flatMap((p, i) => p.split(/\r\n|[\n\r]/).map((t) => ({ page: i + 1, t: squash(t) })));
+  const idOf = (line: ExtractionPayload["lines"][number]) =>
+    [line.gtin, line.customer_item_code, line.supplier_sku].find((f) => f?.value && f.evidence_verified)?.value ?? null;
+  const ids = payload.lines.map(idOf);
+  // A value counts as on its line when it appears as a whole number or amount on the identifier's row or on the
+  // next two rows, stopping at a row that carries another line's identifier.
+  const hasToken = (row: string, v: string) => new RegExp(`(?<![\\d.,])${squash(v).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\d]|[.,]\\d)`).test(row);
   payload.lines.forEach((line, idx) => {
-    const id = [line.gtin, line.customer_item_code, line.supplier_sku].find((f) => f?.value && f.evidence_verified)?.value;
+    const id = ids[idx];
     if (!id) return;
+    const others = ids.filter((x, j) => x && j !== idx && x !== id).map((x) => squash(x!));
     const at = rows.map((r, i) => (r.t.includes(squash(id)) ? i : -1)).filter((i) => i >= 0);
     if (!at.length) return;
+    const windowOf = (i: number) => {
+      const w = [rows[i]];
+      for (let j = i + 1; j < Math.min(rows.length, i + 3) && !others.some((o) => rows[j].t.includes(o)); j++) w.push(rows[j]);
+      return w;
+    };
     for (const name of ["quantity", "unit_price"] as const) {
       const f = line[name];
       if (!f?.value || !f.evidence_verified) continue;
-      const near = at.some((i) => rows.slice(i, i + 3).some((r) => r.t.includes(squash(f.value!))));
+      const near = at.some((i) => windowOf(i).some((r) => hasToken(r.t, f.value!)));
       if (near) continue;
       out.issues.push(newIssue("value_not_on_line", `value_not_on_line:${idx}:${name}`,
         `Line ${line.source_line_id.value ?? idx + 1}: ${name.replace("_", " ")} '${f.value}' was found in the source, but not on the row for item ${id}.`,

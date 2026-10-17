@@ -81,10 +81,14 @@ export function SupplierToday({ role, onOpen }: { role: Role; onOpen: (docId: nu
 }
 
 /** Retailer view: standard EDI arriving from a supplier who never left email. */
-export function RetailerInbox() {
+/** D66: a retailer sees only documents for its own orders. */
+const forRetailer = (s: RunState, customerId: string | null) => (m: { documentId: number }) =>
+  s.orders.find((o) => o.documentId === m.documentId)?.customerId === customerId;
+
+export function RetailerInbox({ customerId }: { customerId: string | null }) {
   const agent = useAgent();
   const s = agent.ready ? agent.state : null;
-  const msgs = s ? [...(s.portal?.outbound ?? [])].filter((m) => m.channel === "retailer_edi_outbox").sort((a, b) => b.id - a.id) : [];
+  const msgs = s ? [...(s.portal?.outbound ?? [])].filter((m) => m.channel === "retailer_edi_outbox").filter(forRetailer(s, customerId)).sort((a, b) => b.id - a.id) : [];
   return (
     <section className="panel" aria-label="Documents received">
       <header className="panel-head"><h3>Documents received</h3><span className="count">{msgs.length}</span></header>
@@ -94,10 +98,10 @@ export function RetailerInbox() {
   );
 }
 
-export function RetailerSuppliers() {
+export function RetailerSuppliers({ customerId }: { customerId: string | null }) {
   const agent = useAgent();
   const s = agent.ready ? agent.state : null;
-  const msgs = (s?.portal?.outbound ?? []).filter((m) => m.channel === "retailer_edi_outbox");
+  const msgs = s ? (s.portal?.outbound ?? []).filter((m) => m.channel === "retailer_edi_outbox").filter(forRetailer(s, customerId)) : [];
   const orders = s?.orders ?? [];
   const untouched = orders.filter((o) => o.deliveryState === "erp_created" && o.validation.issues.length === 0).length;
   const supplier = s?.portal?.supplier?.name ?? "Fictional demo supplier";

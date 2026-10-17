@@ -30,12 +30,25 @@ export const ACTION_LABEL: Record<string, string> = {
   acknowledge_total_difference: "Acknowledge difference",
   accept_as_revision: "Accept as revision",
   reject_order: "Reject order",
+  choose_date: "Use this date",
+  choose_ship_to: "Use this location",
+};
+export const REJECT_REASON_LABEL: Record<string, string> = {
+  not_an_order: "Not an order", duplicate: "Duplicate order", wrong_supplier: "Sent to the wrong supplier",
+  customer_cancelled: "Customer cancelled", cannot_supply: "Cannot supply", other: "Other",
+};
+export const HOLD_REASON_LABEL: Record<string, string> = {
+  checking_with_buyer: "Checking with the buyer", pricing_review: "Pricing review", stock_review: "Stock review",
+  credit_review: "Credit review", other: "Other",
+};
+export const CHANNEL_LABEL: Record<string, string> = {
+  email_attachment: "Email attachment", email_body: "Email text", upload: "Uploaded file", edi: "EDI (X12 850)",
 };
 
 export const REVIEW_LABEL: Record<string, [string, string]> = {
   validating: ["Validating", "info"], needs_review: ["Needs review", "warn"], ready: ["Waiting for approval", "warn"],
   approved: ["Approved", "ok"], rejected: ["Rejected", "bad"], awaiting_customer: ["Waiting on customer", "warn"],
-  amendment_held: ["Amendment held", "warn"],
+  amendment_held: ["Amendment held", "warn"], on_hold: ["On hold (internal)", "warn"],
 };
 export const DELIVERY_LABEL: Record<string, [string, string]> = {
   not_started: ["Not sent", "muted"], queued: ["Queued", "info"], submitting: ["Submitting", "info"],
@@ -47,7 +60,7 @@ export const PROCESS_LABEL: Record<string, [string, string]> = {
   ready_for_approval: ["Checked", "ok"], approved: ["Checked", "ok"], rejected: ["Checked", "ok"],
   awaiting_customer: ["Checked", "ok"], extraction_unavailable: ["Extraction unavailable", "warn"],
   extraction_failed: ["Extraction failed", "bad"], unsupported: ["Unsupported (no text)", "bad"],
-  duplicate: ["Duplicate file", "warn"],
+  duplicate: ["Duplicate file", "warn"], not_order: ["Not an order", "muted"], on_hold: ["Checked", "ok"],
 };
 export const IN_FLIGHT = new Set(["received", "extracting", "extracted", "matching", "validating"]);
-export const STOPPED = new Set(["extraction_unavailable", "extraction_failed", "unsupported", "duplicate"]);
+export const STOPPED = new Set(["extraction_unavailable", "extraction_failed", "unsupported", "duplicate", "not_order"]);

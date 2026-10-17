@@ -1,13 +1,19 @@
 "use client";
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { showDate } from "../lib/domain/dates";
 import { freeStock, fulfilmentSettings, reserved, stockOf } from "../lib/domain/fulfilment";
-import { documentDetail, documentsList, erpOrdersList, rulesList } from "../lib/domain/selectors";
-import { Health, Issue, PROCESS_LABEL, Role } from "./api";
+import { type DocSummary, documentDetail, documentsList, erpOrdersList, rulesList } from "../lib/domain/selectors";
+import { CHANNEL_LABEL, Health, Issue, PROCESS_LABEL, Role } from "./api";
 import { OrderView } from "./OrderView";
 import { EdiSetting } from "./Portal";
 import { useAgent } from "./run/RunProvider";
+import { FINDING_TITLE, SUPPLIER_OWNERS } from "../lib/domain/command-center";
+import { mergeReference } from "../lib/domain/onboarding";
+import type { Channel } from "../lib/domain/run-state";
+import type { Reference } from "../lib/domain/validation";
+import bundledReferenceJson from "../lib/domain/reference-data.v1.json";
+const bundledReference = bundledReferenceJson as unknown as Reference;
 
 const who = (actor: string | null) => (actor ? actor.split(":")[1] ?? actor : "—");
 
@@ -164,49 +170,127 @@ export function ErpView({ role }: { role: Role }) {
   );
 }
 
-export function Workspace({ role, focus = null }: { role: Role; focus?: number | null }) {
+type Outcome = "needs_decision" | "waiting" | "in_erp" | "on_hold" | "rejected" | "not_order" | "duplicate" | "failed" | "in_progress";
+const OUTCOME_LABEL: Record<Outcome, [string, string]> = {
+  needs_decision: ["Needs a decision", "warn"], waiting: ["Waiting for approval", "warn"], in_erp: ["In ERP", "ok"],
+  on_hold: ["On hold", "warn"], rejected: ["Rejected", "muted"], not_order: ["Not an order", "muted"], duplicate: ["Duplicate", "muted"],
+  failed: ["Failed", "bad"], in_progress: ["In progress", "info"],
+};
+function outcomeOf(d: DocSummary, delivery: string | undefined): Outcome {
+  if (d.status === "not_order") return "not_order";
+  if (d.status === "duplicate") return "duplicate";
+  if (["extraction_failed", "extraction_unavailable", "unsupported"].includes(d.status)) return "failed";
+  if (delivery === "erp_created") return "in_erp";
+  if (delivery === "failed" || delivery === "unknown") return "failed";
+  if (d.review_state === "on_hold") return "on_hold";
+  if (d.review_state === "rejected") return "rejected";
+  if ((d.open_issues ?? 0) > 0) return "needs_decision";
+  if (d.review_state === "ready") return "waiting";
+  return "in_progress";
+}
+/** In-flight and extraction states keep their processing label (Reading PDF, Extraction failed). */
+function OutcomePill({ outcome, status }: { outcome: Outcome; status: string }) {
+  const useProcess = outcome === "in_progress" || ["extraction_failed", "extraction_unavailable", "unsupported"].includes(status);
+  const [label, tone] = (useProcess ? PROCESS_LABEL[status] : null) ?? OUTCOME_LABEL[outcome];
+  return <span className={`pill ${tone}`}>{label}</span>;
+}
+const AGES: Record<string, [string, number]> = { "": ["Any age", Infinity], h1: ["Last hour", 1], d1: ["Last 24 hours", 24], old: ["Older than 24 hours", -24] };
+
+export function Workspace({ role, focus = null, section = null }: { role: Role; focus?: number | null; section?: string | null }) {
   const agent = useAgent();
   const docs = agent.ready ? documentsList(agent.state) : null;
   const [selected, setSelected] = useState<number | null>(focus);
   const detail = selected === null ? null : documentDetail(agent.state, selected);
   const [error, setError] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const [partner, setPartner] = useState("");
+  const [issue, setIssue] = useState("");
+  const [age, setAge] = useState("");
+  const [status, setStatus] = useState("");
+  useEffect(() => {
+    if (!section) return;
+    const t = setTimeout(() => document.getElementById(`order-${section}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    return () => clearTimeout(t);
+  }, [section, selected]);
 
   async function wrap(f: () => Promise<unknown>) {
     try { await f(); setError(null); } catch (e) { setError((e as Error).message); }
   }
-  /** A dropped or chosen file: a PDF goes in directly, an .eml is read as a forwarded email. */
+  /** A dropped or chosen file: a PDF or an EDI file goes in directly, an .eml is read as a forwarded email. */
   const addFile = (f: File) => wrap(async () => {
     const bytes = new Uint8Array(await f.arrayBuffer());
-    const isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name) || new TextDecoder().decode(bytes.slice(0, 5)) === "%PDF-";
-    const ids = isPdf ? await agent.uploadPdf(bytes, f.name) : await agent.importEml(bytes);
+    const head = new TextDecoder().decode(bytes.slice(0, 5));
+    const isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name) || head === "%PDF-";
+    const isEdi = /\.(x12|edi|850)$/i.test(f.name) || head.startsWith("ISA");
+    const ids = isPdf || isEdi ? await agent.uploadPdf(bytes, f.name) : await agent.importEml(bytes);
     setSelected(ids[0]);
   });
   const act = async (issue: Issue, action: string, reason: string, params: Record<string, unknown>) =>
     wrap(() => agent.run({ type: "decide", role, docId: selected!, issueKey: issue.key, action: action as never,
       reason: reason || null, params }));
 
+  const delivery = (id: number) => agent.state.orders.find((o) => o.documentId === id)?.deliveryState;
+  const now = Date.now();
+  const needle = q.trim().toLowerCase();
+  const rows = (docs ?? []).map((d) => ({ d, outcome: outcomeOf(d, delivery(d.id)) })).filter(({ d, outcome }) => {
+    if (needle && ![d.sender, d.subject_metadata, d.original_filename, d.body_text, d.po_number, ...(d.attachment_names ?? [])]
+      .some((t) => t?.toLowerCase().includes(needle))) return false;
+    if (partner && d.customer_id !== partner) return false;
+    if (issue && !(d.issue_codes ?? []).includes(issue)) return false;
+    if (status && outcome !== status) return false;
+    if (age) {
+      const hours = (now - Date.parse(d.received_at && !Number.isNaN(Date.parse(d.received_at)) ? d.received_at : d.created_at)) / 3_600_000;
+      const limit = AGES[age][1];
+      if (limit > 0 ? hours > limit : hours <= -limit) return false;
+    }
+    return true;
+  });
+  const partners = [...new Set((docs ?? []).map((d) => d.customer_id).filter(Boolean))] as string[];
+  const codes = [...new Set((docs ?? []).flatMap((d) => d.issue_codes ?? []))];
+  const filtered = needle || partner || issue || age || status;
+
   return (
     <div className="workspace">
       <aside className="inbox" aria-label="Inbox" onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) addFile(f); }}>
-        <h3>Inbox</h3>
+        <h3>Intake</h3>
         <label className="dropzone">
-          <input type="file" accept=".pdf,application/pdf,.eml,message/rfc822" aria-label="Upload a purchase order"
+          <input type="file" accept=".pdf,application/pdf,.eml,message/rfc822,.x12,.edi,.850" aria-label="Upload a purchase order"
             onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) addFile(f); }} />
-          <b>Upload a purchase order</b>
-          <span className="muted small">PDF, or a forwarded email (.eml) with the PDF attached. Drop it here or click to choose. The file is read in your browser; the AI reads the PDF itself, in any layout.</span>
+          <b>Add an order</b>
+          <span className="muted small">PDF, forwarded email (.eml) or X12 850 file. Files are read in this browser.</span>
         </label>
-        {docs?.length === 0 && <p className="placeholder">No orders yet. Upload a PDF purchase order to start.</p>}
-        {docs?.map((d) => (
+        {docs && docs.length > 0 && (
+          <div className="filters" aria-label="Filter intake">
+            <input type="search" aria-label="Search intake" placeholder="Search sender, subject, text, file, PO" value={q} onChange={(e) => setQ(e.target.value)} />
+            <select aria-label="Partner" value={partner} onChange={(e) => setPartner(e.target.value)}>
+              <option value="">All partners</option>{partners.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+            <select aria-label="Issue" value={issue} onChange={(e) => setIssue(e.target.value)}>
+              <option value="">All issues</option>{codes.map((c) => <option key={c} value={c}>{c.replace(/_/g, " ")}</option>)}
+            </select>
+            <select aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="">All outcomes</option>{Object.entries(OUTCOME_LABEL).map(([k, [l]]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+            <select aria-label="Age" value={age} onChange={(e) => setAge(e.target.value)}>
+              {Object.entries(AGES).map(([k, [l]]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+          </div>
+        )}
+        {docs?.length === 0 && <p className="placeholder">No orders yet. Add a PDF, forwarded email or EDI file to start.</p>}
+        {filtered && <p className="muted small">{rows.length} of {docs?.length ?? 0} messages</p>}
+        {rows.map(({ d, outcome }) => (
           <button key={d.id} className={`mail ${selected === d.id ? "active" : ""}`} onClick={() => setSelected(d.id)}>
-            <span className="from">{d.subject_metadata?.replace(/^Fwd: /, "").replace(" [FICTIONAL TEST DATA]", "") ?? d.original_filename}</span>
-            <span className="meta"><span>{d.sender}</span><span className={`pill ${PROCESS_LABEL[d.status]?.[1] ?? "info"}`}>{PROCESS_LABEL[d.status]?.[0] ?? d.status}</span></span>
+            <span className="from">{d.subject_metadata?.replace(/^Fwd: /, "").replace(" [FICTIONAL TEST DATA]", "") ?? d.original_filename ?? "Email text"}
+              {d.subject_metadata && d.original_filename && (d.attachment_names?.length ?? 0) > 1 && <small className="muted"> · {d.original_filename}</small>}</span>
+            <span className="meta"><span>{d.po_number ? `PO ${d.po_number}` : d.sender ?? CHANNEL_LABEL[d.channel ?? "upload"]}</span>
+              <OutcomePill outcome={outcome} status={d.status} /></span>
           </button>
         ))}
       </aside>
       <section className="main">
         {error && <div className="alert bad" role="alert">{error}</div>}
-        {!detail ? <div className="placeholder">Upload a purchase order or select one from the inbox.</div> : (
+        {!detail ? <div className="placeholder">Add an order or select a message.</div> : (
           <>
             {detail.document.status === "extraction_failed" || detail.document.status === "extraction_unavailable" ? (
               <button onClick={() => wrap(() => agent.retryExtraction(detail.document.id))}>Retry extraction</button>
@@ -246,12 +330,8 @@ function AdminSettings({ health, onError }: { health: Health; onError: (e: strin
   return (
     <div className="admin">
       <h3>Administrator settings</h3>
-      <label>When an order passes every check
-        <select aria-label="Clean orders" value={health.policy.mode} onChange={(e) => go(() => agent.run({ type: "setPolicy", role: "administrator", mode: e.target.value }))}>
-          <option value="review_all">Wait for a person to approve it</option>
-          <option value="exception_only">Put it in the ERP automatically</option>
-        </select>
-      </label>
+      <Supervision health={health} onError={onError} />
+      <Ownership onError={onError} />
       <EdiSetting onError={onError} />
       <ShippingSettings onError={onError} />
       {test && <>
@@ -273,6 +353,94 @@ function AdminSettings({ health, onError }: { health: Health; onError: (e: strin
       }}>Clear this tab</button>
       </>}
     </div>
+  );
+}
+
+const ROUTES: Channel[] = ["email_attachment", "email_body", "upload", "edi"];
+const MODE_LABEL: Record<string, string> = { review_all: "Supervised", exception_only: "Automatic when checks pass" };
+
+/** D64: supervision per retailer and route. Automatic needs an administrator and a recorded reason. Blocking issues
+ *  stop an order in both modes. */
+function Supervision({ health, onError }: { health: Health; onError: (e: string | null) => void }) {
+  const agent = useAgent();
+  const s = agent.state;
+  const customers = mergeReference((s.settings.referenceData as unknown as Reference | null) ?? bundledReference, s.referenceOverlay).customers;
+  const [edit, setEdit] = useState<{ customerId: string | null; channel: Channel | null; mode: string; reason: string } | null>(null);
+  const route = (c: string, ch: Channel) => [...s.policyHistory].reverse().find((p) => p.customerId === c && p.channel === ch);
+  const save = async () => {
+    if (!edit) return;
+    try {
+      await agent.run(edit.customerId && edit.channel
+        ? { type: "setRoutePolicy", role: "administrator", customerId: edit.customerId, channel: edit.channel, mode: edit.mode as "review_all", reason: edit.reason || null }
+        : { type: "setPolicy", role: "administrator", mode: edit.mode, reason: edit.reason || null });
+      onError(null); setEdit(null);
+    } catch (e) { onError((e as Error).message); }
+  };
+  const editor = (customerId: string | null, channel: Channel | null, mode: string) => (
+    edit && edit.customerId === customerId && edit.channel === channel ? (
+      <div className="row">
+        <select aria-label={customerId ? `Supervision ${customerId} ${channel}` : "Default supervision"} value={edit.mode}
+          onChange={(e) => setEdit({ ...edit, mode: e.target.value })}>
+          <option value="review_all">{MODE_LABEL.review_all}</option><option value="exception_only">{MODE_LABEL.exception_only}</option>
+        </select>
+        {edit.mode === "exception_only" && <input aria-label="Reason for automatic processing" placeholder="Reason (required)" value={edit.reason}
+          onChange={(e) => setEdit({ ...edit, reason: e.target.value })} />}
+        <button className="primary tiny" onClick={save}>Save</button>
+        <button className="ghost tiny" onClick={() => setEdit(null)}>Cancel</button>
+      </div>
+    ) : <button className="ghost tiny" onClick={() => setEdit({ customerId, channel, mode, reason: "" })}>Change</button>
+  );
+  return (
+    <fieldset className="supervision">
+      <legend>Supervision</legend>
+      <p className="muted small">Supervised orders wait for approval. Automatic orders go to the ERP when every check passes. Blocking issues stop an order in both modes.</p>
+      <div className="row"><b>Default for routes without a setting:</b> <span>{MODE_LABEL[health.policy.mode]}</span>
+        {editor(null, null, health.policy.mode)}</div>
+      <div className="scroll">
+        <table className="lines">
+          <thead><tr><th>Retailer</th><th>Route</th><th>Mode</th><th>Reason</th><th></th></tr></thead>
+          <tbody>{customers.flatMap((c) => ROUTES.map((ch) => {
+            const p = route(c.customer_id, ch);
+            return (
+              <tr key={`${c.customer_id}:${ch}`}>
+                <td>{c.name}<div className="muted small">{c.customer_id}</div></td>
+                <td>{CHANNEL_LABEL[ch]}</td>
+                <td>{p ? MODE_LABEL[p.mode] : `${MODE_LABEL[health.policy.mode]} (default)`}</td>
+                <td className="small">{p?.reason ? `${p.reason} · ${who(p.setBy)}` : "—"}</td>
+                <td>{editor(c.customer_id, ch, p?.mode ?? health.policy.mode)}</td>
+              </tr>
+            );
+          }))}</tbody>
+        </table>
+      </div>
+    </fieldset>
+  );
+}
+
+const OWNED: [string, string][] = [["order_review", "Order review issues"], ["stock_short", FINDING_TITLE.stock_short],
+  ["erp_outcome", FINDING_TITLE.erp_outcome], ["retailer_message", FINDING_TITLE.retailer_message]];
+const OWNER_LABEL: Record<string, string> = { "reviewer:rita": "Rita, order desk", "administrator:alex": "Alex, operations lead" };
+
+/** Default owner per issue and finding type. Unset means Unassigned. */
+function Ownership({ onError }: { onError: (e: string | null) => void }) {
+  const agent = useAgent();
+  const own = agent.state.commandCenter?.ownership ?? {};
+  return (
+    <fieldset className="ownership">
+      <legend>Ownership</legend>
+      <p className="muted small">New issues and findings of each type are assigned to this owner.</p>
+      {OWNED.map(([k, label]) => (
+        <label key={k}>{label}
+          <select aria-label={`Owner for ${label}`} value={own[k] ?? ""} onChange={async (e) => {
+            try { await agent.run({ type: "setFindingOwnership", role: "administrator", findingType: k as never, owner: e.target.value || null }); onError(null); }
+            catch (err) { onError((err as Error).message); }
+          }}>
+            <option value="">Unassigned</option>
+            {SUPPLIER_OWNERS.map((o) => <option key={o} value={o}>{OWNER_LABEL[o]}</option>)}
+          </select>
+        </label>
+      ))}
+    </fieldset>
   );
 }
 

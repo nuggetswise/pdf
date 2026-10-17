@@ -78,7 +78,7 @@ export const Action = z.discriminatedUnion("type", [
     mode: z.enum(["review_all", "exception_only"]), reason: shortText.nullable().optional() }),
   // D66, D67: proposed Command Center.
   z.strictObject({ type: z.literal("assignFinding"), role: Role, findingId: docId, owner: z.string().max(200).nullable() }),
-  z.strictObject({ type: z.literal("setFindingOwnership"), role: Role, findingType: FindingType, owner: z.string().max(200).nullable() }),
+  z.strictObject({ type: z.literal("setFindingOwnership"), role: Role, findingType: z.union([FindingType, z.literal("order_review")]), owner: z.string().max(200).nullable() }),
   z.strictObject({ type: z.literal("respondToRevision"), messageId: docId, customerId: z.string().min(1).max(200),
     decision: z.enum(["accepted", "declined"]) }),
   z.strictObject({ type: z.literal("approve"), role: Role, docId }),

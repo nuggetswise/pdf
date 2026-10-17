@@ -16,14 +16,18 @@ const py = readModels as unknown as Record<string, unknown> & {
 };
 const run = replayGuidedDemo();
 const ts = <T>(v: T) => maskTimes(v);
+// D62-D64 read fields (source kind, route, supervision, hold, email text) are TypeScript-only; the Python endpoints had none.
+const SUMMARY_EXTRA = ["kind", "channel", "customer_id", "po_number", "review_state", "open_issues", "issue_codes", "body_text", "attachment_names"];
+const withoutExtra = (row: Record<string, unknown>, keys: string[]) => Object.fromEntries(Object.entries(row).filter(([k]) => !keys.includes(k)));
 
 describe("selectors give what the Python read endpoints gave", () => {
-  it("GET /api/documents", () => expect(ts(documentsList(run))).toStrictEqual(py.documents));
+  it("GET /api/documents", () => expect(ts(documentsList(run).map((d) => withoutExtra(d, SUMMARY_EXTRA)))).toStrictEqual(py.documents));
 
   for (const id of Object.keys(py.document)) {
     it(`GET /api/documents/${id} and its /text`, () => {
-      const { pages, ...detail } = documentDetail(run, Number(id))!;
-      expect(ts(detail)).toStrictEqual(py.document[id]);
+      const { pages, kind: _k, classification: _c, channel: _ch, supervision: _s, hold: _h, ...detail } = documentDetail(run, Number(id))!;
+      const envelope = withoutExtra(detail.envelope, ["body_text", "attachments"]);
+      expect(ts({ ...detail, envelope })).toStrictEqual(py.document[id]);
       expect(pages).toStrictEqual(py.text[id].pages);
     });
   }
