@@ -128,6 +128,10 @@ export async function intakeUpload(pdf: Uint8Array, filename: string | null, fie
   };
 }
 
+/** The supplier's own intake address (fictional). In production a supplier sets one auto-forward rule on the mailbox
+ *  that receives retailer purchase orders, to this address; retailers can also send to it directly. */
+export const INTAKE_ADDRESS = "northernfoods-7k2p@orders.tradinggrid.example";
+
 /** The two fictional Maple emails the test environment can receive, served from public/samples/. Any other name is refused. */
 export const SAMPLE_EMAILS = ["PO-2026-104620", "PO-2026-104633"] as const;
 export type SampleEmail = (typeof SAMPLE_EMAILS)[number];

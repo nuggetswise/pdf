@@ -41,7 +41,7 @@ async function intake(PACK: string, s: RunState, got: Intake, aiOutput?: string)
       next = rec.state;
       continue;
     }
-    const out = await extractPages(doc.pageText, { rehearsal: true, config: loadExtractionConfig({}), kind: doc.kind ?? "pdf" });
+    const out = await extractPages(doc.pageText, { testReader: true, config: loadExtractionConfig({}), kind: doc.kind ?? "pdf" });
     const rec = applyAction(next, out.ok
       ? { type: "recordExtraction", docId, payload: out.payload, ...(out.classification ? { classification: out.classification } : {}) }
       : { type: "failExtraction", docId, kind: out.status, detail: out.detail });

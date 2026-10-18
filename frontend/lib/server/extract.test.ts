@@ -79,7 +79,7 @@ describe("Gemini adapter", () => {
 
   it("gives up after four timeouts and says the service is busy", async () => {
     const g = fakeGemini([timeout(), timeout(), timeout(), timeout()]);
-    const out = await extractPages(PAGES, { rehearsal: false, config, deps: g.deps });
+    const out = await extractPages(PAGES, { testReader: false, config, deps: g.deps });
     expect(out).toStrictEqual({ ok: false, status: "extraction_failed",
       detail: "Extraction failed (the AI service is busy). Use Retry extraction." });
   });
@@ -91,7 +91,7 @@ describe("Gemini adapter", () => {
     [[new TypeError("fetch failed")], "Gemini could not be reached"],
   ])("reports other failures by status only: %#", async (answers, reason) => {
     const g = fakeGemini(answers as Response[]);
-    const out = await extractPages(PAGES, { rehearsal: false, config, deps: g.deps });
+    const out = await extractPages(PAGES, { testReader: false, config, deps: g.deps });
     expect(out).toStrictEqual({ ok: false, status: "extraction_failed", detail: `Extraction failed (${reason}). Use Retry extraction.` });
   });
 });
@@ -99,7 +99,7 @@ describe("Gemini adapter", () => {
 describe("extraction on the server", () => {
   it("verifies every model value against the page text and flags what is not there", async () => {
     const g = fakeGemini([ok(MODEL_ANSWER)]);
-    const out = await extractPages(PAGES, { rehearsal: false, config, deps: g.deps });
+    const out = await extractPages(PAGES, { testReader: false, config, deps: g.deps });
     if (!out.ok) throw new Error(out.detail);
     expect(out.payload.extractor).toStrictEqual({ name: "gemini:primary", is_ai: true });
     expect(out.payload.header.po_number.evidence_verified).toBe(true);
@@ -108,23 +108,23 @@ describe("extraction on the server", () => {
     expect(out.payload.header.supplier.value).toBeNull(); // a field the model put in the wrong place is dropped
   });
 
-  it("rehearsal mode uses the labelled TEST ADAPTER and never calls Gemini", async () => {
+  it("the test reader uses the labelled TEST ADAPTER and never calls Gemini", async () => {
     const g = fakeGemini([]);
-    const out = await extractPages(PAGES, { rehearsal: true, config, deps: g.deps });
+    const out = await extractPages(PAGES, { testReader: true, config, deps: g.deps });
     if (!out.ok) throw new Error(out.detail);
     expect(out.payload.extractor).toStrictEqual({ name: "TEST ADAPTER (fixture parser, not AI extraction)", is_ai: false });
     expect(g.calls).toHaveLength(0);
   });
 
   it("P17 no credentials means unavailable, not simulated", async () => {
-    const out = await extractPages(PAGES, { rehearsal: false, config: loadExtractionConfig({}), deps: fakeGemini([]).deps });
+    const out = await extractPages(PAGES, { testReader: false, config: loadExtractionConfig({}), deps: fakeGemini([]).deps });
     expect(out).toStrictEqual({ ok: false, status: "extraction_unavailable",
       detail: "Extraction unavailable: no LLM credentials configured. Nothing was simulated." });
   });
 
   it("P02 a page set with no text is unsupported before any extractor runs", async () => {
     const g = fakeGemini([]);
-    const out = await extractPages([" \n", ""], { rehearsal: false, config, deps: g.deps });
+    const out = await extractPages([" \n", ""], { testReader: false, config, deps: g.deps });
     expect(out.ok ? null : out.status).toBe("unsupported");
     expect(g.calls).toHaveLength(0);
   });
@@ -145,8 +145,8 @@ describe("extraction on the server", () => {
       vi.spyOn(console, method).mockImplementation((...args: unknown[]) => { consoleLines.push(args.map(String).join(" ")); });
     }
     const g = fakeGemini([status(503), ok(MODEL_ANSWER), status(500), status(500), status(500), status(500)]);
-    await extractPages(PAGES, { rehearsal: false, config, deps: g.deps });
-    await extractPages(PAGES, { rehearsal: false, config, deps: g.deps });
+    await extractPages(PAGES, { testReader: false, config, deps: g.deps });
+    await extractPages(PAGES, { testReader: false, config, deps: g.deps });
     const text = [...g.logs, ...consoleLines].join("\n");
     expect(g.logs.length).toBeGreaterThan(0);
     expect(text).not.toContain("AIzaFAKEKEY");
@@ -184,7 +184,7 @@ describe("the Gemini key stays on the server", () => {
 describe("D59: the AI sees the PDF and reads any layout", () => {
   it("sends the PDF itself with the page text, and asks for terms and the supplier's item number", async () => {
     const g = fakeGemini([ok({ ...MODEL_ANSWER, terms: { payment_terms: { value: "Net 45", page: 1, evidence: "Net 45" } } })]);
-    const out = await extractPages(PAGES, { rehearsal: false, config, deps: g.deps, pdf: "JVBERi0xLjQ=" });
+    const out = await extractPages(PAGES, { testReader: false, config, deps: g.deps, pdf: "JVBERi0xLjQ=" });
     const body = JSON.parse(String(g.calls[0].init.body));
     expect(body.contents[0].parts[0]).toEqual({ inlineData: { mimeType: "application/pdf", data: "JVBERi0xLjQ=" } });
     expect(body.contents[0].parts[1].text).toContain("<page number=\"1\">");
@@ -199,7 +199,7 @@ describe("D59: the AI sees the PDF and reads any layout", () => {
   it("reads a scan from page images and checks every value against its own transcription", async () => {
     const answer = { ...MODEL_ANSWER, transcript: [{ page: 1, text: "PO NUMBER\nPO-2026-104702\nCURRENCY\nUSD\nTOTAL PURCHASE ORDER VALUE USD 1,056.00" }] };
     const g = fakeGemini([ok(answer)]);
-    const out = await extractPages([""], { rehearsal: false, config, deps: g.deps, images: ["/9j/AAAA"] });
+    const out = await extractPages([""], { testReader: false, config, deps: g.deps, images: ["/9j/AAAA"] });
     const body = JSON.parse(String(g.calls[0].init.body));
     expect(body.contents[0].parts[0]).toEqual({ inlineData: { mimeType: "image/jpeg", data: "/9j/AAAA" } });
     expect(body.generationConfig.responseSchema.required).toContain("transcript");
@@ -213,8 +213,8 @@ describe("D59: the AI sees the PDF and reads any layout", () => {
 
   it("refuses a scan without images, and never sends one to the test adapter", async () => {
     const g = fakeGemini([]);
-    expect(await extractPages([""], { rehearsal: false, config, deps: g.deps })).toMatchObject({ ok: false, status: "unsupported" });
-    expect(await extractPages([""], { rehearsal: true, config, deps: g.deps, images: ["x"] })).toMatchObject({ ok: false, status: "unsupported" });
+    expect(await extractPages([""], { testReader: false, config, deps: g.deps })).toMatchObject({ ok: false, status: "unsupported" });
+    expect(await extractPages([""], { testReader: true, config, deps: g.deps, images: ["x"] })).toMatchObject({ ok: false, status: "unsupported" });
     expect(g.calls).toHaveLength(0);
   });
 });

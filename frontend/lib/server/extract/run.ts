@@ -30,7 +30,7 @@ export function classify(payload: ReturnType<typeof normalise>, said?: { type?: 
     reason: reason ?? (po ? "PO number found, no order lines." : "Order lines found, no PO number.") };
 }
 
-export async function extractPages(pages: string[], opts: { rehearsal: boolean; config: ExtractionConfig;
+export async function extractPages(pages: string[], opts: { testReader: boolean; config: ExtractionConfig;
   deps?: GeminiDeps; pdf?: string | null; images?: string[] | null; kind?: SourceKind }): Promise<ExtractOutcome> {
   const deps = opts.deps ?? defaultGeminiDeps();
   const kind = opts.kind ?? "pdf";
@@ -47,12 +47,12 @@ export async function extractPages(pages: string[], opts: { rehearsal: boolean; 
   }
   const scanned = kind === "pdf" && !pages.some((p) => pyStrip(p));
   // A scan can only be read by the AI from page images; the test adapter and a request without images cannot.
-  if (scanned && (!opts.images?.length || opts.rehearsal || opts.config.mode === "test")) {
+  if (scanned && (!opts.images?.length || opts.testReader || opts.config.mode === "test")) {
     return { ok: false, status: "unsupported", detail: EXTRACTION_MESSAGES.unsupported };
   }
   const { config } = opts;
-  // Rehearsal mode (an administrator setting) uses the labelled TEST ADAPTER, never presented as AI (D15, D26).
-  if (opts.rehearsal || config.mode === "test") {
+  // The test reader (a test-environment setting) uses the labelled TEST ADAPTER, never presented as AI (D15, D26).
+  if (opts.testReader || config.mode === "test") {
     const payload = kind === "email_body"
       ? normalise(emailTextExtract(pages), pages, { name: EMAIL_TEXT_READER.name, isAi: false })
       : normalise(fixtureExtractAny(pages), pages, { name: FIXTURE_EXTRACTOR.name, isAi: false });

@@ -1,16 +1,15 @@
 "use client";
-// The order review for files forwarded or uploaded in this tab (D72). Same layout and vocabulary as the sample
-// inbox review (OrderOps.tsx): source beside the structured order, the decision first, field states, your ERP
-// (simulated) and a history that names the actor. The decisions run on the reading pipeline's own workflow
-// (lib/domain/workflow.ts), so MOQ, price, GTIN, stock, shipping and invoicing keep working unchanged.
+// The one order review: the lifecycle from email to invoice, the source beside the structured order, the decision
+// first, field states, your ERP (test environment) and a history that names the actor. Decisions run on the
+// workflow in lib/domain/workflow.ts.
 import { useState } from "react";
-import { AlertOctagon, ArrowLeft, CheckCircle2, CircleDot, ExternalLink, FileText, HelpCircle, Server } from "lucide-react";
+import { AlertOctagon, ArrowLeft, CheckCircle2, CircleDot, FileText, HelpCircle, Server } from "lucide-react";
 import { documentDetail, type DocDetail, type Issue } from "../lib/domain/selectors";
 import { portalForOrder } from "../lib/domain/portal";
 import { ACTION_LABEL, IN_FLIGHT, type Role } from "./api";
 import { ACTOR, engineRows, FIELD_STATE, type FieldState, ISSUE_LABEL, type IssueType } from "./OrderOps";
-import { FIELD_LABEL, fieldOfIssue, Onboard, OrderTerms, SourcePanel, targetId } from "./OrderView";
-import { EmailEvidence, NotAnOrder, OrderActions, SourceText } from "./OrderPanels";
+import { FIELD_LABEL, fieldOfIssue, Onboard, OrderTerms, SourcePanel, targetId } from "./OrderSource";
+import { EmailEvidence, NotAnOrder, OrderActions, Provenance, SourceText } from "./OrderPanels";
 import { FulfilmentPanel } from "./Fulfilment";
 import { OrderPortal } from "./Portal";
 import { useAgent } from "./run/RunProvider";
@@ -38,8 +37,7 @@ function fieldState(value: string | null, issues: Issue[]): FieldState {
 
 type Act = (i: Issue, action: string, reason: string, params: Record<string, unknown>) => Promise<void>;
 
-export function ForwardedReview({ docId, role, onBack, onOpenIntake }: { docId: number; role: Role; onBack: () => void;
-  onOpenIntake: (docId: number) => void }) {
+export function OrderReview({ docId, role, onBack }: { docId: number; role: Role; onBack: () => void }) {
   const agent = useAgent();
   const [focus, setFocus] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
@@ -63,16 +61,15 @@ export function ForwardedReview({ docId, role, onBack, onOpenIntake }: { docId: 
     <article className="ops-review" aria-label={`Order ${row?.po ?? docId}`}>
       <div className="review-top btns">
         <button className="ghost" onClick={onBack}><ArrowLeft size={16} aria-hidden /> Back to orders</button>
-        <button className="ghost" onClick={() => onOpenIntake(docId)}><ExternalLink size={16} aria-hidden /> View document</button>
       </div>
       <header className="review-head">
         <div>
-          <p className="eyebrow">{d.envelope.sender ? `Purchase order from ${d.envelope.sender}` : `Uploaded purchase order · ${d.document.original_filename ?? "file"}`}</p>
+          <p className="eyebrow">{d.envelope.sender ? `Purchase order from ${d.envelope.sender}` : `Purchase order added by hand · ${d.document.original_filename ?? "file"}`}</p>
           <h2>{row?.po ?? `Document ${docId}`} {v?.customer_name && <span className="sub">· {v.customer_name}</span>}</h2>
           <div className="chips">
             <span className="chip">{row?.channel ?? "Uploaded file"}</span>
             <span className="chip">Received {dateTime(d.envelope.received_at ?? d.envelope.created_at)}</span>
-            {d.latest_version && <span className="chip">{isAi ? `Read by AI (${d.latest_version.payload.extractor.name})` : d.kind === "edi" ? "Structured data, no AI" : "Test adapter, not AI"}</span>}
+            {d.latest_version && <span className="chip">{isAi ? `Read by AI (${d.latest_version.payload.extractor.name})` : d.kind === "edi" ? "Structured data, no AI" : "Scripted reader, not AI"}</span>}
           </div>
         </div>
         <span className={`pill ${tone} big-pill`} aria-label={`Order state: ${label}`}>{label}</span>
@@ -133,13 +130,14 @@ export function ForwardedReview({ docId, role, onBack, onOpenIntake }: { docId: 
       <FwdHistory d={d} />
       <section className="panel order-foot" aria-label="Details">
         <EmailEvidence d={d} />
+        <Provenance d={d} />
         {o && canAct && <OrderActions d={d} role={role} onRun={run} />}
       </section>
     </article>
   );
 }
 
-/** D74: the whole order lifecycle, from the email to the invoice. Each step opens its section; one next action. */
+/** The whole order lifecycle, from the email to the invoice. Each step opens its section; one next action. */
 function Journey({ d, p, shortStock }: { d: DocDetail; p: ReturnType<typeof portalForOrder> | null; shortStock: boolean }) {
   const o = d.order;
   const read = !IN_FLIGHT.has(d.document.status) && !!d.latest_version;
@@ -152,20 +150,20 @@ function Journey({ d, p, shortStock }: { d: DocDetail; p: ReturnType<typeof port
   const invoiced = p?.shipments.some((x) => x.invoice) ?? false;
   type Step = [string, "done" | "wait" | "stop" | "", string];
   const steps: Step[] = [
-    [d.envelope.sender ? "Email received" : "File received", "done", "order-source"],
-    [d.kind === "pdf" ? "PDF read" : "Read", read ? "done" : IN_FLIGHT.has(d.document.status) ? "wait" : "stop", "order-source"],
+    ["Received", "done", "order-source"],
+    ["Read", read ? "done" : IN_FLIGHT.has(d.document.status) ? "wait" : "stop", "order-source"],
     ["Checked", o ? "done" : "", "order-decision"],
     ["Decision", !o ? "" : open || o.review_state === "ready" ? "wait" : "done", "order-decision"],
-    [failed ? "ERP did not confirm" : "In your ERP", inErp ? "done" : failed ? "stop" : sent ? "wait" : "", "order-erp"],
-    ["Confirmed (855)", confirmed ? "done" : inErp ? "wait" : "", "order-outbound"],
-    ["Shipped (856)", shipped ? "done" : confirmed ? "wait" : "", "order-stock"],
-    ["Invoiced (810)", invoiced ? "done" : shipped ? "wait" : "", "order-outbound"],
+    [failed ? "Not in your ERP" : "In your ERP", inErp ? "done" : failed ? "stop" : sent ? "wait" : "", "order-erp"],
+    ["Confirmed to retailer", confirmed ? "done" : inErp ? "wait" : "", "order-outbound"],
+    ["Shipped", shipped ? "done" : confirmed ? "wait" : "", "order-stock"],
+    ["Invoiced", invoiced ? "done" : shipped ? "wait" : "", "order-outbound"],
   ];
   const next: [string, string] | null = !o ? null : open ? ["Decide the open checks", "order-decision"]
     : o.review_state === "ready" ? ["Approve and send to your ERP", "order-decision"]
     : failed ? ["Retry delivery to your ERP", "order-erp"]
     : shortStock ? ["Choose how to ship the short lines", "order-stock"]
-    : inErp && !shipped ? ["Create the ship notice (ASN)", "order-outbound"]
+    : inErp && !shipped ? ["Create the ship notice", "order-outbound"]
     : shipped && !invoiced ? ["Create the invoice", "order-outbound"] : null;
   const go = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   return (
@@ -333,16 +331,16 @@ function ErpBox({ d, canAct, onRetry }: { d: DocDetail; canAct: boolean; onRetry
     [failed ? "Not confirmed" : "Accepted", o.delivery_state === "erp_created" || failed]];
   return (
     <section className="erp-sim" aria-labelledby="ferp-h">
-      <h3 id="ferp-h" className="section-h"><Server size={16} aria-hidden /> Your ERP (simulated)</h3>
-      <p className="muted small">Simulated system. No live ERP connection.</p>
+      <h3 id="ferp-h" className="section-h"><Server size={16} aria-hidden /> Your ERP</h3>
+      <p className="muted small">Test environment: a simulated ERP, not a live one.</p>
       <dl className="facts erp-roles">
         <div><dt>Accepts or rejects</dt><dd>Your ERP, using its own checks.</dd></div>
-        <div><dt>Order Agent</dt><dd>Sends the approved version, records the response and retries safely when the outcome is unknown.</dd></div>
+        <div><dt>This portal</dt><dd>Sends the approved version, records the response and checks before it retries when the outcome is unknown.</dd></div>
       </dl>
       <ol className="lifecycle" aria-label="ERP lifecycle">
         {steps.map(([t, done], i) => <li key={t} className={done ? (i === 3 && failed ? "stop" : "done") : ""}>{t}</li>)}
       </ol>
-      {!last && <p className="muted">Not sent. {o.validation.issues.some((i) => i.status === "open") ? "Sending starts when every blocking issue is resolved." : "Sending starts after approval."}</p>}
+      {!last && <p className="muted">Not sent yet. {o.validation.issues.some((i) => i.status === "open") ? "Sending starts when every blocking issue is resolved." : "Sending starts after approval."}</p>}
       {[...o.deliveries].reverse().map((a) => (
         <details key={a.id} open={a.id === last?.id}>
           <summary>Attempt {a.id} · {time(a.updated_at)} · <span className={`pill ${a.state === "erp_created" ? "ok" : failed ? "bad" : "info"}`}>{a.state === "erp_created" ? "Accepted" : a.state.replace(/_/g, " ")}</span></summary>
@@ -360,10 +358,11 @@ function ErpBox({ d, canAct, onRetry }: { d: DocDetail; canAct: boolean; onRetry
 }
 
 const EVENT_TEXT: Record<string, string> = {
-  received: "Received", extracting: "Reading the document", extracted: "Values read", matching: "Matched to reference data", validating: "Checked against rules",
+  received: "Received", extracting: "Reading the document", extracted: "Values read", matching: "Matched to your ERP data", validating: "Checked against the rules",
+  review_notification_sent: "Review notification sent (test)",
   needs_review: "Waiting for a decision", ready_for_approval: "Ready for approval", approved: "Approved", rejected: "Rejected",
   decision_recorded: "Decision recorded", approval_invalidated: "Approval withdrawn", on_hold: "Put on hold", hold_released: "Hold released",
-  memory_rule_applied: "Saved rule applied", fulfilment_decided: "Shipping decision", asn_submitted: "Advance ship notice created",
+  memory_rule_applied: "Saved rule applied", fulfilment_decided: "Shipping decision", asn_submitted: "Ship notice created",
   invoice_submitted: "Invoice created", delivery_retry_requested: "ERP retry requested",
 };
 

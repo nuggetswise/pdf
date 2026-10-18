@@ -5,7 +5,7 @@ const ADMIN = { "X-Demo-Role": "administrator", "X-Demo-User": "alex" };
 
 test("reviewer resolves exceptions by hand and the order is delivered without a Send click", async ({ page, request }) => {
   await request.post("/api/demo/reset", { headers: ADMIN });
-  await request.put("/api/demo/rehearsal-mode", { headers: ADMIN, data: { value: "on" } });
+  await request.put("/api/demo/test-reader", { headers: ADMIN, data: { value: "on" } });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await page.getByRole("tab", { name: "Orders", exact: true }).click(); await page.getByRole("button", { name: "All documents" }).click();

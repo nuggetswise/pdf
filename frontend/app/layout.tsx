@@ -8,8 +8,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body>
         <div className="banner">
-          Prototype with fictional data. Local ERP simulator only. Demo-only authentication. No live email,
-          marketplace or ERP connections.
+          Test environment. All data is fictional. The mailbox, your ERP and Trading Grid are simulated, and nothing
+          reaches a real retailer.
         </div>
         {children}
       </body>

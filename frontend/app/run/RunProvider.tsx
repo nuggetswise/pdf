@@ -21,7 +21,7 @@ export type Extraction = { extraction: string; extractor_mode: string; model: st
 
 type Agent = {
   state: RunState;
-  /** The newest run, for code that waits on a change (the guided demo). */
+  /** The newest run, for code that waits on a change . */
   latest: () => RunState;
   ready: boolean;
   extraction: Extraction | null;
@@ -29,11 +29,11 @@ type Agent = {
   storageWarning: string | null;
   /** Runs one action on the server; throws an Error carrying the server's message if it is refused. */
   run: (action: Action) => Promise<number[]>;
-  forwardDemo: (name: string) => Promise<number[]>;
+  receiveSample: (name: string) => Promise<number[]>;
   importEml: (raw: Uint8Array) => Promise<number[]>;
   uploadPdf: (pdf: Uint8Array, filename: string) => Promise<number[]>;
   retryExtraction: (docId: number) => Promise<void>;
-  resetDemo: () => Promise<void>;
+  clearTestData: () => Promise<void>;
   /** The original PDF, from memory or from this browser's storage; null when it is not kept (storage blocked). */
   pdfBytes: (docId: number) => Promise<Uint8Array | null>;
 };
@@ -82,7 +82,7 @@ export function RunProvider({ children }: { children: ReactNode }) {
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       setStorageWarning(runStateSizeBytes(next) > SESSION_STORAGE_WARN_BYTES
-        ? "This run is close to the browser's storage limit for a tab. Reset the demo soon." : null);
+        ? "This run is close to the browser's storage limit for a tab. Clear test data soon." : null);
     } catch {
       setStorageWarning("This browser would not save the run, so a reload will lose it.");
     }
@@ -110,11 +110,11 @@ export function RunProvider({ children }: { children: ReactNode }) {
       await run({ type: "startExtraction", docId });
       let outcome: { ok: true; payload: unknown } | { ok: false; status: string; detail: string };
       try {
-        const rehearsal = stateRef.current.settings.rehearsalMode;
+        const testReader = stateRef.current.settings.testReader;
         const kind = doc.kind ?? "pdf";
-        const media = rehearsal || kind !== "pdf" ? {} : await mediaFor(await pdfBytesOf(docId), doc.pageText);
+        const media = testReader || kind !== "pdf" ? {} : await mediaFor(await pdfBytesOf(docId), doc.pageText);
         const r = await fetch("/api/extract", { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pages: doc.pageText, rehearsal, kind, ...media }) });
+          body: JSON.stringify({ pages: doc.pageText, testReader, kind, ...media }) });
         outcome = r.ok ? await r.json() : { ok: false, status: "extraction_failed",
           detail: `Extraction failed (${r.status === 413 ? "the page text is too large to send" : `the server answered HTTP ${r.status}`}). Use Retry extraction.` };
       } catch {
@@ -155,11 +155,11 @@ export function RunProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const forwardDemo = useCallback(async (name: string) => {
+  const receiveSample = useCallback(async (name: string) => {
     const path = sampleEmailPath(name);
-    if (!path) throw new Error("Unknown demo email");
+    if (!path) throw new Error("Unknown sample email");
     const r = await fetch(path, { cache: "no-store" });
-    if (!r.ok) throw new Error(`Demo email could not be loaded (HTTP ${r.status})`);
+    if (!r.ok) throw new Error(`Sample email could not be loaded (HTTP ${r.status})`);
     return receive(await readEml(new Uint8Array(await r.arrayBuffer()), "order_mailbox"));
   }, [receive, readEml]);
 
@@ -182,8 +182,8 @@ export function RunProvider({ children }: { children: ReactNode }) {
     await process(docId);
   }, [run, process]);
 
-  const resetDemo = useCallback(async () => {
-    await run({ type: "resetDemo", role: "administrator" });
+  const clearTestData = useCallback(async () => {
+    await run({ type: "resetTestData", role: "administrator" });
     pdfs.current.clear();
     void clearPdfs();
   }, [run]);
@@ -213,10 +213,10 @@ export function RunProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<Agent>(() => ({
-    state, ready, extraction, serverError, storageWarning, run, forwardDemo, importEml, uploadPdf, retryExtraction, resetDemo,
+    state, ready, extraction, serverError, storageWarning, run, receiveSample, importEml, uploadPdf, retryExtraction, clearTestData,
     latest: () => stateRef.current,
     pdfBytes: pdfBytesOf,
-  }), [state, ready, extraction, serverError, storageWarning, run, forwardDemo, importEml, uploadPdf, retryExtraction, resetDemo, pdfBytesOf]);
+  }), [state, ready, extraction, serverError, storageWarning, run, receiveSample, importEml, uploadPdf, retryExtraction, clearTestData, pdfBytesOf]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
@@ -225,7 +225,7 @@ export function RunProvider({ children }: { children: ReactNode }) {
 export function useHealth(): Health | null {
   const { state, extraction, ready } = useAgent();
   return useMemo(() => (!extraction || !ready ? null : {
-    status: "ok", ...extraction, erp: "simulator", rehearsal_mode: state.settings.rehearsalMode,
+    status: "ok", ...extraction, erp: "simulator", test_reader: state.settings.testReader,
     erp_failure_mode: state.settings.erpFailureMode, policy: currentPolicy(state),
   }), [state, extraction, ready]);
 }

@@ -412,8 +412,10 @@ export const AuditEvent = z.strictObject({
 export const Settings = z.strictObject({
   /** The demo role actions are taken as (D22: demo-only roles, no real authentication). */
   role: Role,
-  rehearsalMode: z.boolean(),
+  testReader: z.boolean(),
   erpFailureMode: ErpFailureMode,
+  /** D75: record a review notification when an order needs a person. Absent means on. */
+  notifyOnReview: z.boolean().optional(),
   /** null means the bundled fixtures/reference-data.v1.json; reset returns to it. */
   referenceData: maybe(ReferenceData),
 });
@@ -801,7 +803,7 @@ export function emptyRunState(now: string = new Date().toISOString()): RunState 
     envelopes: [], documents: [], versions: [], orders: [], decisions: [], approvals: [],
     policyHistory: [{ id: 1, mode: "review_all", setBy: "system:order-agent", effectiveAt: now }],
     memoryRules: [], deliveries: [], erpOrders: [], audit: [],
-    settings: { role: "viewer", rehearsalMode: false, erpFailureMode: "none", referenceData: null },
+    settings: { role: "viewer", testReader: false, erpFailureMode: "none", referenceData: null },
     portal: emptyPortal(),
   };
 }

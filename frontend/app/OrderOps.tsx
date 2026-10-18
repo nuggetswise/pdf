@@ -1,11 +1,11 @@
 "use client";
-// Orders (D71, D74): the home queue over every order forwarded or uploaded in this tab. Home answers what arrived,
-// what went through automatically and what needs a person. Each order opens in ForwardedReview.
+// Orders: the work queue over every order received in this tab. It answers what arrived, what went through on its own
+// and what needs a person. Each order opens in OrderReview.
 import { useState } from "react";
-import { CheckCircle2, ChevronRight, Cog, Server, User, Bot } from "lucide-react";
+import { CheckCircle2, ChevronRight, Cog, Server, User, Bot, Settings } from "lucide-react";
 import { issueOwner } from "../lib/domain/command-center";
 import type { RunState } from "../lib/domain/run-state";
-import { IN_FLIGHT, STOPPED } from "./api";
+import { IN_FLIGHT, type Role, STOPPED } from "./api";
 import { useAgent } from "./run/RunProvider";
 import { supplierState } from "./LiveView";
 
@@ -24,9 +24,11 @@ export const FIELD_STATE: Record<FieldState, [string, string]> = {
   accepted: ["Accepted", "ok"], changed: ["Changed", "info"], uncertain: ["Uncertain", "warn"], missing: ["Missing", "bad"], invalid: ["Invalid", "bad"],
 };
 export const ACTOR: Record<ActorKind, [string, typeof Cog]> = {
-  system: ["System", Cog], agent: ["Order agent (rules)", Bot], person: ["Person", User], erp: ["Your ERP", Server],
+  system: ["Portal", Cog], agent: ["AI reader", Bot], person: ["Person", User], erp: ["Your ERP", Server],
 };
 
+/** "4175.00", "USD" -> "USD 4,175.00". */
+const money = (v: string, cur: string | null) => `${cur ? `${cur} ` : ""}${v.replace(/\B(?=(\d{3})+(?!\d))(?<!\.\d*)/g, ",")}`;
 const time = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
 // ---------- one queue over sample orders and orders forwarded into this tab ----------
@@ -53,30 +55,30 @@ export function engineRows(s: RunState): Row[] {
     if (IN_FLIGHT.has(d.status)) { bucket = "in_progress"; state = ["Reading", "info"]; }
     else if (d.status === "not_order" || d.status === "duplicate") { bucket = "closed"; state = [d.status === "duplicate" ? "Duplicate" : "Not an order", "muted"]; }
     else if (STOPPED.has(d.status) || !o) { bucket = "blocked"; state = ["Blocked", "bad"]; issue = "Could not be read"; summary = d.statusDetail ?? "The document could not be read."; }
-    else if (o.deliveryState === "failed" || o.deliveryState === "unknown") { bucket = "rejected"; state = ["ERP delivery failed", "bad"]; issue = "ERP delivery"; summary = "The ERP did not confirm the order."; }
+    else if (o.deliveryState === "failed" || o.deliveryState === "unknown") { bucket = "rejected"; state = ["Not in your ERP", "bad"]; issue = "ERP delivery"; summary = "Your ERP did not confirm the order."; }
     else if (o.deliveryState === "erp_created") {
       bucket = o.fulfilment?.status === "needs_decision" ? "needs_review" : decided ? "after_review" : "automatic";
-      state = bucket === "needs_review" ? ["Needs review", "warn"] : [decided ? "Completed after review" : "Completed automatically", "ok"];
+      state = bucket === "needs_review" ? ["Needs review", "warn"] : [decided ? "Done after review" : "Done automatically", "ok"];
       if (bucket === "needs_review") issue = "Stock short";
     } else if (open.length) {
       const blocking = open.some((i) => i.actions.every((a) => a === "reject_order"));
       bucket = blocking ? "blocked" : "needs_review"; state = blocking ? ["Blocked", "bad"] : ["Needs review", "warn"];
       issue = open[0].title; summary = open[0].message;
-    } else if (o.reviewState === "ready") { bucket = "ready"; state = ["Ready to send", "warn"]; issue = "Approval required"; }
-    else { bucket = "closed"; state = ["Closed", "muted"]; }
+    } else if (o.reviewState === "ready") { bucket = "ready"; state = ["Waiting for approval", "warn"]; issue = "Approval required"; }
+    else { bucket = "closed"; state = [o.reviewState === "rejected" ? "Rejected" : "Closed", "muted"]; }
     const said = supplierState(s, d.id);
     if (!summary) summary = said.text;
     return {
       detail: ATTENTION.includes(bucket) ? said.shipments : [said.text, ...said.shipments],
       key: `doc-${d.id}`, target: { kind: "engine", docId: d.id }, po: o?.validation.order.po_number ?? d.originalFilename ?? `Document ${d.id}`,
-      customer: o?.validation.order.customer_name ?? "Unknown customer", sender: env?.sender ?? "Uploaded file",
-      receivedAt: env?.createdAt ?? d.createdAt, channel: d.kind === "email_body" ? "Email text" : d.kind === "edi" ? "EDI file" : env?.sender ? "Email with PDF" : "Uploaded PDF",
+      customer: o?.validation.order.customer_name ?? "Unknown customer", sender: env?.sender ?? "a document added by hand",
+      receivedAt: env?.createdAt ?? d.createdAt, channel: d.kind === "email_body" ? "Email text" : d.kind === "edi" ? "X12 850 file" : env?.sender ? "Email with PDF" : "Added by hand",
       bucket, issue, summary, state, erp: o?.erpOrderId ? `Accepted · ${o.erpOrderId}` : "Not sent",
-      value: o ? `${o.validation.order.totals.computed_total} ${o.validation.order.currency ?? ""}`.trim() : null,
+      value: o ? money(o.validation.order.totals.computed_total, o.validation.order.currency) : null,
       deliveryDate: (o?.validation.order.requested_delivery_date as string | null | undefined) ?? null,
       owner: issueOwner(s), openCount: open.length,
       decision: open.length ? DECISION_TEXT[open[0].code] ?? "Decide or reject the order"
-        : bucket === "ready" ? "Approve to send to your ERP" : o?.fulfilment?.status === "needs_decision" ? "Choose how to ship the short lines" : null,
+        : bucket === "ready" ? "Approve so the order goes to your ERP" : o?.fulfilment?.status === "needs_decision" ? "Choose how to ship the short lines" : null,
     };
   });
 }
@@ -100,65 +102,86 @@ type Filter = "all" | "automatic" | "review" | "blocked" | "rejected" | "after_r
 const FILTER_BUCKETS: Record<Exclude<Filter, "all">, Bucket[]> = {
   automatic: ["automatic"], review: ["needs_review", "ready"], blocked: ["blocked"], rejected: ["rejected"], after_review: ["after_review"],
 };
+const MODE_TEXT = { review_all: "Review all", exception_only: "Automatic when checks pass" } as const;
 
-export function OpsHome({ onOpen, forward, commandCenter }: {
-  onOpen: (t: Row["target"]) => void; forward: React.ReactNode; commandCenter: React.ReactNode;
+export function OpsHome({ role, onOpen, mailbox, commandCenter, onSettings }: {
+  role: Role; onOpen: (t: Row["target"]) => void; mailbox: React.ReactNode; commandCenter: React.ReactNode; onSettings: () => void;
 }) {
   const agent = useAgent();
   const [filter, setFilter] = useState<Filter>("all");
+  const [q, setQ] = useState("");
+  const [error, setError] = useState<string | null>(null);
   if (!agent.ready) return <p className="placeholder">Loading orders.</p>;
-  const all = engineRows(agent.state);
+  const everything = engineRows(agent.state);
+  const set = everything.filter((r) => r.state[0] !== "Not an order" && r.state[0] !== "Duplicate");
+  const closed = everything.filter((r) => r.state[0] === "Not an order" || r.state[0] === "Duplicate");
+  const all = set;
+  const needle = q.trim().toLowerCase();
+  const matches = (r: Row) => !needle || [r.po, r.customer, r.sender, r.issue ?? "", r.summary].some((t) => t.toLowerCase().includes(needle));
   const by = (f: Exclude<Filter, "all">) => all.filter((r) => FILTER_BUCKETS[f].includes(r.bucket)).length;
-  const rows = filter === "all" ? all : all.filter((r) => FILTER_BUCKETS[filter].includes(r.bucket));
+  const rows = (filter === "all" ? all : all.filter((r) => FILTER_BUCKETS[filter].includes(r.bucket))).filter(matches);
   const attention = rows.filter((r) => ATTENTION.includes(r.bucket))
     .sort((a, b) => ATTENTION.indexOf(a.bucket) - ATTENTION.indexOf(b.bucket) || a.receivedAt.localeCompare(b.receivedAt));
   const normal = rows.filter((r) => !ATTENTION.includes(r.bucket)).sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
+  const mode = agent.state.policyHistory.at(-1)?.mode ?? "review_all";
   const tile = (f: Filter, n: number, label: string, tone?: string) => (
     <button key={f} className={`kpi ${tone ?? ""}`} aria-pressed={filter === f} aria-label={`${label}: ${n}`}
       onClick={() => setFilter(filter === f ? "all" : f)}><b>{n}</b><span>{label}</span></button>
   );
+  const treat = async (docId: number) => {
+    try { await agent.run({ type: "treatAsOrder", role, docId }); setError(null); } catch (e) { setError((e as Error).message); }
+  };
   return (
     <div className="ops-home">
       <section aria-label="Today" className="ops-today">
-        <h2 className="eyebrow">Today</h2>
-        <p className="muted small how-it-works">AI reads forwarded documents into fields. Rules check every order. People decide exceptions.</p>
+        <div className="today-head">
+          <h2 className="eyebrow">Today</h2>
+          <button className="chip mode-chip" onClick={onSettings} aria-label={`Approval mode: ${MODE_TEXT[mode]}. Open Settings`}>
+            <Settings size={14} aria-hidden /> Approval mode: {MODE_TEXT[mode]}</button>
+        </div>
+        <p className="muted small how-it-works">The portal reads each order, checks it against your ERP's prices, minimums and item codes, and asks a person only when a check fails.</p>
         <div className="kpis ops-kpis" role="group" aria-label="Filter orders">
           {tile("all", all.length, "Orders received")}
-          {tile("automatic", by("automatic"), "Processed automatically", "ok")}
-          {tile("review", by("review"), "Need review", "warn")}
+          {tile("automatic", by("automatic"), "Went through on their own", "ok")}
+          {tile("review", by("review"), "Need a person", "warn")}
           {tile("blocked", by("blocked"), "Blocked", "bad")}
-          {tile("rejected", by("rejected"), "ERP delivery failed", "bad")}
-          {tile("after_review", by("after_review"), "Completed after review")}
+          {tile("rejected", by("rejected"), "Not in your ERP", "bad")}
+          {tile("after_review", by("after_review"), "Done after review")}
         </div>
-        {filter !== "all" && <p className="muted small">Showing {rows.length} of {all.length} orders. <button className="linkish" onClick={() => setFilter("all")}>Show all</button></p>}
+        <div className="filters"><input type="search" aria-label="Search orders" placeholder="Search by PO number, retailer or sender" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+        {(filter !== "all" || needle) && <p className="muted small">Showing {rows.length} of {all.length} orders. <button className="linkish" onClick={() => { setFilter("all"); setQ(""); }}>Show all</button></p>}
       </section>
+      {error && <div className="alert bad" role="alert">{error}</div>}
       <div className="ops-grid">
         <section className="panel" aria-labelledby="attention-h">
           <header className="panel-head"><h3 id="attention-h">Needs attention</h3><span className="count">{attention.length}</span></header>
-          {attention.length === 0 ? <p className="empty"><CheckCircle2 size={18} aria-hidden /> {all.length ? "No orders need attention." : "No orders yet. Forward one from the inbox."}</p> : (
+          {attention.length === 0 ? <p className="empty"><CheckCircle2 size={18} aria-hidden /> {all.length ? "No orders need attention." : "No orders yet. They appear here as they arrive in your order mailbox."}</p> : (
             <ul className="queue" aria-label="Orders that need attention">
               {attention.map((r) => <ExceptionRow key={r.key} r={r} onOpen={onOpen} />)}
             </ul>
           )}
         </section>
         <aside className="ops-side">
-          {forward}
+          <section className="panel forward-panel" aria-label="Order mailbox">
+            <header className="panel-head"><h3>Order mailbox</h3></header>
+            {mailbox}
+          </section>
           {commandCenter}
         </aside>
       </div>
       <section className="panel" aria-labelledby="normal-h">
-        <header className="panel-head"><h3 id="normal-h">Processing normally or completed</h3><span className="count muted">{normal.length}</span></header>
+        <header className="panel-head"><h3 id="normal-h">Processing normally or done</h3><span className="count muted">{normal.length}</span></header>
         {normal.length === 0 ? <p className="empty">None yet.</p> : (
         <div className="scroll">
           <table className="grid-table ops-table stack-table">
-            <thead><tr><th>PO number</th><th>Customer</th><th>Received</th><th>Value</th><th>State</th><th>ERP result (simulated)</th><th><span className="sr-only">Open</span></th></tr></thead>
+            <thead><tr><th>PO number</th><th>Retailer</th><th>Received</th><th>Value</th><th>State</th><th>Your ERP (test)</th><th><span className="sr-only">Open</span></th></tr></thead>
             <tbody>
               {normal.map((r) => (
                 <tr key={r.key} data-po={r.po}>
-                  <td data-label="PO number"><b>{r.po}</b></td><td data-label="Customer">{r.customer}</td>
+                  <td data-label="PO number"><b>{r.po}</b></td><td data-label="Retailer">{r.customer}</td>
                   <td data-label="Received">{time(r.receivedAt)}</td><td data-label="Value">{r.value ?? "Not available"}</td>
                   <td data-label="State"><div><span className={`pill ${r.state[1]}`}>{r.state[0]}</span>{r.detail.map((t) => <div key={t} className="muted small wrap">{t}</div>)}</div></td>
-                  <td data-label="ERP result">{r.erp}</td>
+                  <td data-label="Your ERP">{r.erp}</td>
                   <td className="row-open"><button className="ghost" onClick={() => onOpen(r.target)} aria-label={`View order ${r.po}`}>View</button></td>
                 </tr>
               ))}
@@ -166,13 +189,29 @@ export function OpsHome({ onOpen, forward, commandCenter }: {
           </table>
         </div>)}
       </section>
+      {closed.length > 0 && (
+        <section className="panel" aria-labelledby="closed-h">
+          <header className="panel-head"><h3 id="closed-h">Not an order, and duplicates</h3><span className="count muted">{closed.length}</span></header>
+          <p className="muted small">Documents the portal did not treat as a new order. If it read one wrongly, you can treat it as an order.</p>
+          <ul className="queue compact">
+            {closed.map((r) => (
+              <li key={r.key} className="qrow muted" data-po={r.po}>
+                <div className="q-main"><div className="q-title"><b>{r.po}</b><span className="muted"> · from {r.sender}</span></div>
+                  <div className="q-issue"><span className={`pill ${r.state[1]}`}>{r.state[0]}</span><span>{r.summary}</span></div></div>
+                <button className="ghost" onClick={() => onOpen(r.target)} aria-label={`View ${r.po}`}>View</button>
+                {r.state[0] === "Not an order" && role !== "viewer" && <button className="primary" onClick={() => treat(r.target.docId)} aria-label={`Treat ${r.po} as an order`}>Treat as order</button>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
 
 const age = (iso: string) => {
   const m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60_000));
-  return m < 60 ? `${m} min` : m < 2880 ? `${Math.round(m / 60)} h` : `${Math.round(m / 1440)} days`;
+  return m < 1 ? "just now" : m < 60 ? `${m} min` : m < 2880 ? `${Math.round(m / 60)} h` : `${Math.round(m / 1440)} days`;
 };
 
 /** D74: an exception with enough context to act on: what happened, value, dates, owner and the decision needed. */
@@ -188,7 +227,7 @@ function ExceptionRow({ r, onOpen }: { r: Row; onOpen: (t: Row["target"]) => voi
           <div><dt>Order value</dt><dd>{r.value ?? "Not available"}</dd></div>
           <div><dt>Requested delivery</dt><dd>{r.deliveryDate ?? "Not printed"}</dd></div>
           <div><dt>Owner</dt><dd>{r.owner ?? "Not assigned"}</dd></div>
-          <div><dt>Waiting</dt><dd>{age(r.receivedAt)} · from {r.sender}</dd></div>
+          <div><dt>Waiting</dt><dd>{age(r.receivedAt)} · from {r.sender.replace(/\s*<.*>$/, "")}</dd></div>
         </dl>
       </div>
       <span className={`pill ${r.state[1]} q-state`}>{r.state[0]}</span>

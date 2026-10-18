@@ -65,7 +65,7 @@ export function ComplianceBox({ result, sent = false }: { result: ComplianceResu
 }
 
 const X12_KIND: Partial<Record<OutboundMessage["kind"], string>> = {
-  ORDRSP: "Order acknowledgement (X12 855)", DESADV: "Ship notice (X12 856)", INVOIC: "Invoice (X12 810)",
+  ORDRSP: "Order confirmation (X12 855)", DESADV: "Ship notice (X12 856)", INVOIC: "Invoice (X12 810)",
 };
 const msgLabel = (m: OutboundMessage) => (m.format === "x12" ? X12_KIND[m.kind] : undefined) ?? KIND_LABEL[m.kind];
 
@@ -100,7 +100,7 @@ export function OrderPortal({ docId, role }: { docId: number; role: Role }) {
   if (!order) return null;
   return (
     <section className="portal" aria-label="Supplier portal">
-      <div className="eyebrow">Trading Grid web form, pre-filled by the Order Agent (simulated) · nothing is sent to a real retailer</div>
+      <div className="eyebrow">Documents to the retailer, pre-filled from the order. Test environment: nothing reaches a real retailer.</div>
       <EdiSetup docId={docId} role={role} />
       {p.confirmation && (
         <div className="flow" aria-label="Order confirmation">
@@ -516,12 +516,11 @@ function InvoiceForm({ docId, asnId, role, onDone }: { docId: number; asnId: num
 }
 
 /** The EDI tab: every outbound message, raw EDIFACT, what each segment means, the retailer check, and a download. */
-export function EdiView({ role }: { role: Role }) {
+/** One sent document in full: the retailer check, each delivery attempt, the raw message and how it maps to plain words. */
+export function MessageDetail({ m, role }: { m: OutboundMessage; role: Role }) {
   const agent = useAgent();
-  const msgs = agent.ready ? outboundList(agent.state) : [];
-  const [open, setOpen] = useState<number | null>(null);
   const { error, wrap } = useWrap();
-  const download = (m: OutboundMessage) => {
+  const download = () => {
     const ext = m.format === "x12" ? "x12" : "json";
     const blob = new Blob([m.body], { type: m.format === "x12" ? "application/edi-x12" : "application/json" });
     const url = URL.createObjectURL(blob);
@@ -532,54 +531,34 @@ export function EdiView({ role }: { role: Role }) {
     URL.revokeObjectURL(url);
   };
   return (
-    <section className="edi-list" aria-label="Outbound messages">
-      <div className="eyebrow">Simulated EDI and ERP messages · held in this browser tab · nothing is sent anywhere real</div>
-      <h3>{msgs.length} outbound message{msgs.length === 1 ? "" : "s"}</h3>
-      <p className="muted small">US retailers get ANSI X12 004010 (855, 856, 810); EANCOM 2002 (UN/EDIFACT D.01B) stays available per retailer. Demo customers use {FICTIONAL_LABEL}. Every message is checked against the retailer's rules before it is sent.</p>
+    <div className="tx-detail" data-kind={m.kind}>
+      <p className="muted small">To {CHANNEL_LABEL[m.channel]}{m.receiverRef ? ` as ${m.receiverRef}` : ""} · key <span className="mono">{m.idempotencyKey}</span></p>
       {error && <div className="alert bad" role="alert">{error}</div>}
-      {msgs.length === 0 && <p className="placeholder">Nothing yet. A delivered order sends an order confirmation; ASNs and invoices add more.</p>}
-      {msgs.map((m) => (
-        <article key={m.id} className={`edi-card ${m.status}`} data-kind={m.kind}>
-          <header>
-            <h4>{msgLabel(m)} · {m.sourceId}</h4>
-            <span className={`pill ${STATUS_TONE[m.status]}`}>{m.status}</span>
-          </header>
-          <p className="muted small">To {CHANNEL_LABEL[m.channel]}{m.receiverRef ? ` as ${m.receiverRef}` : ""} · order #{m.documentId} · key <span className="mono">{m.idempotencyKey}</span></p>
-          {m.compliance && <ComplianceBox result={m.compliance} sent={m.status === "delivered"} />}
-          <ul className="attempts">{m.attempts.map((a, i) => <li key={i}>{a.outcome}: {a.detail}</li>)}</ul>
-          <div className="btns">
-            <button className="ghost" onClick={() => setOpen(open === m.id ? null : m.id)}>{open === m.id ? "Hide" : "Show"} message</button>
-            <button className="ghost" onClick={() => download(m)}>Download</button>
-            {m.status !== "delivered" && role !== "viewer" && (
-              <button className="primary" onClick={() => wrap(() => agent.run({ type: "retryOutbound", role, messageId: m.id }))}>Retry safely</button>
-            )}
-          </div>
-          {open === m.id && (
-            <div className="edi-body">
-              <pre className="raw" aria-label="Raw message">{m.body}</pre>
-              <table className="lines mapping" aria-label="Field mapping">
-                <thead><tr><th>Segment</th><th>What it says</th></tr></thead>
-                <tbody>{m.mapping.map((x, i) => <tr key={i}><td className="mono">{x.segment}</td><td>{x.meaning}</td></tr>)}</tbody>
-              </table>
-            </div>
-          )}
-        </article>
-      ))}
-    </section>
+      {m.compliance && <ComplianceBox result={m.compliance} sent={m.status === "delivered"} />}
+      <ul className="attempts">{m.attempts.map((a, i) => <li key={i}>{a.outcome}: {a.detail}</li>)}</ul>
+      <div className="btns">
+        <button className="ghost" onClick={download}>Download</button>
+        {m.status !== "delivered" && role !== "viewer" && (
+          <button className="primary" onClick={() => wrap(() => agent.run({ type: "retryOutbound", role, messageId: m.id }))}>Retry safely</button>
+        )}
+      </div>
+      <pre className="raw" aria-label="Raw message">{m.body}</pre>
+      <table className="lines mapping" aria-label="Field mapping">
+        <thead><tr><th>Segment</th><th>What it says</th></tr></thead>
+        <tbody>{m.mapping.map((x, i) => <tr key={i}><td className="mono">{x.segment}</td><td>{x.meaning}</td></tr>)}</tbody>
+      </table>
+    </div>
   );
 }
 
-/** Administrator demo control for the simulated retailer outbox. */
 export function EdiSetting({ onError }: { onError: (e: string | null) => void }) {
   const agent = useAgent();
   return (
-    <label>Retailer EDI outbox next message
-      <select value={agent.state.portal?.ediFailureMode ?? "none"} onChange={(e) => {
-        agent.run({ type: "setEdiFailureMode", role: "administrator", value: e.target.value as "none" })
-          .then(() => onError(null), (err: Error) => onError(err.message));
-      }}>
-        <option value="none">Accepted</option><option value="hold_next">Stays pending</option><option value="fail_next">Fails</option>
-      </select>
-    </label>
+    <select aria-label="Retailer connection, next document" value={agent.state.portal?.ediFailureMode ?? "none"} onChange={(e) => {
+      agent.run({ type: "setEdiFailureMode", role: "administrator", value: e.target.value as "none" })
+        .then(() => onError(null), (err: Error) => onError(err.message));
+    }}>
+      <option value="none">Accepts it</option><option value="hold_next">Leaves it pending</option><option value="fail_next">Rejects it</option>
+    </select>
   );
 }

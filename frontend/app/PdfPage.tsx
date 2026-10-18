@@ -93,7 +93,7 @@ export function PdfPage({ docId, targets, focus, onPick, pageText, scanned }: {
   return (
     <div className="pdfview" ref={wrap} aria-label="Purchase order">
       {scanned && <p className="scan-note">Scanned PDF. Verify each value against the page before approval.</p>}
-      {!scanned && <p className="muted small legend"><span className="key value" /> read by the agent <span className="key issue" /> needs a decision
+      {!scanned && <p className="muted small legend"><span className="key value" /> read by the portal <span className="key issue" /> needs a decision
         {targets.length > found.size && <> · {targets.length - found.size} value{targets.length - found.size === 1 ? "" : "s"} not printed as text</>}</p>}
       {pages.map((p, i) => (
         <div key={i} className="pdfpage" style={{ aspectRatio: `${p.width} / ${p.height}` }}>

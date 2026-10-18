@@ -4,7 +4,7 @@ import { ADMIN as ADMIN_WHO, REVIEWER, forward, mapleRunWithClock, tickClock } f
 import { addWorkdays, isoDate, isoRange, subtractWorkdays } from "./dates";
 import { decideFulfilment, receiveStock, setStock, shipFromErp } from "./portal";
 import { type RunState, emptyRunState } from "./run-state";
-import { decide, resetDemo } from "./workflow";
+import { decide, resetTestData } from "./workflow";
 
 /** The Maple run: milk delivered and confirmed, cheese decided on its price and delivered, Mozzarella short. */
 function delivered() {
@@ -90,7 +90,7 @@ describe("the stock check on the cheese order", () => {
 
   it("with enough stock the order confirms on its own, and a second order cannot promise the same cases", () => {
     const clock = tickClock();
-    let s = resetDemo(emptyRunState(clock.now()), ADMIN, clock);
+    let s = resetTestData(emptyRunState(clock.now()), ADMIN, clock);
     let docId: number;
     ({ state: s, docId } = forward(s, "cheese", clock));
     s = setStock(s, "NF-CHS-002", { onHand: "100", leadTimeDays: 21 }, ADMIN, clock);

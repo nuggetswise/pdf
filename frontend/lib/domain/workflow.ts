@@ -334,6 +334,8 @@ function settle(r: Run, docId: number) {
     if (order.reviewState !== "needs_review") {
       order.reviewState = "needs_review";
       r.status(docId, "needs_review", { open_issues: blocking.map((i) => i.code) });
+      // D75: the test environment sends no email; it records that a notification would have gone out.
+      if (r.s.settings.notifyOnReview !== false) r.audit("document", docId, "review_notification_sent", "system:notifications", { channel: "email (test)" });
     }
   } else {
     const policy = effectivePolicy(r.s, docId);
@@ -899,24 +901,32 @@ export function importReference(state: RunState, data: unknown, who: Who, clock:
   });
 }
 
-export function setDemoSetting(state: RunState, key: "erp_failure_mode" | "rehearsal_mode", value: string, who: Who,
+export function setTestSetting(state: RunState, key: "erp_failure_mode" | "test_reader", value: string, who: Who,
   clock: Clock = systemClock): RunState {
   if (who.role !== "administrator") throw new Forbidden("Only an administrator can change demo settings");
   const allowed = key === "erp_failure_mode" ? ["none", "fail_next", "timeout_next"] : ["on", "off"];
   if (!allowed.includes(value)) throw new Conflict(`value must be one of ${[...allowed].sort().join(", ")}`);
   return act(state, clock, (r) => {
     if (key === "erp_failure_mode") r.s.settings.erpFailureMode = value as RunState["settings"]["erpFailureMode"];
-    else r.s.settings.rehearsalMode = value === "on";
-    r.audit("system", 0, "demo_setting_changed", who.actor, { key, value });
+    else r.s.settings.testReader = value === "on";
+    r.audit("system", 0, "test_setting_changed", who.actor, { key, value });
   });
 }
 
-export function resetDemo(state: RunState, who: Who, clock: Clock = systemClock): RunState {
+export function setNotifications(state: RunState, enabled: boolean, who: Who, clock: Clock = systemClock): RunState {
+  if (who.role !== "administrator") throw new Forbidden("Only an administrator can change notifications");
+  return act(state, clock, (r) => {
+    r.s.settings.notifyOnReview = enabled;
+    r.audit("system", 0, "notifications_changed", who.actor, { notify_on_review: enabled });
+  });
+}
+
+export function resetTestData(state: RunState, who: Who, clock: Clock = systemClock): RunState {
   if (who.role !== "administrator") throw new Forbidden("Only an administrator can reset the demo");
   return act(emptyRunState(clock.now()), clock, (r) => {
     r.s.policyHistory[0].setBy = who.actor;
     r.s.settings.role = state.settings.role;
-    r.audit("system", 0, "demo_reset", who.actor, {});
+    r.audit("system", 0, "test_data_reset", who.actor, {});
   });
 }
 

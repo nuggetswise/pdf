@@ -1,35 +1,15 @@
 "use client";
-// D62-D65 panels on the order workspace: order actions (hold, release, reject), value provenance, order history,
-// the source as text for email and EDI orders, evidence-only attachments and the technical trace.
+// Panels on the order review: order actions (hold, release, reject), how each value was read, the source as text for
+// email and EDI orders, and evidence-only attachments.
 import { useState } from "react";
-import { partnerFor } from "../lib/domain/partners";
 import { provenanceRows } from "../lib/domain/provenance";
 import type { Action } from "../lib/server/run-action";
-import { CHANNEL_LABEL, type DocDetail, HOLD_REASON_LABEL, REJECT_REASON_LABEL, type Role } from "./api";
+import { type DocDetail, HOLD_REASON_LABEL, REJECT_REASON_LABEL, type Role } from "./api";
 import { useAgent } from "./run/RunProvider";
 
 type RunFn = (action: Action) => Promise<void>;
 const who = (actor: string) => actor.split(":")[1] ?? actor;
 const time = (iso: string) => new Date(iso).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
-
-/** Header chips: the route, its supervision and how the values were read. */
-export function OrderChips({ d }: { d: DocDetail }) {
-  const p = d.latest_version?.payload.extractor;
-  const read = !p ? null : p.is_ai ? "Read by AI" : /X12|EDI/i.test(p.name) ? "Structured data, no AI" : "Test adapter, not AI";
-  return (
-    <div className="chips" aria-label="Order route">
-      <span className="chip">{CHANNEL_LABEL[d.channel] ?? d.channel}</span>
-      {d.order && (
-        <span className={`chip ${d.supervision.mode === "exception_only" ? "info" : ""}`}
-          title={d.supervision.reason ? `Reason: ${d.supervision.reason}` : undefined}>
-          {d.supervision.mode === "exception_only" ? "Automatic when checks pass" : "Supervised"}
-          {d.supervision.scope === "default" ? " (default)" : ""}
-        </span>
-      )}
-      {read && <span className={`chip ${p!.is_ai ? "ai" : ""}`}>{read}</span>}
-    </div>
-  );
-}
 
 /** D64: internal hold, release and reject. Available until the order reaches the ERP. */
 export function OrderActions({ d, role, onRun }: { d: DocDetail; role: Role; onRun: RunFn }) {
@@ -183,45 +163,3 @@ const detailText = (d: Record<string, unknown>) => {
   if (Array.isArray(d.open_issues)) parts.push(`${d.open_issues.length} open issue${d.open_issues.length === 1 ? "" : "s"}`);
   return parts.join(" · ");
 };
-
-/** D64: one history for the order: its events, ERP delivery attempts and documents sent. */
-export function OrderHistory({ d }: { d: DocDetail }) {
-  const agent = useAgent();
-  const rows: { at: string; text: string; actor: string; extra: string }[] = d.timeline.map((t) => ({
-    at: t.created_at, text: EVENT_LABEL[t.event] ?? t.event.replace(/_/g, " "), actor: who(t.actor), extra: detailText(t.detail) }));
-  for (const a of d.order?.deliveries ?? []) rows.push({ at: a.updated_at, text: `ERP delivery attempt ${a.id}: ${a.state.replace(/_/g, " ")}`, actor: "agent", extra: a.detail ?? "" });
-  for (const m of (agent.state.portal?.outbound ?? []).filter((x) => x.documentId === d.document.id)) {
-    rows.push({ at: m.updatedAt, text: `${m.kind} ${m.sourceId} to ${m.channel === "supplier_erp" ? "supplier ERP" : "retailer"}: ${m.status}`, actor: "agent",
-      extra: m.receiverRef ?? m.attempts.at(-1)?.detail ?? "" });
-  }
-  rows.sort((a, b) => a.at.localeCompare(b.at));
-  return (
-    <details className="history">
-      <summary>Order history ({rows.length} events)</summary>
-      <ol className="history-list">
-        {rows.map((r, i) => <li key={i}><time>{time(r.at)}</time> <b>{r.text}</b> <span className="muted small">{r.actor}{r.extra && ` · ${r.extra}`}</span></li>)}
-      </ol>
-    </details>
-  );
-}
-
-/** Source, structured order, partner setup and destination in one place, for support and integration review. */
-export function TechnicalTrace({ d }: { d: DocDetail }) {
-  const agent = useAgent();
-  const o = d.order;
-  const partner = o ? partnerFor(agent.state, o.customer_id) : null;
-  const out = (agent.state.portal?.outbound ?? []).filter((m) => m.documentId === d.document.id);
-  return (
-    <details className="trace">
-      <summary>Technical trace</summary>
-      <dl className="termlist">
-        <div><dt>Source</dt><dd className="mono small">{d.kind} · {d.document.original_filename ?? "no file name"} · sha256 {d.document.sha256.slice(0, 16)}…</dd></div>
-        <div><dt>Message</dt><dd className="mono small">{d.envelope.message_id ?? "no message ID"} · {d.envelope.sender ?? "no sender"}</dd></div>
-        <div><dt>Partner setup</dt><dd className="small">{partner ? `${partner.customerId || "unknown"} · profile ${partner.profile} · buyer GLN ${partner.buyerGln ?? "not set"}${partner.isDefault ? " (default)" : ""}` : "No order"}</dd></div>
-        <div><dt>ERP destination</dt><dd className="mono small">{o?.erp_order_id ? `${o.erp_order_id} · key ${o.deliveries.at(-1)?.idempotency_key}` : "Not delivered"}</dd></div>
-        <div><dt>Retailer documents</dt><dd className="small">{out.length ? out.map((m) => `${m.kind} ${m.status}`).join(", ") : "None sent"}</dd></div>
-      </dl>
-      {o && <pre className="mono small json">{JSON.stringify(o.validation.order, null, 2)}</pre>}
-    </details>
-  );
-}

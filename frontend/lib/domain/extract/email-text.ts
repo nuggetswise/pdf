@@ -1,5 +1,5 @@
 // TEST ADAPTER for orders written in an email (D62). A deterministic reader of common plain-text order phrasing,
-// used in tests and rehearsal mode in place of the AI. Not AI, always labelled as such, and it never looks at a
+// used in tests and the test reader in place of the AI. Not AI, always labelled as such, and it never looks at a
 // file name or a fixture name: it reads only the text. Values are copied as written, never converted.
 import { pyStrip } from "../money";
 

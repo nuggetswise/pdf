@@ -1,5 +1,5 @@
 // TEST ADAPTER: deterministic parser for the labelled fictional fixture layout (extraction.py
-// FixtureTestExtractor). Not AI, and always labelled as such (D15). Used for tests and rehearsal mode.
+// FixtureTestExtractor). Not AI, and always labelled as such (D15). Used for tests and the test reader.
 import { pyStrip } from "../money";
 
 export const FIXTURE_EXTRACTOR = { name: "TEST ADAPTER (fixture parser, not AI extraction)", isAi: false } as const;

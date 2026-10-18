@@ -69,7 +69,7 @@
       "id": "TP-10", "title": "ERP delivery fails, then a retry verifies the ERP record",
       "steps": [
         { "forward": "TP-10-erp-failure.eml", "expect": { "docs": [{ "review_state": "ready" }] } },
-        { "action": { "type": "setDemoSetting", "role": "administrator", "key": "erp_failure_mode", "value": "fail_next" } },
+        { "action": { "type": "setTestSetting", "role": "administrator", "key": "erp_failure_mode", "value": "fail_next" } },
         { "action": { "type": "approve", "role": "reviewer", "docId": "$1" },
           "expect": { "docs": [{ "doc_id": 1, "delivery_state": "failed" }],
             "findings": [{ "type": "erp_outcome", "verification": "pending", "action": "not_started", "owner": null }] } },
@@ -82,7 +82,7 @@
       "id": "TP-11", "title": "ERP outcome unknown: the retry checks first and creates no second ERP order",
       "steps": [
         { "forward": "TP-11-erp-unknown-outcome.eml" },
-        { "action": { "type": "setDemoSetting", "role": "administrator", "key": "erp_failure_mode", "value": "timeout_next" } },
+        { "action": { "type": "setTestSetting", "role": "administrator", "key": "erp_failure_mode", "value": "timeout_next" } },
         { "action": { "type": "approve", "role": "reviewer", "docId": "$1" },
           "expect": { "erp_orders": 1, "docs": [{ "doc_id": 1, "delivery_state": "unknown" }],
             "findings": [{ "type": "erp_outcome", "verification": "pending" }] } },

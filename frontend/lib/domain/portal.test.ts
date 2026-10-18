@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { forward, mapleRun, tickClock } from "./__fixtures__/maple";
 import { cancelBackorder, deliverySummary, openQuantities, outboundList, portalForOrder, retryOutbound, setEdiFailureMode, submitAsn, submitInvoice } from "./portal";
 import { RunState } from "./run-state";
-import { Conflict, Forbidden, setDemoSetting } from "./workflow";
+import { Conflict, Forbidden, setTestSetting } from "./workflow";
 
 const REVIEWER = { actor: "reviewer:rita", role: "reviewer" };
 const ADMIN = { actor: "administrator:alex", role: "administrator" };
@@ -77,7 +77,7 @@ describe("ASN", () => {
   });
 
   it("an ERP timeout is reconciled on retry, not sent twice", () => {
-    let s = setDemoSetting(base(), "erp_failure_mode", "timeout_next", ADMIN, clock);
+    let s = setTestSetting(base(), "erp_failure_mode", "timeout_next", ADMIN, clock);
     s = submitAsn(s, 1, ship("100", "100"), REVIEWER, clock);
     const erp = portalForOrder(s, 1).asnMessages[0];
     expect(erp.status).toBe("pending");

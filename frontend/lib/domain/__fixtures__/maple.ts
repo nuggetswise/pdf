@@ -7,7 +7,7 @@ import { normalise } from "../normalise";
 import { type OrderVersion, type RunState, emptyRunState } from "../run-state";
 import {
   type Clock, EXTRACTION_MESSAGES, type IncomingDocument, type IncomingEnvelope, type Who, approve, decide, failExtraction,
-  receive, recordExtraction, resetDemo, setDemoSetting, startExtraction,
+  receive, recordExtraction, resetTestData, setTestSetting, startExtraction,
 } from "../workflow";
 import inbox from "./maple-inbox.json";
 
@@ -74,8 +74,8 @@ const maskEdi = (v: string) =>
  */
 export function mapleRunWithClock(): { s: RunState; clock: Clock } {
   const clock = tickClock();
-  let s = resetDemo(emptyRunState(clock.now()), ADMIN, clock);
-  s = setDemoSetting(s, "rehearsal_mode", "on", ADMIN, clock);
+  let s = resetTestData(emptyRunState(clock.now()), ADMIN, clock);
+  s = setTestSetting(s, "test_reader", "on", ADMIN, clock);
   ({ state: s } = forward(s, "milk", clock));
   s = approve(s, 1, REVIEWER, clock);
   ({ state: s } = forward(s, "cheese", clock));

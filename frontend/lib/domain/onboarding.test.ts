@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { ADMIN, INTAKE_ACTOR, REVIEWER, VIEWER, extract, tickClock } from "./__fixtures__/maple";
 import { RunState, emptyRunState } from "./run-state";
 import {
-  Conflict, Forbidden, addCustomer, addProduct, addShipTo, approve, assignCustomer, receive, resetDemo, setPolicy,
+  Conflict, Forbidden, addCustomer, addProduct, addShipTo, approve, assignCustomer, receive, resetTestData, setPolicy,
 } from "./workflow";
 import { applyAction } from "../server/run-action";
 
@@ -129,7 +129,7 @@ describe("session onboarding (D46)", () => {
     expect(() => addCustomer(s, docId, {}, REVIEWER, clock)).toThrow(Conflict); // issue already resolved
     expect(() => addProduct(s, docId, "unknown_item:0", { sku: "NF-MLK-001" }, REVIEWER, clock)).toThrow(/already in the catalogue/);
     expect(() => addProduct(s, docId, "unknown_item:0", { moq: "0" }, REVIEWER, clock)).toThrow(Conflict);
-    expect(resetDemo(s, ADMIN, clock).referenceOverlay).toBeUndefined();
+    expect(resetTestData(s, ADMIN, clock).referenceOverlay).toBeUndefined();
   });
 
   it("waits for an explicit approval in Exception-only mode after onboarding; the repeat order then auto-delivers", () => {

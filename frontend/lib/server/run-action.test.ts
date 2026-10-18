@@ -25,7 +25,7 @@ async function forward(s: RunState, name: MapleName): Promise<RunState> {
     const doc = next.documents.find((d) => d.id === docId)!;
     if (doc.status !== "received") continue;
     next = must(applyAction(next, { type: "startExtraction", docId }));
-    const outcome = await extractPages(doc.pageText, { rehearsal: true, config: loadExtractionConfig({}) });
+    const outcome = await extractPages(doc.pageText, { testReader: true, config: loadExtractionConfig({}) });
     next = must(applyAction(next, outcome.ok ? { type: "recordExtraction", docId, payload: outcome.payload }
       : { type: "failExtraction", docId, kind: outcome.status, detail: outcome.detail }));
   }
@@ -39,8 +39,8 @@ describe("the Maple story through the server action", () => {
     // Ship dates are worked out from today (D61), so both runs share the fixture clock's day.
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-10-15T15:00:00.000Z"));
-    let s = go(emptyRunState(), { type: "resetDemo", role: "administrator" });
-    s = go(s, { type: "setDemoSetting", role: "administrator", key: "rehearsal_mode", value: "on" });
+    let s = go(emptyRunState(), { type: "resetTestData", role: "administrator" });
+    s = go(s, { type: "setTestSetting", role: "administrator", key: "test_reader", value: "on" });
     s = await forward(s, "milk");
     s = go(s, { type: "approve", role: "reviewer", docId: 1 });
     s = await forward(s, "cheese");
@@ -81,11 +81,11 @@ describe("the server action refuses", () => {
   it("a role that may not act (403), with the workflow's message", () => {
     expect(applyAction(s, { type: "setPolicy", role: "reviewer", mode: "exception_only" }))
       .toStrictEqual({ ok: false, status: 403, error: "Only an administrator can change the automation mode" });
-    expect(applyAction(s, { type: "resetDemo", role: "viewer" })).toMatchObject({ ok: false, status: 403 });
+    expect(applyAction(s, { type: "resetTestData", role: "viewer" })).toMatchObject({ ok: false, status: 403 });
   });
 
   it("a decision without a reason (409), so the screen can say why", async () => {
-    const run = await forward(go(s, { type: "setDemoSetting", role: "administrator", key: "rehearsal_mode", value: "on" }),
+    const run = await forward(go(s, { type: "setTestSetting", role: "administrator", key: "test_reader", value: "on" }),
       "moq");
     const r = applyAction(run, { type: "decide", role: "reviewer", docId: 1, issueKey: "moq_violation:0",
       action: "one_off_exception", reason: null });

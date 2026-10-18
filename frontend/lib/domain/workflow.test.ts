@@ -14,7 +14,7 @@ import { type ReferenceData, RunState, emptyRunState } from "./run-state";
 import { type Reference, type RuleInput, validate } from "./validation";
 import {
   Conflict, EXTRACTION_MESSAGES, Forbidden, approve, decide, failExtraction, importReference, receive,
-  recordExtraction, recoverDeliveries, resetDemo, retryDelivery, retryExtraction, setDemoSetting, setPolicy,
+  recordExtraction, recoverDeliveries, resetTestData, retryDelivery, retryExtraction, setTestSetting, setPolicy,
   setRuleState, startExtraction, summary,
 } from "./workflow";
 
@@ -441,7 +441,7 @@ describe("slice 4 review, roles and modes", () => {
 
   it("P09 an edit after approval invalidates it", () => {
     let { s, clock } = fresh();
-    s = setDemoSetting(s, "erp_failure_mode", "fail_next", ADMIN, clock);
+    s = setTestSetting(s, "erp_failure_mode", "fail_next", ADMIN, clock);
     let docId: number;
     ({ state: s, docId } = forward(s, "cheese", clock));
     s = decideCheese(s, docId, clock);
@@ -511,7 +511,7 @@ describe("slice 5 ERP delivery", () => {
 
   it("P10 a failed delivery retry uses the same idempotency key", () => {
     let { s, clock } = fresh();
-    s = setDemoSetting(s, "erp_failure_mode", "fail_next", ADMIN, clock);
+    s = setTestSetting(s, "erp_failure_mode", "fail_next", ADMIN, clock);
     let docId: number;
     ({ state: s, docId } = forward(s, "cheese", clock));
     s = decideCheese(s, docId, clock);
@@ -524,7 +524,7 @@ describe("slice 5 ERP delivery", () => {
 
   it("P11 a timeout after create reconciles to one ERP order", () => {
     let { s, clock } = fresh();
-    s = setDemoSetting(s, "erp_failure_mode", "timeout_next", ADMIN, clock);
+    s = setTestSetting(s, "erp_failure_mode", "timeout_next", ADMIN, clock);
     let docId: number;
     ({ state: s, docId } = forward(s, "cheese", clock));
     s = decideCheese(s, docId, clock);
@@ -537,14 +537,14 @@ describe("slice 5 ERP delivery", () => {
 
   it("retrying one delivery twice gives exactly one ERP record", () => {
     let { s, clock } = fresh();
-    s = setDemoSetting(s, "erp_failure_mode", "fail_next", ADMIN, clock);
+    s = setTestSetting(s, "erp_failure_mode", "fail_next", ADMIN, clock);
     let docId: number;
     ({ state: s, docId } = forward(s, "cheese", clock));
     s = decideCheese(s, docId, clock);
     expect(orderOf(s, docId).deliveryState).toBe("failed");
     expect(s.erpOrders).toHaveLength(0);
     // First retry: the ERP creates the order but the answer is lost.
-    s = setDemoSetting(s, "erp_failure_mode", "timeout_next", ADMIN, clock);
+    s = setTestSetting(s, "erp_failure_mode", "timeout_next", ADMIN, clock);
     s = retryDelivery(s, docId, REVIEWER, clock);
     expect(orderOf(s, docId).deliveryState).toBe("unknown");
     expect(s.erpOrders).toHaveLength(1);
@@ -562,7 +562,7 @@ describe("slice 5 ERP delivery", () => {
 
   it("reload mid-delivery recovers without duplicates", () => {
     let { s, clock } = fresh();
-    s = setDemoSetting(s, "erp_failure_mode", "timeout_next", ADMIN, clock);
+    s = setTestSetting(s, "erp_failure_mode", "timeout_next", ADMIN, clock);
     let docId: number;
     ({ state: s, docId } = forward(s, "cheese", clock));
     s = decideCheese(s, docId, clock);
@@ -604,7 +604,7 @@ describe("slice 6 agent memory and administration", () => {
     s = setRuleState(s, rule.id, "active", ADMIN, null, clock);
     // Activation affects future orders only: the held second Cheddar PO is unchanged.
     expect(orderOf(s, d2).deliveryState).toBe("not_started");
-    expect(() => resetDemo(s, REVIEWER, clock)).toThrow(Forbidden);
+    expect(() => resetTestData(s, REVIEWER, clock)).toThrow(Forbidden);
     expect(summary(s).orders_received).toBe(2);
     // P26: the next Cheddar PO is fixed by the active rule, with no person needed.
     let d3: number;
@@ -629,8 +629,8 @@ describe("slice 6 agent memory and administration", () => {
     let { s, clock } = fresh();
     s = setPolicy(s, "exception_only", ADMIN, clock, "Pilot evidence reviewed");
     ({ state: s } = forward(s, "cheese", clock));
-    expect(() => resetDemo(s, REVIEWER, clock)).toThrow(Forbidden);
-    s = resetDemo(s, ADMIN, clock);
+    expect(() => resetTestData(s, REVIEWER, clock)).toThrow(Forbidden);
+    s = resetTestData(s, ADMIN, clock);
     expect(summary(s).orders_received).toBe(0);
     expect(s.policyHistory.at(-1)!.mode).toBe("review_all");
     // The same email can be received again after reset (not a duplicate).
@@ -662,9 +662,9 @@ describe("slice 6 agent memory and administration", () => {
 
   it("test-environment settings are admin only and checked", () => {
     const { s, clock } = fresh();
-    expect(() => setDemoSetting(s, "erp_failure_mode", "fail_next", REVIEWER, clock)).toThrow(Forbidden);
-    expect(() => setDemoSetting(s, "erp_failure_mode", "explode", ADMIN, clock)).toThrow(Conflict);
+    expect(() => setTestSetting(s, "erp_failure_mode", "fail_next", REVIEWER, clock)).toThrow(Forbidden);
+    expect(() => setTestSetting(s, "erp_failure_mode", "explode", ADMIN, clock)).toThrow(Conflict);
     expect(() => setPolicy(s, "auto_everything", ADMIN, clock)).toThrow(Conflict);
-    expect(setDemoSetting(s, "rehearsal_mode", "on", ADMIN, clock).settings.rehearsalMode).toBe(true);
+    expect(setTestSetting(s, "test_reader", "on", ADMIN, clock).settings.testReader).toBe(true);
   });
 });

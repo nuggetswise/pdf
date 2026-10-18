@@ -1,10 +1,9 @@
 "use client";
-// D54: the supplier and retailer sides. The supplier home is Orders; this file keeps the order mailbox, the order
-// state line and the retailer's view of the standard EDI it receives.
+// The order mailbox, the one-line order state and the retailer's view of the standard EDI it receives.
 // Nothing here is a script; every card is read from the run's state.
 import { useState } from "react";
 import { FileCheck2, Mail, Network, Receipt, Truck } from "lucide-react";
-import { SAMPLE_LABELS, SAMPLE_SENDERS } from "../lib/intake/intake";
+import { INTAKE_ADDRESS, SAMPLE_LABELS, SAMPLE_SENDERS } from "../lib/intake/intake";
 import { portalForOrder } from "../lib/domain/portal";
 import { showDate } from "../lib/domain/dates";
 import { firstShipOn } from "../lib/domain/fulfilment";
@@ -15,7 +14,7 @@ import { SAMPLE_EMAILS, useAgent } from "./run/RunProvider";
 
 type Order = RunState["orders"][number];
 const STATUS_TONE = { delivered: "ok", pending: "warn", failed: "bad" } as const;
-const DOC_NAME: Record<string, string> = { ORDRSP: "Order acknowledgement", DESADV: "Advance ship notice", INVOIC: "Invoice" };
+const DOC_NAME: Record<string, string> = { ORDRSP: "Order confirmation", DESADV: "Advance ship notice", INVOIC: "Invoice" };
 const X12_NO: Record<string, string> = { ORDRSP: "855", DESADV: "856", INVOIC: "810" };
 
 function useWrap() {
@@ -55,51 +54,63 @@ export function RetailerSuppliers({ customerId }: { customerId: string | null })
     <section className="panel" aria-label="Suppliers">
       <header className="panel-head"><h3>Suppliers</h3></header>
       <table className="grid-table stack-table">
-        <thead><tr><th>Supplier</th><th>How they connect</th><th>Orders</th><th>Documents received</th><th>Went through untouched</th><th></th></tr></thead>
+        <thead><tr><th>Supplier</th><th>How they connect</th><th>Orders</th><th>Documents received</th><th>Went through untouched</th></tr></thead>
         <tbody>
           <tr>
             <td data-label="Supplier"><b>{supplier}</b><div className="muted small">Fictional</div></td>
-            <td data-label="How they connect"><span className="pill info"><Mail size={14} aria-hidden /> Email, via Order Agent</span></td>
+            <td data-label="How they connect"><span className="pill info"><Mail size={14} aria-hidden /> Email, read by the portal</span></td>
             <td data-label="Orders">{orders.length}</td><td data-label="Documents received">{msgs.length}</td>
             <td data-label="Went through untouched">{orders.length ? `${untouched} of ${orders.length}` : "–"}</td>
-            <td data-label="Onboarding" className="muted small">Onboarding is outside this concept</td>
           </tr>
         </tbody>
       </table>
-      <p className="path"><Network size={16} aria-hidden /> Once a supplier runs clean through the agent, invite them onto full Trading Grid EDI with this history already in place.</p>
+      <p className="path"><Network size={16} aria-hidden /> A supplier that sends clean orders by email can later move to full Trading Grid EDI, with this history already in place.</p>
     </section>
   );
 }
 
-export function Forward() {
+/** Where orders arrive. In production the supplier points an auto-forward rule on the mailbox that receives retailer
+ *  POs at this address, or retailers send to it directly. The test environment has no mailbox, so it offers the two
+ *  sample emails instead; a document can also be added by hand. */
+export function OrderMailbox({ testEnv }: { testEnv: boolean }) {
   const agent = useAgent();
   const { error, wrap } = useWrap();
   const add = (f: File) => wrap(async () => {
     const bytes = new Uint8Array(await f.arrayBuffer());
-    const isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name) || new TextDecoder().decode(bytes.slice(0, 5)) === "%PDF-";
-    await (isPdf ? agent.uploadPdf(bytes, f.name) : agent.importEml(bytes));
+    const head = new TextDecoder().decode(bytes.slice(0, 5));
+    const isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name) || head === "%PDF-";
+    const isEdi = /\.(x12|edi|850)$/i.test(f.name) || head.startsWith("ISA");
+    await (isPdf || isEdi ? agent.uploadPdf(bytes, f.name) : agent.importEml(bytes));
   });
-  // D74: five fictional emails in story order. Each one is read by the same path as any forwarded order.
-  const forwarded = (name: string) => agent.ready && agent.state.envelopes.some((e) => e.messageId?.startsWith(`<${name.toLowerCase()}@`));
+  const received = (name: string) => agent.ready && agent.state.envelopes.some((e) => e.messageId?.startsWith(`<${name.toLowerCase()}@`));
   return (
     <div className="forward-box">
-      <p className="how">Retailers email PDF purchase orders as they do today. Forward each one to
-        <b> order-agent@supplier-demo.example</b>, or drop the email or PDF here.</p>
-      <ol className="inbox-list" aria-label="Supplier inbox">
-        {SAMPLE_EMAILS.map((name) => (
-          <li key={name} className="forward mailrow">
-            <Mail size={18} aria-hidden />
-            <div><b>{SAMPLE_LABELS[name]}</b><div className="muted small">From {SAMPLE_SENDERS[name]} · fictional</div></div>
-            {forwarded(name) ? <span className="pill ok">Forwarded</span>
-              : <button aria-label={`Forward ${SAMPLE_LABELS[name]}`} onClick={() => wrap(() => agent.forwardDemo(name))}>Forward to agent</button>}
-          </li>
-        ))}
-      </ol>
-      <label className="dropzone small-drop">
-        <input type="file" accept=".pdf,application/pdf,.eml,message/rfc822" aria-label="Forward a purchase order"
-          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) add(f); }} />
-        <b>Or drop a retailer email (.eml) or PDF</b>
-      </label>
+      <p className="how">Retailers send purchase orders by email. Set your order mailbox to forward them to
+        <b className="mono"> {INTAKE_ADDRESS}</b>, or ask the retailer to send there directly. Each PDF is read as it arrives.</p>
+      {testEnv && (
+        <>
+          <p className="muted small">Test environment: no mailbox is connected. Receive a sample email to see an order arrive.</p>
+          <ol className="inbox-list" aria-label="Sample emails">
+            {SAMPLE_EMAILS.map((name) => (
+              <li key={name} className="forward mailrow">
+                <Mail size={18} aria-hidden />
+                <div><b>{SAMPLE_LABELS[name]}</b><div className="muted small">From {SAMPLE_SENDERS[name]} · fictional</div></div>
+                {received(name) ? <span className="pill ok">Received</span>
+                  : <button aria-label={`Receive sample email ${SAMPLE_LABELS[name]}`} onClick={() => wrap(() => agent.receiveSample(name))}>Receive sample email</button>}
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
+      <details className="add-doc">
+        <summary>Add a document by hand</summary>
+        <label className="dropzone small-drop">
+          <input type="file" accept=".pdf,application/pdf,.eml,message/rfc822,.x12,.edi,.850" aria-label="Add a document"
+            onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) add(f); }} />
+          <b>Choose or drop a PDF, an email (.eml) or an X12 850 file</b>
+          <span className="muted small">For an order that did not come through the mailbox. It is read in this browser.</span>
+        </label>
+      </details>
       {error && <div className="alert bad" role="alert">{error}</div>}
     </div>
   );
@@ -114,7 +125,7 @@ export function supplierState(s: RunState, docId: number): { text: string; tone:
   const f = o?.fulfilment;
   let text: string;
   let tone = "info";
-  if (IN_FLIGHT.has(d.status)) text = "The agent is reading it…";
+  if (IN_FLIGHT.has(d.status)) text = "Being read.";
   else if (!o) { text = d.statusDetail ?? "Could not be read"; tone = "bad"; }
   else if (f?.status === "needs_decision") {
     const n = f.lines.filter((l) => l.short !== "0").length;
@@ -123,8 +134,8 @@ export function supplierState(s: RunState, docId: number): { text: string; tone:
     const back = f?.parts.some((x) => x.kind === "backorder");
     text = `In your ERP as ${o.erpOrderId}. Confirmed to the retailer${f ? `: ships ${showDate(firstShipOn(f.parts))}${back ? ", rest backordered" : ""}` : ""}.`; tone = "ok";
   }
-  else if (open > 0) { text = `Needs your decision on ${open} thing${open === 1 ? "" : "s"}. The agent holds it until then.`; tone = "warn"; }
-  else if (o.reviewState === "ready") { text = "Checked, waiting for one approval."; tone = "warn"; }
+  else if (open > 0) { text = `Needs your decision on ${open} check${open === 1 ? "" : "s"}. It waits until you decide.`; tone = "warn"; }
+  else if (o.reviewState === "ready") { text = "Every check passed. Waiting for one approval."; tone = "warn"; }
   else text = "Checked.";
   const shipments = (p?.shipments ?? []).map((x) => `Shipped ${x.asn.lines.filter((l) => !l.shippedQty.startsWith("0")).length} line(s) on ${x.asn.despatchDate}: ${x.asn.asnNumber}${x.invoice ? ` and invoice ${x.invoice.invoiceNumber}` : ""} sent to the retailer.`);
   return { text, tone, shipments };
@@ -147,7 +158,7 @@ function RetailerCard({ m, s }: { m: OutboundMessage; s: RunState }) {
       <header>
         <div className="rhead"><span className="ricon" aria-hidden><Icon size={18} /></span>
           <div><h4>{DOC_NAME[m.kind] ?? m.kind}{m.format === "x12" ? ` (X12 ${X12_NO[m.kind]})` : ""}</h4>
-            <p className="small muted">PO {o?.validation.order.po_number ?? "?"} · {m.sourceId} · from the supplier's email, via Order Agent</p></div></div>
+            <p className="small muted">PO {o?.validation.order.po_number ?? "?"} · {m.sourceId} · from the supplier's order email</p></div></div>
         <div className="rbadges">{changed && <span className="pill warn">Changes</span>}
           <span className={`pill ${STATUS_TONE[m.status]}`}>{m.status === "delivered" ? "received" : m.status}</span></div>
       </header>

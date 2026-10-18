@@ -6,7 +6,7 @@ export type {
 } from "../lib/domain/selectors";
 export type Health = {
   status: string; extraction: string; extractor_mode: string; model: string | null; erp: string;
-  rehearsal_mode: boolean; erp_failure_mode: string; policy: Policy;
+  test_reader: boolean; erp_failure_mode: string; policy: Policy;
 };
 export type Summary = {
   orders_received: number; delivered_to_erp: number; auto_approved_by_policy: number; held_for_review: number;

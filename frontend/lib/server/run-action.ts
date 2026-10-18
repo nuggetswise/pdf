@@ -8,7 +8,7 @@ import { normalise } from "../domain/normalise";
 import { Channel, DecisionAction, ExtractionPayload, FindingType, HoldReason, IntakeMode, RejectReason, RunState } from "../domain/run-state";
 import {
   Conflict, Forbidden, type Who, addCustomer, addProduct, addShipTo, approve, assignCustomer, decide, failExtraction, holdOrder, receive,
-  recordExtraction, recoverDeliveries, rejectOrder, releaseHold, resetDemo, retryDelivery, retryExtraction, setDemoSetting, setPolicy,
+  recordExtraction, recoverDeliveries, rejectOrder, releaseHold, resetTestData, retryDelivery, retryExtraction, setTestSetting, setNotifications, setPolicy,
   setRoutePolicy, setRuleState, startExtraction, treatAsOrder,
 } from "../domain/workflow";
 import { assignFinding, reconcileFindings, respondToRevision, setFindingOwnership } from "../domain/command-center";
@@ -93,9 +93,10 @@ export const Action = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("setRuleState"), role: Role, ruleId: docId, state: z.enum(["active", "revoked"]),
     reason: shortText.nullable().optional() }),
   z.strictObject({ type: z.literal("setPolicy"), role: Role, mode: z.string().max(40), reason: shortText.nullable().optional() }),
-  z.strictObject({ type: z.literal("setDemoSetting"), role: Role, key: z.enum(["erp_failure_mode", "rehearsal_mode"]),
+  z.strictObject({ type: z.literal("setNotifications"), role: Role, enabled: z.boolean() }),
+  z.strictObject({ type: z.literal("setTestSetting"), role: Role, key: z.enum(["erp_failure_mode", "test_reader"]),
     value: z.string().max(40) }),
-  z.strictObject({ type: z.literal("resetDemo"), role: Role }),
+  z.strictObject({ type: z.literal("resetTestData"), role: Role }),
   z.strictObject({ type: z.literal("recoverDeliveries") }),
   // Supplier portal (D45). Quantities are decimal strings; the workflow checks them against the order and ASN.
   z.strictObject({ type: z.literal("submitAsn"), role: Role, docId,
@@ -216,10 +217,12 @@ function apply(s: RunState, a: Action): { state: RunState; documentIds?: number[
       return { state: setFindingOwnership(s, a.findingType, a.owner, who(a.role)) };
     case "respondToRevision":
       return { state: respondToRevision(s, a.messageId, a.customerId, a.decision) };
-    case "setDemoSetting":
-      return { state: setDemoSetting(s, a.key, a.value, who(a.role)) };
-    case "resetDemo":
-      return { state: resetDemo(s, who(a.role)) };
+    case "setNotifications":
+      return { state: setNotifications(s, a.enabled, who(a.role)) };
+    case "setTestSetting":
+      return { state: setTestSetting(s, a.key, a.value, who(a.role)) };
+    case "resetTestData":
+      return { state: resetTestData(s, who(a.role)) };
     case "recoverDeliveries":
       return { state: recoverDeliveries(s) };
     case "submitAsn":

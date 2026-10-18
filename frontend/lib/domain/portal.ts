@@ -678,7 +678,7 @@ export function setEdiFailureMode(state: RunState, value: string, who: Who, cloc
   if (!["none", "fail_next", "hold_next"].includes(value)) throw new Conflict("value must be one of fail_next, hold_next, none");
   return act(state, clock, (s, now) => {
     s.portal.ediFailureMode = value as Portal["ediFailureMode"];
-    s.audit.push({ id: nextId(s.audit), entityType: "system", entityId: 0, event: "demo_setting_changed", actor: who.actor,
+    s.audit.push({ id: nextId(s.audit), entityType: "system", entityId: 0, event: "test_setting_changed", actor: who.actor,
       detail: { key: "edi_failure_mode", value }, createdAt: now });
   });
 }

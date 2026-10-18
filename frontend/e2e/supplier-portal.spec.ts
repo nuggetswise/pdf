@@ -16,7 +16,7 @@ test("a supplier confirms, ships short and invoices what shipped", async ({ page
 
   // Step 1: the order confirmation went out by itself, with its own status.
   const portal = page.getByLabel("Supplier portal");
-  await expect(portal.getByLabel("Order confirmation")).toContainText("Order acknowledgement (X12 855)");
+  await expect(portal.getByLabel("Order confirmation")).toContainText("Order confirmation (X12 855)");
   await expect(portal.getByLabel("Order confirmation").locator(".pill.ok")).toHaveText("Delivered");
 
   // Step 2: ASN. Over-shipping is blocked without a reason; ship 10 of the 12 ordered on line A.

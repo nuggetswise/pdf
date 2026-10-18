@@ -45,7 +45,7 @@ export const TITLES: Record<IssueCode, string> = {
   moq_violation: "Below minimum order quantity",
   price_mismatch: "Price differs from agreed price",
   outdated_identifier: "Outdated GTIN",
-  rule_needs_revalidation: "Memory rule needs revalidation",
+  rule_needs_revalidation: "Approved correction needs revalidation",
   line_amount_mismatch: "Line amount does not add up",
   total_mismatch: "Printed total does not add up",
   possible_revision: "Same customer and PO already received",
