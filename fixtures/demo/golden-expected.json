@@ -64,5 +64,16 @@
     "total": "360.00",
     "issues": [],
     "expected_outcome_review_all": "held until a human approves; then auto-delivered once"
+  },
+  "VIDEO-DEMO-006": {
+    "currency": "USD",
+    "subtotal": "504.00",
+    "tax": "0.00",
+    "shipping": "0.00",
+    "total": "504.00",
+    "issues": [
+      "possible_revision"
+    ],
+    "expected_outcome_review_all": "held as a possible revision of VIDEO-DEMO-005; once accepted, updates the same ERP order"
   }
 }

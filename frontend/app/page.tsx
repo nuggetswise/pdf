@@ -10,9 +10,7 @@ import { EdiView } from "./Portal";
 import { RulesView } from "./Rules";
 import { Forward, RetailerInbox, RetailerSuppliers } from "./LiveView";
 import { ForwardedReview } from "./ForwardedReview";
-import { OpsHome, OpsReview, OrderExceptions } from "./OrderOps";
-import { OpsProvider, useOps } from "./ops/OpsProvider";
-import { needsAttention } from "../lib/domain/ops/engine";
+import { attentionCount, OpsHome, OrderExceptions } from "./OrderOps";
 import { findingCounts, supplierFindings } from "../lib/domain/command-center";
 import { CommandCenter, type OpenTarget } from "./CommandCenter";
 import { RunProvider, useAgent, useHealth } from "./run/RunProvider";
@@ -38,7 +36,7 @@ const NAV: Record<View, [Tab, string, LucideIcon, string][]> = {
 };
 
 export default function Page() {
-  return <RunProvider><OpsProvider><App /></OpsProvider></RunProvider>;
+  return <RunProvider><App /></RunProvider>;
 }
 
 function App() {
@@ -61,8 +59,7 @@ function App() {
   const switchView = (v: View) => { setView(v); setTab(NAV[v][0][0]); setFromCc(false); };
   const goTab = (t: Tab) => { setTab(t); setFromCc(false); setSection(null); setOpsOrder(null); };
   const openOps = (id: string, from: "ops" | "command") => { setOpsOrder(id); setOpsFrom(from); setTab("ops"); window.scrollTo?.(0, 0); };
-  const ops = useOps();
-  const ccOpen = (agent.ready ? findingCounts(supplierFindings(agent.state)).open : 0) + (ops.state?.orders.filter(needsAttention).length ?? 0);
+  const ccOpen = agent.ready ? findingCounts(supplierFindings(agent.state)).open + attentionCount(agent.state) : 0;
   const openFromCc = (t: OpenTarget) => { setFocus(t.docId); setSection(t.section); setFromCc(true); setTab("work"); };
   // D72: one retailer view, with no picker. It is the retailer of the first order in the run and sees only its own orders.
   const viewingAs = agent.ready ? agent.state.orders.map((o) => o.customerId).find(Boolean) ?? null : null;
@@ -127,7 +124,7 @@ function App() {
           {agent.storageWarning && <div className="alert warn" role="status">{agent.storageWarning}</div>}
           {tab === "ops" && !opsOrder && (
             <OpsHome
-              onOpen={(t) => openOps(t.kind === "ops" ? t.id : `doc:${t.docId}`, "ops")}
+              onOpen={(t) => openOps(`doc:${t.docId}`, "ops")}
               commandCenter={(
                 <section className="panel cc-entry" aria-labelledby="cc-entry-h">
                   <header className="panel-head"><h3 id="cc-entry-h">Command Center</h3><span className="count">{ccOpen}</span></header>
@@ -143,20 +140,16 @@ function App() {
                 </section>
               )} />
           )}
-          {tab === "ops" && opsOrder && !opsOrder.startsWith("doc:") && (
-            <OpsReview id={opsOrder} role={role} onBack={() => (opsFrom === "command" ? goTab("command") : setOpsOrder(null))} />
-          )}
           {tab === "ops" && opsOrder?.startsWith("doc:") && (
             <ForwardedReview key={opsOrder} docId={Number(opsOrder.slice(4))} role={role}
               onBack={() => (opsFrom === "command" ? goTab("command") : setOpsOrder(null))}
               onOpenIntake={(id) => { setOpsOrder(null); setFocus(id); setSection(null); setTab("work"); }} />
           )}
           {tab === "work" && <Workspace key={`${focus ?? 0}:${section ?? ""}`} role={role} focus={focus} section={section} />}
-          {tab === "command" && <OrderExceptions onOpen={(id) => openOps(id, "command")} />}
+          {tab === "command" && <OrderExceptions onOpen={(id) => openOps(`doc:${id}`, "command")} />}
           {tab === "command" && <CommandCenter audience="supplier" role={role} customerId={null} onOpen={openFromCc} />}
           {tab === "rcommand" && <CommandCenter audience="retailer" role={role} customerId={viewingAs} />}
-          {tab === "rules" && <RulesView />}
-          {tab === "rules" && <MemoryView role={role} />}
+          {tab === "rules" && <RulesView role={role} health={health} />}
           {tab === "sent" && <ErpView role={role} />}
           {tab === "sent" && <EdiView role={role} />}
           {tab === "settings" && <SettingsView role={role} health={health} pilot={pilot} />}

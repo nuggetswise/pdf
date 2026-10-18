@@ -6,9 +6,9 @@
 import { useState } from "react";
 import { AlertOctagon, ArrowLeft, CheckCircle2, CircleDot, ExternalLink, FileText, HelpCircle, Server } from "lucide-react";
 import { documentDetail, type DocDetail, type Issue } from "../lib/domain/selectors";
-import type { FieldState, IssueType } from "../lib/domain/ops/types";
+import { portalForOrder } from "../lib/domain/portal";
 import { ACTION_LABEL, IN_FLIGHT, type Role } from "./api";
-import { ACTOR, engineRows, FIELD_STATE, ISSUE_LABEL } from "./OrderOps";
+import { ACTOR, engineRows, FIELD_STATE, type FieldState, ISSUE_LABEL, type IssueType } from "./OrderOps";
 import { FIELD_LABEL, fieldOfIssue, Onboard, OrderTerms, SourcePanel, targetId } from "./OrderView";
 import { EmailEvidence, NotAnOrder, OrderActions, SourceText } from "./OrderPanels";
 import { FulfilmentPanel } from "./Fulfilment";
@@ -17,7 +17,8 @@ import { useAgent } from "./run/RunProvider";
 
 const dateTime = (iso: string) => new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 const time = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-const person = (actor: string) => ({ "reviewer:rita": "Rita, order desk", "administrator:alex": "Alex, operations lead" } as Record<string, string>)[actor] ?? actor.split(":")[1] ?? actor;
+const person = (actor: string) => actor.startsWith("policy:") ? `order policy ${actor.slice(7)}`
+  : ({ "reviewer:rita": "Rita, order desk", "administrator:alex": "Alex, operations lead" } as Record<string, string>)[actor] ?? actor.split(":")[1] ?? actor;
 
 /** The workflow's issue codes in the order-review vocabulary. */
 export function issueType(i: Issue): IssueType {
@@ -62,7 +63,7 @@ export function ForwardedReview({ docId, role, onBack, onOpenIntake }: { docId: 
   return (
     <article className="ops-review" aria-label={`Order ${row?.po ?? docId}`}>
       <div className="review-top btns">
-        <button className="ghost" onClick={onBack}><ArrowLeft size={16} aria-hidden /> Back to order operations</button>
+        <button className="ghost" onClick={onBack}><ArrowLeft size={16} aria-hidden /> Back to orders</button>
         <button className="ghost" onClick={() => onOpenIntake(docId)}><ExternalLink size={16} aria-hidden /> View document</button>
       </div>
       <header className="review-head">
@@ -77,20 +78,21 @@ export function ForwardedReview({ docId, role, onBack, onOpenIntake }: { docId: 
         </div>
         <span className={`pill ${tone} big-pill`} aria-label={`Order state: ${label}`}>{label}</span>
       </header>
-      <Journey d={d} />
+      <Journey d={d} p={o ? portalForOrder(agent.state, docId) : null}
+        shortStock={agent.state.orders.find((x) => x.documentId === docId)?.fulfilment?.status === "needs_decision"} />
       {error && <div className="alert bad" role="alert">{error}</div>}
       {IN_FLIGHT.has(d.document.status) && <div className="alert info pulse">Reading the order.</div>}
       {d.document.status_detail && d.document.status !== "not_order" && <div className={`alert ${d.document.status === "duplicate" ? "warn" : "bad"}`}>{d.document.status_detail}</div>}
       <NotAnOrder d={d} role={role} onRun={run} />
 
       <div className="review-split">
-        <section className="source-panel" aria-label="Source">
+        <section className="source-panel" aria-label="Source" id="order-source">
           <div className="source-head"><h3 className="section-h"><FileText size={16} aria-hidden /> Source</h3></div>
           {d.kind === "pdf" ? <SourcePanel d={d} focus={focus} onPick={(id) => setFocus(new Set([id]))} /> : <SourceText d={d} />}
         </section>
         <div className="review-right">
           {o && (
-            <section aria-labelledby="decision-h" className="decision-zone">
+            <section aria-labelledby="decision-h" className="decision-zone" id="order-decision">
               <h3 id="decision-h" className="section-h">{open.length ? "Decision required" : o.review_state === "ready" ? "Ready to send" : "Outcome"}</h3>
               {open.map((i) => <FwdIssueCard key={i.key} d={d} issue={i} canAct={canAct} role={role} onAct={act} onRun={run} show={show} />)}
               {o.review_state === "ready" && (
@@ -119,7 +121,7 @@ export function ForwardedReview({ docId, role, onBack, onOpenIntake }: { docId: 
             </section>
           )}
           {o && v && <Structured d={d} />}
-          {o && <ErpBox d={d} canAct={canAct} onRetry={() => run({ type: "retryDelivery", role, docId })} />}
+          {o && <div id="order-erp"><ErpBox d={d} canAct={canAct} onRetry={() => run({ type: "retryDelivery", role, docId })} /></div>}
         </div>
       </div>
       {o && <OrderTerms d={d} onPick={(id) => setFocus(new Set([id]))} />}
@@ -138,24 +140,45 @@ export function ForwardedReview({ docId, role, onBack, onOpenIntake }: { docId: 
   );
 }
 
-function Journey({ d }: { d: DocDetail }) {
+/** D74: the whole order lifecycle, from the email to the invoice. Each step opens its section; one next action. */
+function Journey({ d, p, shortStock }: { d: DocDetail; p: ReturnType<typeof portalForOrder> | null; shortStock: boolean }) {
   const o = d.order;
   const read = !IN_FLIGHT.has(d.document.status) && !!d.latest_version;
   const open = o?.validation.issues.some((i) => i.status === "open") ?? false;
   const sent = (o?.deliveries.length ?? 0) > 0;
   const failed = o ? ["failed", "unknown"].includes(o.delivery_state) : false;
-  const steps: [string, "done" | "wait" | "stop" | ""][] = [
-    [d.envelope.sender ? "Email received" : "File received", "done"],
-    [d.kind === "pdf" ? "PDF read" : "Read", read ? "done" : IN_FLIGHT.has(d.document.status) ? "wait" : "stop"],
-    ["Validated", o ? "done" : ""],
-    ["Decision", !o ? "" : open ? "wait" : o.review_state === "ready" ? "wait" : "done"],
-    ["Sent to ERP", sent ? "done" : ""],
-    [failed ? "ERP did not confirm" : "Accepted by ERP", o?.delivery_state === "erp_created" ? "done" : failed ? "stop" : ""],
+  const inErp = o?.delivery_state === "erp_created";
+  const confirmed = !!p?.confirmation;
+  const shipped = (p?.shipments.length ?? 0) > 0;
+  const invoiced = p?.shipments.some((x) => x.invoice) ?? false;
+  type Step = [string, "done" | "wait" | "stop" | "", string];
+  const steps: Step[] = [
+    [d.envelope.sender ? "Email received" : "File received", "done", "order-source"],
+    [d.kind === "pdf" ? "PDF read" : "Read", read ? "done" : IN_FLIGHT.has(d.document.status) ? "wait" : "stop", "order-source"],
+    ["Checked", o ? "done" : "", "order-decision"],
+    ["Decision", !o ? "" : open || o.review_state === "ready" ? "wait" : "done", "order-decision"],
+    [failed ? "ERP did not confirm" : "In your ERP", inErp ? "done" : failed ? "stop" : sent ? "wait" : "", "order-erp"],
+    ["Confirmed (855)", confirmed ? "done" : inErp ? "wait" : "", "order-outbound"],
+    ["Shipped (856)", shipped ? "done" : confirmed ? "wait" : "", "order-stock"],
+    ["Invoiced (810)", invoiced ? "done" : shipped ? "wait" : "", "order-outbound"],
   ];
+  const next: [string, string] | null = !o ? null : open ? ["Decide the open checks", "order-decision"]
+    : o.review_state === "ready" ? ["Approve and send to your ERP", "order-decision"]
+    : failed ? ["Retry delivery to your ERP", "order-erp"]
+    : shortStock ? ["Choose how to ship the short lines", "order-stock"]
+    : inErp && !shipped ? ["Create the ship notice (ASN)", "order-outbound"]
+    : shipped && !invoiced ? ["Create the invoice", "order-outbound"] : null;
+  const go = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   return (
-    <ol className="stages" aria-label="Order progress">
-      {steps.map(([t, c]) => <li key={t} className={c}><span className="sr-only">{c === "done" ? "Done: " : c === "wait" ? "Waiting: " : c === "stop" ? "Stopped: " : "Not reached: "}</span>{t}</li>)}
-    </ol>
+    <nav className="journey" aria-label="Order lifecycle">
+      <ol className="stages">
+        {steps.map(([t, c, id]) => (
+          <li key={t} className={c}><button className="stage-btn" onClick={() => go(id)}>
+            <span className="sr-only">{c === "done" ? "Done: " : c === "wait" ? "Waiting: " : c === "stop" ? "Stopped: " : "Not reached: "}</span>{t}</button></li>
+        ))}
+      </ol>
+      {next && <p className="next-action"><b>Next:</b> <button className="linkish" onClick={() => go(next[1])}>{next[0]}</button></p>}
+    </nav>
   );
 }
 

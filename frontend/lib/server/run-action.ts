@@ -9,7 +9,7 @@ import { Channel, DecisionAction, ExtractionPayload, FindingType, HoldReason, In
 import {
   Conflict, Forbidden, type Who, addCustomer, addProduct, addShipTo, approve, assignCustomer, decide, failExtraction, holdOrder, receive,
   recordExtraction, recoverDeliveries, rejectOrder, releaseHold, resetDemo, retryDelivery, retryExtraction, setDemoSetting, setPolicy,
-  setRoutePolicy, setRuleState, startExtraction, treatAsOrder,
+  setRoutePolicy, setRuleState, addPolicyRule, endPolicyRule, startExtraction, treatAsOrder,
 } from "../domain/workflow";
 import { assignFinding, reconcileFindings, respondToRevision, setFindingOwnership } from "../domain/command-center";
 import { read850 } from "../domain/extract/x12-850";
@@ -76,6 +76,12 @@ export const Action = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("rejectOrder"), role: Role, docId, reasonCode: RejectReason.nullable() }),
   z.strictObject({ type: z.literal("setRoutePolicy"), role: Role, customerId: z.string().min(1).max(200), channel: Channel,
     mode: z.enum(["review_all", "exception_only"]), reason: shortText.nullable().optional() }),
+  // D74: supplier order policies.
+  z.strictObject({ type: z.literal("addPolicyRule"), role: Role, check: z.enum(["price_mismatch", "moq_violation"]),
+    customerId: z.string().min(1).max(200).nullable(), sku: z.string().min(1).max(200).nullable(),
+    tolerancePercent: z.string().regex(/^\d{1,2}(\.\d{1,2})?$/).nullable(), effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    effectiveTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(), reason: shortText }),
+  z.strictObject({ type: z.literal("endPolicyRule"), role: Role, policyId: docId }),
   // D66, D67: proposed Command Center.
   z.strictObject({ type: z.literal("assignFinding"), role: Role, findingId: docId, owner: z.string().max(200).nullable() }),
   z.strictObject({ type: z.literal("setFindingOwnership"), role: Role, findingType: z.union([FindingType, z.literal("order_review")]), owner: z.string().max(200).nullable() }),
@@ -207,6 +213,11 @@ function apply(s: RunState, a: Action): { state: RunState; documentIds?: number[
       return { state: setPolicy(s, a.mode, who(a.role), undefined, a.reason ?? null) };
     case "setRoutePolicy":
       return { state: setRoutePolicy(s, a.customerId, a.channel, a.mode, a.reason ?? null, who(a.role)) };
+    case "addPolicyRule":
+      return { state: addPolicyRule(s, { check: a.check, customerId: a.customerId, sku: a.sku, tolerancePercent: a.tolerancePercent,
+        effectiveFrom: a.effectiveFrom, effectiveTo: a.effectiveTo, reason: a.reason }, who(a.role)) };
+    case "endPolicyRule":
+      return { state: endPolicyRule(s, a.policyId, who(a.role)) };
     case "treatAsOrder":
       return { state: treatAsOrder(s, a.docId, who(a.role)) };
     case "holdOrder":

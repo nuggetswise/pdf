@@ -9,6 +9,9 @@ Purpose: a working prototype to show leadership how the forwarded-email/PDF orde
 
 Video moments to mirror (owner-supplied): 0:19-0:31 automated extraction and entry; 0:34-0:38 business rule validation; 0:36-0:44 MOQ check; 0:45-0:53 price verification; 0:54-1:04 outdated GTIN; 1:05-1:10 learning from corrections. Our learning is approved, scoped rule reuse with an administrator gate (DECISIONS.md D03), not autonomous retraining. Present it as "agent memory with provenance".
 
+## Update (2026-10-18, D74)
+The 18-order sample inbox (D71 to D73) is gone. Orders shows only real documents; the inbox offers five fictional emails (see docs/14-leadership-demo.md). New: order policies in Rules, supervision moved to Rules, lifecycle bar on the order screen, revisions update the existing ERP order. Verify with `scripts/verify.sh`.
+
 ## Update (2026-10-17, D72)
 Forwarded orders open in the order review (`app/ForwardedReview.tsx`), every screen fits a 390 px phone (tested), and the ERP panel says your ERP accepts or rejects while the Order Agent reports and proposes the fix. See DECISIONS.md D72.
 

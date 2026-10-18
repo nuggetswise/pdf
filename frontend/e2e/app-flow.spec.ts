@@ -20,7 +20,7 @@ test("a user runs the order desk end to end", async ({ page }) => {
 
   // Administrator switches on Exception-only.
   await role("administrator");
-  await page.getByRole("tab", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Rules" }).click();
   // D64: automatic processing needs a recorded reason.
   await page.locator(".supervision > .row").getByRole("button", { name: "Change" }).click();
   await page.getByLabel("Default supervision").selectOption("exception_only");
@@ -75,10 +75,12 @@ test("a user runs the order desk end to end", async ({ page }) => {
   await expect(page.locator(".issue.open")).toHaveCount(1);
 
   // Review-all: a clean order waits; one approval sends it; the ERP times out; a safe retry reconciles.
-  await page.getByRole("tab", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Rules" }).click();
   await page.locator(".supervision > .row").getByRole("button", { name: "Change" }).click();
   await page.getByLabel("Default supervision").selectOption("review_all");
   await page.locator(".supervision > .row").getByRole("button", { name: "Save" }).click();
+  await page.getByRole("tab", { name: "Settings" }).click();
+  await page.getByText("Presenter tools (test mode only)").click();
   await page.getByLabel("ERP simulator next call").selectOption("timeout_next");
   await page.getByRole("tab", { name: "Orders", exact: true }).click(); await page.getByRole("button", { name: "All documents" }).click();
   await upload("VIDEO-DEMO-005");
@@ -98,8 +100,8 @@ test("a user runs the order desk end to end", async ({ page }) => {
   await page.screenshot({ path: "../docs/screenshots/app-03-erp-records.png", fullPage: true });
 
   await page.getByRole("tab", { name: "Orders", exact: true }).click();
-  // Forwarded orders join the sample inbox in one queue (18 samples plus 6 documents).
-  await expect(page.locator(".kpi b").first()).toHaveText("24");
+  // D74: the queue holds only real documents (6 here).
+  await expect(page.locator(".kpi b").first()).toHaveText("6");
   const row = (po: string) => page.locator(`[data-po="${po}"]`).first();
   await expect(row("VIDEO-DEMO-001")).toContainText("Completed after review");
   await expect(row("VIDEO-DEMO-002")).toContainText("Completed automatically");

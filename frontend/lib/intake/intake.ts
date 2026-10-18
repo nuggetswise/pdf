@@ -128,18 +128,25 @@ export async function intakeUpload(pdf: Uint8Array, filename: string | null, fie
   };
 }
 
-/** The one bundled example purchase order (D60), a fictional email served from public/demo/. Any other name is refused.
- * The earlier fixed-layout samples stay in fixtures/demo/ for tests only. */
-export const DEMO_EMAILS = ["PO-2026-104587"] as const;
+/** D74: the five-order demo inbox, fictional emails served from public/demo/, in story order. Any other name is refused. */
+export const DEMO_EMAILS = ["PO-2026-104587", "VIDEO-DEMO-001", "VIDEO-DEMO-002", "VIDEO-DEMO-005", "VIDEO-DEMO-006"] as const;
 export type DemoEmail = (typeof DEMO_EMAILS)[number];
 
-/** What the example shows, in the words a supplier would use. */
+/** What each email is, in the words a supplier would use. */
 export const SAMPLE_LABELS: Record<DemoEmail, string> = {
-  "PO-2026-104587": "Maple Retail Group (FreshMart Markets) · PO-2026-104587 · Oct 15",
+  "PO-2026-104587": "Maple Retail Group · PO-2026-104587",
+  "VIDEO-DEMO-001": "Northfield Demo Retail · VIDEO-DEMO-001",
+  "VIDEO-DEMO-002": "Northfield Demo Retail · VIDEO-DEMO-002",
+  "VIDEO-DEMO-005": "Northfield Demo Retail · VIDEO-DEMO-005",
+  "VIDEO-DEMO-006": "Northfield Demo Retail · VIDEO-DEMO-005, revision 2",
 };
 /** Who sent the fictional email, from its own headers. */
 export const SAMPLE_SENDERS: Record<DemoEmail, string> = {
   "PO-2026-104587": "procurement@mapleretail.example",
+  "VIDEO-DEMO-001": "orders@northfield-demo.example",
+  "VIDEO-DEMO-002": "orders@northfield-demo.example",
+  "VIDEO-DEMO-005": "orders@northfield-demo.example",
+  "VIDEO-DEMO-006": "orders@northfield-demo.example",
 };
 
 export function demoEmailPath(name: string): string | null {

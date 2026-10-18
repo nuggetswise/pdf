@@ -13,7 +13,7 @@ async function toShortage(page: Page) {
   await expect(page.locator("[data-po=\"PO-2026-104587\"]")).toHaveCount(0);
   await shot(page, "01-today-empty");
   const forward = page.getByRole("region", { name: "Forward a purchase order" });
-  await forward.getByRole("button", { name: "Forward to agent" }).click();
+  await forward.getByRole("button", { name: "Forward Maple Retail Group · PO-2026-104587" }).click();
   const card = page.locator("[data-po=\"PO-2026-104587\"]");
   await card.getByRole("button").click();
   await expect(page.locator(".pdfpage img")).toBeVisible();
@@ -87,8 +87,8 @@ test("supplier cut: steps 1 to 5, then 7, plus the email-text order", async ({ p
   await expect(page.getByRole("complementary", { name: "Inbox" })).toContainText("PO TP-2026-0802");
   await shot(page, "10-email-text-order");
 
-  // Trust controls stay reachable.
-  await page.getByRole("tab", { name: "Settings" }).click();
+  // Trust controls stay reachable (in Rules since D74).
+  await page.getByRole("tab", { name: "Rules" }).click();
   await expect(page.getByText("Default for routes without a setting")).toBeVisible();
   await shot(page, "11-settings");
 });

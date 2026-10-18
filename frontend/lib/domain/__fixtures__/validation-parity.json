@@ -1674,6 +1674,159 @@
    "expected": "{\"schema_version\": \"order-extraction-v1\", \"extractor\": {\"name\": \"TEST ADAPTER (fixture parser, not AI extraction)\", \"is_ai\": false}, \"header\": {\"customer_name\": {\"value\": \"Northfield Demo Retail\", \"page\": 1, \"evidence\": \"Customer: Northfield Demo Retail\", \"evidence_verified\": true, \"notes\": []}, \"customer_id\": {\"value\": \"DEMO-CUST-01\", \"page\": 1, \"evidence\": \"Customer ID: DEMO-CUST-01\", \"evidence_verified\": true, \"notes\": []}, \"supplier\": {\"value\": \"Marlow Demo Foods\", \"page\": 1, \"evidence\": \"Supplier: Marlow Demo Foods\", \"evidence_verified\": true, \"notes\": []}, \"po_number\": {\"value\": \"VIDEO-DEMO-005\", \"page\": 1, \"evidence\": \"PO: VIDEO-DEMO-005\", \"evidence_verified\": true, \"notes\": []}, \"ship_to_id\": {\"value\": \"DEMO-DC-01\", \"page\": 1, \"evidence\": \"Ship-to: DEMO-DC-01\", \"evidence_verified\": true, \"notes\": []}, \"order_date\": {\"value\": \"2026-10-16\", \"page\": 1, \"evidence\": \"Order date: 2026-10-16\", \"evidence_verified\": true, \"notes\": []}, \"requested_delivery_date\": {\"value\": \"2026-10-24\", \"page\": 1, \"evidence\": \"Requested delivery date: 2026-10-24\", \"evidence_verified\": true, \"notes\": []}, \"currency\": {\"value\": \"USD\", \"page\": 1, \"evidence\": \"Currency: USD\", \"evidence_verified\": true, \"notes\": []}, \"subtotal\": {\"value\": \"360.00\", \"page\": 1, \"evidence\": \"Subtotal: 360.00\", \"evidence_verified\": true, \"notes\": []}, \"tax\": {\"value\": \"0.00\", \"page\": 1, \"evidence\": \"Tax amount: 0.00\", \"evidence_verified\": true, \"notes\": []}, \"shipping\": {\"value\": \"0.00\", \"page\": 1, \"evidence\": \"Shipping amount: 0.00\", \"evidence_verified\": true, \"notes\": []}, \"total\": {\"value\": \"360.00\", \"page\": 1, \"evidence\": \"Total: 360.00\", \"evidence_verified\": true, \"notes\": []}}, \"lines\": [{\"source_line_id\": {\"value\": \"A\", \"page\": 1, \"evidence\": \"A | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00\", \"evidence_verified\": true, \"notes\": []}, \"gtin\": {\"value\": \"614141000012\", \"page\": 1, \"evidence\": \"A | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00\", \"evidence_verified\": true, \"notes\": []}, \"customer_item_code\": {\"value\": null, \"page\": null, \"evidence\": null, \"evidence_verified\": false, \"notes\": []}, \"description\": {\"value\": \"Demo granola case\", \"page\": 1, \"evidence\": \"A | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00\", \"evidence_verified\": true, \"notes\": []}, \"quantity\": {\"value\": \"12\", \"page\": 1, \"evidence\": \"A | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00\", \"evidence_verified\": true, \"notes\": []}, \"unit\": {\"value\": \"CASE\", \"page\": 1, \"evidence\": \"A | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00\", \"evidence_verified\": true, \"notes\": []}, \"unit_price\": {\"value\": \"24.00\", \"page\": 1, \"evidence\": \"A | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00\", \"evidence_verified\": true, \"notes\": []}, \"line_amount\": {\"value\": \"288.00\", \"page\": 1, \"evidence\": \"A | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00\", \"evidence_verified\": true, \"notes\": []}}, {\"source_line_id\": {\"value\": \"B\", \"page\": 1, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"evidence_verified\": true, \"notes\": []}, \"gtin\": {\"value\": \"614141000029\", \"page\": 1, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"evidence_verified\": true, \"notes\": []}, \"customer_item_code\": {\"value\": null, \"page\": null, \"evidence\": null, \"evidence_verified\": false, \"notes\": []}, \"description\": {\"value\": \"Demo cracker case\", \"page\": 1, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"evidence_verified\": true, \"notes\": []}, \"quantity\": {\"value\": \"3\", \"page\": 1, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"evidence_verified\": true, \"notes\": []}, \"unit\": {\"value\": \"CASE\", \"page\": 1, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"evidence_verified\": true, \"notes\": []}, \"unit_price\": {\"value\": \"24.00\", \"page\": 1, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"evidence_verified\": true, \"notes\": []}, \"line_amount\": {\"value\": \"72.00\", \"page\": 1, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"evidence_verified\": true, \"notes\": []}}]}"
   },
   {
+   "name": "fixtures/demo/generated/VIDEO-DEMO-006.pdf",
+   "input": {
+    "raw": {
+     "header": {
+      "po_number": {
+       "value": "VIDEO-DEMO-005",
+       "page": 1,
+       "evidence": "PO: VIDEO-DEMO-005"
+      },
+      "customer_name": {
+       "value": "Northfield Demo Retail",
+       "page": 1,
+       "evidence": "Customer: Northfield Demo Retail"
+      },
+      "customer_id": {
+       "value": "DEMO-CUST-01",
+       "page": 1,
+       "evidence": "Customer ID: DEMO-CUST-01"
+      },
+      "supplier": {
+       "value": "Marlow Demo Foods",
+       "page": 1,
+       "evidence": "Supplier: Marlow Demo Foods"
+      },
+      "ship_to_id": {
+       "value": "DEMO-DC-01",
+       "page": 1,
+       "evidence": "Ship-to: DEMO-DC-01"
+      },
+      "order_date": {
+       "value": "2026-10-16",
+       "page": 1,
+       "evidence": "Order date: 2026-10-16"
+      },
+      "requested_delivery_date": {
+       "value": "2026-10-24",
+       "page": 1,
+       "evidence": "Requested delivery date: 2026-10-24"
+      },
+      "currency": {
+       "value": "USD",
+       "page": 1,
+       "evidence": "Currency: USD"
+      },
+      "subtotal": {
+       "value": "504.00",
+       "page": 1,
+       "evidence": "Subtotal: 504.00"
+      },
+      "tax": {
+       "value": "0.00",
+       "page": 1,
+       "evidence": "Tax amount: 0.00"
+      },
+      "shipping": {
+       "value": "0.00",
+       "page": 1,
+       "evidence": "Shipping amount: 0.00"
+      },
+      "total": {
+       "value": "504.00",
+       "page": 1,
+       "evidence": "Total: 504.00"
+      }
+     },
+     "lines": [
+      {
+       "source_line_id": {
+        "value": "A",
+        "page": 1,
+        "evidence": "A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00"
+       },
+       "gtin": {
+        "value": "614141000012",
+        "page": 1,
+        "evidence": "A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00"
+       },
+       "description": {
+        "value": "Demo granola case",
+        "page": 1,
+        "evidence": "A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00"
+       },
+       "quantity": {
+        "value": "18",
+        "page": 1,
+        "evidence": "A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00"
+       },
+       "unit": {
+        "value": "CASE",
+        "page": 1,
+        "evidence": "A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00"
+       },
+       "unit_price": {
+        "value": "24.00",
+        "page": 1,
+        "evidence": "A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00"
+       },
+       "line_amount": {
+        "value": "432.00",
+        "page": 1,
+        "evidence": "A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00"
+       }
+      },
+      {
+       "source_line_id": {
+        "value": "B",
+        "page": 1,
+        "evidence": "B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00"
+       },
+       "gtin": {
+        "value": "614141000029",
+        "page": 1,
+        "evidence": "B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00"
+       },
+       "description": {
+        "value": "Demo cracker case",
+        "page": 1,
+        "evidence": "B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00"
+       },
+       "quantity": {
+        "value": "3",
+        "page": 1,
+        "evidence": "B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00"
+       },
+       "unit": {
+        "value": "CASE",
+        "page": 1,
+        "evidence": "B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00"
+       },
+       "unit_price": {
+        "value": "24.00",
+        "page": 1,
+        "evidence": "B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00"
+       },
+       "line_amount": {
+        "value": "72.00",
+        "page": 1,
+        "evidence": "B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00"
+       }
+      }
+     ]
+    },
+    "pages": [
+     "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-005\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-16\nRequested delivery date: 2026-10-24\nCurrency: USD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nA | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\nB | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\nSubtotal: 504.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 504.00\nAll organisations, identifiers and commercial values are fictional test data.\nItem GTINs use GS1 example company prefix 0614141; 614141000043 is a retired item.\n"
+    ],
+    "extractor": {
+     "name": "TEST ADAPTER (fixture parser, not AI extraction)",
+     "is_ai": false
+    }
+   },
+   "expected": "{\"schema_version\": \"order-extraction-v1\", \"extractor\": {\"name\": \"TEST ADAPTER (fixture parser, not AI extraction)\", \"is_ai\": false}, \"header\": {\"customer_name\": {\"value\": \"Northfield Demo Retail\", \"page\": 1, \"evidence\": \"Customer: Northfield Demo Retail\", \"evidence_verified\": true, \"notes\": []}, \"customer_id\": {\"value\": \"DEMO-CUST-01\", \"page\": 1, \"evidence\": \"Customer ID: DEMO-CUST-01\", \"evidence_verified\": true, \"notes\": []}, \"supplier\": {\"value\": \"Marlow Demo Foods\", \"page\": 1, \"evidence\": \"Supplier: Marlow Demo Foods\", \"evidence_verified\": true, \"notes\": []}, \"po_number\": {\"value\": \"VIDEO-DEMO-005\", \"page\": 1, \"evidence\": \"PO: VIDEO-DEMO-005\", \"evidence_verified\": true, \"notes\": []}, \"ship_to_id\": {\"value\": \"DEMO-DC-01\", \"page\": 1, \"evidence\": \"Ship-to: DEMO-DC-01\", \"evidence_verified\": true, \"notes\": []}, \"order_date\": {\"value\": \"2026-10-16\", \"page\": 1, \"evidence\": \"Order date: 2026-10-16\", \"evidence_verified\": true, \"notes\": []}, \"requested_delivery_date\": {\"value\": \"2026-10-24\", \"page\": 1, \"evidence\": \"Requested delivery date: 2026-10-24\", \"evidence_verified\": true, \"notes\": []}, \"currency\": {\"value\": \"USD\", \"page\": 1, \"evidence\": \"Currency: USD\", \"evidence_verified\": true, \"notes\": []}, \"subtotal\": {\"value\": \"504.00\", \"page\": 1, \"evidence\": \"Subtotal: 504.00\", \"evidence_verified\": true, \"notes\": []}, \"tax\": {\"value\": \"0.00\", \"page\": 1, \"evidence\": \"Tax amount: 0.00\", \"evidence_verified\": true, \"notes\": []}, \"shipping\": {\"value\": \"0.00\", \"page\": 1, \"evidence\": \"Shipping amount: 0.00\", \"evidence_verified\": true, \"notes\": []}, \"total\": {\"value\": \"504.00\", \"page\": 1, \"evidence\": \"Total: 504.00\", \"evidence_verified\": true, \"notes\": []}}, \"lines\": [{\"source_line_id\": {\"value\": \"A\", \"page\": 1, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"evidence_verified\": true, \"notes\": []}, \"gtin\": {\"value\": \"614141000012\", \"page\": 1, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"evidence_verified\": true, \"notes\": []}, \"customer_item_code\": {\"value\": null, \"page\": null, \"evidence\": null, \"evidence_verified\": false, \"notes\": []}, \"description\": {\"value\": \"Demo granola case\", \"page\": 1, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"evidence_verified\": true, \"notes\": []}, \"quantity\": {\"value\": \"18\", \"page\": 1, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"evidence_verified\": true, \"notes\": []}, \"unit\": {\"value\": \"CASE\", \"page\": 1, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"evidence_verified\": true, \"notes\": []}, \"unit_price\": {\"value\": \"24.00\", \"page\": 1, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"evidence_verified\": true, \"notes\": []}, \"line_amount\": {\"value\": \"432.00\", \"page\": 1, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"evidence_verified\": true, \"notes\": []}}, {\"source_line_id\": {\"value\": \"B\", \"page\": 1, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"evidence_verified\": true, \"notes\": []}, \"gtin\": {\"value\": \"614141000029\", \"page\": 1, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"evidence_verified\": true, \"notes\": []}, \"customer_item_code\": {\"value\": null, \"page\": null, \"evidence\": null, \"evidence_verified\": false, \"notes\": []}, \"description\": {\"value\": \"Demo cracker case\", \"page\": 1, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"evidence_verified\": true, \"notes\": []}, \"quantity\": {\"value\": \"3\", \"page\": 1, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"evidence_verified\": true, \"notes\": []}, \"unit\": {\"value\": \"CASE\", \"page\": 1, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"evidence_verified\": true, \"notes\": []}, \"unit_price\": {\"value\": \"24.00\", \"page\": 1, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"evidence_verified\": true, \"notes\": []}, \"line_amount\": {\"value\": \"72.00\", \"page\": 1, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"evidence_verified\": true, \"notes\": []}}]}"
+  },
+  {
    "name": "fixtures/regression/sample-po.txt",
    "input": {
     "raw": {
@@ -7714,6 +7867,363 @@
     ]
    },
    "expected": "{\"order\": {\"customer_id\": \"DEMO-CUST-01\", \"customer_name\": \"Northfield Demo Retail\", \"po_number\": \"VIDEO-DEMO-005\", \"currency\": \"USD\", \"ship_to_id\": \"DEMO-DC-01\", \"order_date\": \"2026-10-16\", \"requested_delivery_date\": \"2026-10-24\", \"lines\": [{\"line_index\": 0, \"source_line_id\": \"A\", \"printed_gtin\": \"614141000012\", \"customer_item_code\": null, \"description\": \"Demo granola case\", \"original_quantity\": \"12\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"288.00\", \"sku\": \"DEMO-SKU-A\", \"gtin\": \"614141000012\", \"quantity\": \"12\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"288.00\", \"resolved_by\": null, \"evidence\": \"A | 614141000012 | Demo granola case | 12 | CASE | 24.00 | 288.00\", \"page\": 1, \"description_reference\": \"Demo granola case\"}, {\"line_index\": 1, \"source_line_id\": \"B\", \"printed_gtin\": \"614141000029\", \"customer_item_code\": null, \"description\": \"Demo cracker case\", \"original_quantity\": \"3\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"72.00\", \"sku\": \"DEMO-SKU-B\", \"gtin\": \"614141000029\", \"quantity\": \"3\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"72.00\", \"resolved_by\": null, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"page\": 1, \"description_reference\": \"Demo cracker case\"}], \"totals\": {\"printed_subtotal\": \"360.00\", \"printed_tax\": \"0.00\", \"printed_shipping\": \"0.00\", \"printed_total\": \"360.00\", \"computed_subtotal\": \"360.00\", \"computed_total\": \"360.00\", \"rounding\": \"ROUND_HALF_UP to 0.01\"}, \"reference_version\": \"REF-2026-10-v1\", \"policy_version\": \"POLICY-v1\"}, \"issues\": []}"
+  },
+  {
+   "name": "fixtures/demo/generated/VIDEO-DEMO-006.pdf / plain",
+   "input": {
+    "payload": "fixtures/demo/generated/VIDEO-DEMO-006.pdf",
+    "ref": "v1",
+    "rules": null,
+    "overrides": null,
+    "others": null
+   },
+   "expected": "{\"order\": {\"customer_id\": \"DEMO-CUST-01\", \"customer_name\": \"Northfield Demo Retail\", \"po_number\": \"VIDEO-DEMO-005\", \"currency\": \"USD\", \"ship_to_id\": \"DEMO-DC-01\", \"order_date\": \"2026-10-16\", \"requested_delivery_date\": \"2026-10-24\", \"lines\": [{\"line_index\": 0, \"source_line_id\": \"A\", \"printed_gtin\": \"614141000012\", \"customer_item_code\": null, \"description\": \"Demo granola case\", \"original_quantity\": \"18\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"432.00\", \"sku\": \"DEMO-SKU-A\", \"gtin\": \"614141000012\", \"quantity\": \"18\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"432.00\", \"resolved_by\": null, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"page\": 1, \"description_reference\": \"Demo granola case\"}, {\"line_index\": 1, \"source_line_id\": \"B\", \"printed_gtin\": \"614141000029\", \"customer_item_code\": null, \"description\": \"Demo cracker case\", \"original_quantity\": \"3\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"72.00\", \"sku\": \"DEMO-SKU-B\", \"gtin\": \"614141000029\", \"quantity\": \"3\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"72.00\", \"resolved_by\": null, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"page\": 1, \"description_reference\": \"Demo cracker case\"}], \"totals\": {\"printed_subtotal\": \"504.00\", \"printed_tax\": \"0.00\", \"printed_shipping\": \"0.00\", \"printed_total\": \"504.00\", \"computed_subtotal\": \"504.00\", \"computed_total\": \"504.00\", \"rounding\": \"ROUND_HALF_UP to 0.01\"}, \"reference_version\": \"REF-2026-10-v1\", \"policy_version\": \"POLICY-v1\"}, \"issues\": []}"
+  },
+  {
+   "name": "fixtures/demo/generated/VIDEO-DEMO-006.pdf / active memory rule",
+   "input": {
+    "payload": "fixtures/demo/generated/VIDEO-DEMO-006.pdf",
+    "ref": "v1",
+    "rules": [
+     {
+      "id": 7,
+      "kind": "identifier_mapping",
+      "customer_id": "DEMO-CUST-01",
+      "obsolete_identifier": "614141000043",
+      "replacement_identifier": "614141000036",
+      "replacement_sku": "DEMO-SKU-C",
+      "reference_version": "REF-2026-10-v1",
+      "state": "active",
+      "source_document_id": 1,
+      "source_decision_id": 3,
+      "evidence": null,
+      "created_by": "reviewer:rita",
+      "created_at": "2026-10-15T10:00:00.000+00:00",
+      "activated_by": "administrator:alex",
+      "activated_at": "2026-10-15T10:05:00.000+00:00",
+      "revoked_by": null,
+      "revoked_at": null,
+      "revoke_reason": null
+     }
+    ],
+    "overrides": null,
+    "others": null
+   },
+   "expected": "{\"order\": {\"customer_id\": \"DEMO-CUST-01\", \"customer_name\": \"Northfield Demo Retail\", \"po_number\": \"VIDEO-DEMO-005\", \"currency\": \"USD\", \"ship_to_id\": \"DEMO-DC-01\", \"order_date\": \"2026-10-16\", \"requested_delivery_date\": \"2026-10-24\", \"lines\": [{\"line_index\": 0, \"source_line_id\": \"A\", \"printed_gtin\": \"614141000012\", \"customer_item_code\": null, \"description\": \"Demo granola case\", \"original_quantity\": \"18\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"432.00\", \"sku\": \"DEMO-SKU-A\", \"gtin\": \"614141000012\", \"quantity\": \"18\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"432.00\", \"resolved_by\": null, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"page\": 1, \"description_reference\": \"Demo granola case\"}, {\"line_index\": 1, \"source_line_id\": \"B\", \"printed_gtin\": \"614141000029\", \"customer_item_code\": null, \"description\": \"Demo cracker case\", \"original_quantity\": \"3\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"72.00\", \"sku\": \"DEMO-SKU-B\", \"gtin\": \"614141000029\", \"quantity\": \"3\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"72.00\", \"resolved_by\": null, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"page\": 1, \"description_reference\": \"Demo cracker case\"}], \"totals\": {\"printed_subtotal\": \"504.00\", \"printed_tax\": \"0.00\", \"printed_shipping\": \"0.00\", \"printed_total\": \"504.00\", \"computed_subtotal\": \"504.00\", \"computed_total\": \"504.00\", \"rounding\": \"ROUND_HALF_UP to 0.01\"}, \"reference_version\": \"REF-2026-10-v1\", \"policy_version\": \"POLICY-v1\"}, \"issues\": []}"
+  },
+  {
+   "name": "fixtures/demo/generated/VIDEO-DEMO-006.pdf / rule for another customer",
+   "input": {
+    "payload": "fixtures/demo/generated/VIDEO-DEMO-006.pdf",
+    "ref": "v1",
+    "rules": [
+     {
+      "id": 7,
+      "kind": "identifier_mapping",
+      "customer_id": "DEMO-CUST-02",
+      "obsolete_identifier": "614141000043",
+      "replacement_identifier": "614141000036",
+      "replacement_sku": "DEMO-SKU-C",
+      "reference_version": "REF-2026-10-v1",
+      "state": "active",
+      "source_document_id": 1,
+      "source_decision_id": 3,
+      "evidence": null,
+      "created_by": "reviewer:rita",
+      "created_at": "2026-10-15T10:00:00.000+00:00",
+      "activated_by": "administrator:alex",
+      "activated_at": "2026-10-15T10:05:00.000+00:00",
+      "revoked_by": null,
+      "revoked_at": null,
+      "revoke_reason": null
+     }
+    ],
+    "overrides": null,
+    "others": null
+   },
+   "expected": "{\"order\": {\"customer_id\": \"DEMO-CUST-01\", \"customer_name\": \"Northfield Demo Retail\", \"po_number\": \"VIDEO-DEMO-005\", \"currency\": \"USD\", \"ship_to_id\": \"DEMO-DC-01\", \"order_date\": \"2026-10-16\", \"requested_delivery_date\": \"2026-10-24\", \"lines\": [{\"line_index\": 0, \"source_line_id\": \"A\", \"printed_gtin\": \"614141000012\", \"customer_item_code\": null, \"description\": \"Demo granola case\", \"original_quantity\": \"18\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"432.00\", \"sku\": \"DEMO-SKU-A\", \"gtin\": \"614141000012\", \"quantity\": \"18\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"432.00\", \"resolved_by\": null, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"page\": 1, \"description_reference\": \"Demo granola case\"}, {\"line_index\": 1, \"source_line_id\": \"B\", \"printed_gtin\": \"614141000029\", \"customer_item_code\": null, \"description\": \"Demo cracker case\", \"original_quantity\": \"3\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"72.00\", \"sku\": \"DEMO-SKU-B\", \"gtin\": \"614141000029\", \"quantity\": \"3\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"72.00\", \"resolved_by\": null, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"page\": 1, \"description_reference\": \"Demo cracker case\"}], \"totals\": {\"printed_subtotal\": \"504.00\", \"printed_tax\": \"0.00\", \"printed_shipping\": \"0.00\", \"printed_total\": \"504.00\", \"computed_subtotal\": \"504.00\", \"computed_total\": \"504.00\", \"rounding\": \"ROUND_HALF_UP to 0.01\"}, \"reference_version\": \"REF-2026-10-v1\", \"policy_version\": \"POLICY-v1\"}, \"issues\": []}"
+  },
+  {
+   "name": "fixtures/demo/generated/VIDEO-DEMO-006.pdf / candidate rule ignored",
+   "input": {
+    "payload": "fixtures/demo/generated/VIDEO-DEMO-006.pdf",
+    "ref": "v1",
+    "rules": [
+     {
+      "id": 7,
+      "kind": "identifier_mapping",
+      "customer_id": "DEMO-CUST-01",
+      "obsolete_identifier": "614141000043",
+      "replacement_identifier": "614141000036",
+      "replacement_sku": "DEMO-SKU-C",
+      "reference_version": "REF-2026-10-v1",
+      "state": "candidate",
+      "source_document_id": 1,
+      "source_decision_id": 3,
+      "evidence": null,
+      "created_by": "reviewer:rita",
+      "created_at": "2026-10-15T10:00:00.000+00:00",
+      "activated_by": "administrator:alex",
+      "activated_at": "2026-10-15T10:05:00.000+00:00",
+      "revoked_by": null,
+      "revoked_at": null,
+      "revoke_reason": null
+     }
+    ],
+    "overrides": null,
+    "others": null
+   },
+   "expected": "{\"order\": {\"customer_id\": \"DEMO-CUST-01\", \"customer_name\": \"Northfield Demo Retail\", \"po_number\": \"VIDEO-DEMO-005\", \"currency\": \"USD\", \"ship_to_id\": \"DEMO-DC-01\", \"order_date\": \"2026-10-16\", \"requested_delivery_date\": \"2026-10-24\", \"lines\": [{\"line_index\": 0, \"source_line_id\": \"A\", \"printed_gtin\": \"614141000012\", \"customer_item_code\": null, \"description\": \"Demo granola case\", \"original_quantity\": \"18\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"432.00\", \"sku\": \"DEMO-SKU-A\", \"gtin\": \"614141000012\", \"quantity\": \"18\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"432.00\", \"resolved_by\": null, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"page\": 1, \"description_reference\": \"Demo granola case\"}, {\"line_index\": 1, \"source_line_id\": \"B\", \"printed_gtin\": \"614141000029\", \"customer_item_code\": null, \"description\": \"Demo cracker case\", \"original_quantity\": \"3\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"72.00\", \"sku\": \"DEMO-SKU-B\", \"gtin\": \"614141000029\", \"quantity\": \"3\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"72.00\", \"resolved_by\": null, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"page\": 1, \"description_reference\": \"Demo cracker case\"}], \"totals\": {\"printed_subtotal\": \"504.00\", \"printed_tax\": \"0.00\", \"printed_shipping\": \"0.00\", \"printed_total\": \"504.00\", \"computed_subtotal\": \"504.00\", \"computed_total\": \"504.00\", \"rounding\": \"ROUND_HALF_UP to 0.01\"}, \"reference_version\": \"REF-2026-10-v1\", \"policy_version\": \"POLICY-v1\"}, \"issues\": []}"
+  },
+  {
+   "name": "fixtures/demo/generated/VIDEO-DEMO-006.pdf / rule needs revalidation",
+   "input": {
+    "payload": "fixtures/demo/generated/VIDEO-DEMO-006.pdf",
+    "ref": "v2",
+    "rules": [
+     {
+      "id": 7,
+      "kind": "identifier_mapping",
+      "customer_id": "DEMO-CUST-01",
+      "obsolete_identifier": "614141000043",
+      "replacement_identifier": "614141000036",
+      "replacement_sku": "DEMO-SKU-C",
+      "reference_version": "REF-2026-10-v1",
+      "state": "active",
+      "source_document_id": 1,
+      "source_decision_id": 3,
+      "evidence": null,
+      "created_by": "reviewer:rita",
+      "created_at": "2026-10-15T10:00:00.000+00:00",
+      "activated_by": "administrator:alex",
+      "activated_at": "2026-10-15T10:05:00.000+00:00",
+      "revoked_by": null,
+      "revoked_at": null,
+      "revoke_reason": null
+     }
+    ],
+    "overrides": null,
+    "others": null
+   },
+   "expected": "{\"order\": {\"customer_id\": \"DEMO-CUST-01\", \"customer_name\": \"Northfield Demo Retail\", \"po_number\": \"VIDEO-DEMO-005\", \"currency\": \"USD\", \"ship_to_id\": \"DEMO-DC-01\", \"order_date\": \"2026-10-16\", \"requested_delivery_date\": \"2026-10-24\", \"lines\": [{\"line_index\": 0, \"source_line_id\": \"A\", \"printed_gtin\": \"614141000012\", \"customer_item_code\": null, \"description\": \"Demo granola case\", \"original_quantity\": \"18\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"432.00\", \"sku\": \"DEMO-SKU-A\", \"gtin\": \"614141000012\", \"quantity\": \"18\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"432.00\", \"resolved_by\": null, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"page\": 1, \"description_reference\": \"Demo granola case\"}, {\"line_index\": 1, \"source_line_id\": \"B\", \"printed_gtin\": \"614141000029\", \"customer_item_code\": null, \"description\": \"Demo cracker case\", \"original_quantity\": \"3\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"72.00\", \"sku\": \"DEMO-SKU-B\", \"gtin\": \"614141000029\", \"quantity\": \"3\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"72.00\", \"resolved_by\": null, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"page\": 1, \"description_reference\": \"Demo cracker case\"}], \"totals\": {\"printed_subtotal\": \"504.00\", \"printed_tax\": \"0.00\", \"printed_shipping\": \"0.00\", \"printed_total\": \"504.00\", \"computed_subtotal\": \"504.00\", \"computed_total\": \"504.00\", \"rounding\": \"ROUND_HALF_UP to 0.01\"}, \"reference_version\": \"REF-2026-11-v2\", \"policy_version\": \"POLICY-v1\"}, \"issues\": []}"
+  },
+  {
+   "name": "fixtures/demo/generated/VIDEO-DEMO-006.pdf / rule without activator",
+   "input": {
+    "payload": "fixtures/demo/generated/VIDEO-DEMO-006.pdf",
+    "ref": "v1",
+    "rules": [
+     {
+      "id": 7,
+      "kind": "identifier_mapping",
+      "customer_id": "DEMO-CUST-01",
+      "obsolete_identifier": "614141000043",
+      "replacement_identifier": "614141000036",
+      "replacement_sku": "DEMO-SKU-C",
+      "reference_version": "REF-2026-10-v1",
+      "state": "active",
+      "source_document_id": 1,
+      "source_decision_id": 3,
+      "evidence": null,
+      "created_by": "reviewer:rita",
+      "created_at": "2026-10-15T10:00:00.000+00:00",
+      "activated_by": null,
+      "activated_at": null,
+      "revoked_by": null,
+      "revoked_at": null,
+      "revoke_reason": null
+     }
+    ],
+    "overrides": null,
+    "others": null
+   },
+   "expected": "{\"order\": {\"customer_id\": \"DEMO-CUST-01\", \"customer_name\": \"Northfield Demo Retail\", \"po_number\": \"VIDEO-DEMO-005\", \"currency\": \"USD\", \"ship_to_id\": \"DEMO-DC-01\", \"order_date\": \"2026-10-16\", \"requested_delivery_date\": \"2026-10-24\", \"lines\": [{\"line_index\": 0, \"source_line_id\": \"A\", \"printed_gtin\": \"614141000012\", \"customer_item_code\": null, \"description\": \"Demo granola case\", \"original_quantity\": \"18\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"432.00\", \"sku\": \"DEMO-SKU-A\", \"gtin\": \"614141000012\", \"quantity\": \"18\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"432.00\", \"resolved_by\": null, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"page\": 1, \"description_reference\": \"Demo granola case\"}, {\"line_index\": 1, \"source_line_id\": \"B\", \"printed_gtin\": \"614141000029\", \"customer_item_code\": null, \"description\": \"Demo cracker case\", \"original_quantity\": \"3\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"72.00\", \"sku\": \"DEMO-SKU-B\", \"gtin\": \"614141000029\", \"quantity\": \"3\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"72.00\", \"resolved_by\": null, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"page\": 1, \"description_reference\": \"Demo cracker case\"}], \"totals\": {\"printed_subtotal\": \"504.00\", \"printed_tax\": \"0.00\", \"printed_shipping\": \"0.00\", \"printed_total\": \"504.00\", \"computed_subtotal\": \"504.00\", \"computed_total\": \"504.00\", \"rounding\": \"ROUND_HALF_UP to 0.01\"}, \"reference_version\": \"REF-2026-10-v1\", \"policy_version\": \"POLICY-v1\"}, \"issues\": []}"
+  },
+  {
+   "name": "fixtures/demo/generated/VIDEO-DEMO-006.pdf / rule with bare actor",
+   "input": {
+    "payload": "fixtures/demo/generated/VIDEO-DEMO-006.pdf",
+    "ref": "v1",
+    "rules": [
+     {
+      "id": 7,
+      "kind": "identifier_mapping",
+      "customer_id": "DEMO-CUST-01",
+      "obsolete_identifier": "614141000043",
+      "replacement_identifier": "614141000036",
+      "replacement_sku": "DEMO-SKU-C",
+      "reference_version": "REF-2026-10-v1",
+      "state": "active",
+      "source_document_id": 1,
+      "source_decision_id": 3,
+      "evidence": null,
+      "created_by": "reviewer:rita",
+      "created_at": "2026-10-15T10:00:00.000+00:00",
+      "activated_by": "alex",
+      "activated_at": "2026-10-15T10:05:00.000+00:00",
+      "revoked_by": null,
+      "revoked_at": null,
+      "revoke_reason": null
+     }
+    ],
+    "overrides": null,
+    "others": null
+   },
+   "expected": "{\"order\": {\"customer_id\": \"DEMO-CUST-01\", \"customer_name\": \"Northfield Demo Retail\", \"po_number\": \"VIDEO-DEMO-005\", \"currency\": \"USD\", \"ship_to_id\": \"DEMO-DC-01\", \"order_date\": \"2026-10-16\", \"requested_delivery_date\": \"2026-10-24\", \"lines\": [{\"line_index\": 0, \"source_line_id\": \"A\", \"printed_gtin\": \"614141000012\", \"customer_item_code\": null, \"description\": \"Demo granola case\", \"original_quantity\": \"18\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"432.00\", \"sku\": \"DEMO-SKU-A\", \"gtin\": \"614141000012\", \"quantity\": \"18\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"432.00\", \"resolved_by\": null, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"page\": 1, \"description_reference\": \"Demo granola case\"}, {\"line_index\": 1, \"source_line_id\": \"B\", \"printed_gtin\": \"614141000029\", \"customer_item_code\": null, \"description\": \"Demo cracker case\", \"original_quantity\": \"3\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"72.00\", \"sku\": \"DEMO-SKU-B\", \"gtin\": \"614141000029\", \"quantity\": \"3\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"72.00\", \"resolved_by\": null, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"page\": 1, \"description_reference\": \"Demo cracker case\"}], \"totals\": {\"printed_subtotal\": \"504.00\", \"printed_tax\": \"0.00\", \"printed_shipping\": \"0.00\", \"printed_total\": \"504.00\", \"computed_subtotal\": \"504.00\", \"computed_total\": \"504.00\", \"rounding\": \"ROUND_HALF_UP to 0.01\"}, \"reference_version\": \"REF-2026-10-v1\", \"policy_version\": \"POLICY-v1\"}, \"issues\": []}"
+  },
+  {
+   "name": "fixtures/demo/generated/VIDEO-DEMO-006.pdf / reviewer mapping",
+   "input": {
+    "payload": "fixtures/demo/generated/VIDEO-DEMO-006.pdf",
+    "ref": "v1",
+    "rules": null,
+    "overrides": {
+     "outdated_identifier:2": {
+      "replacement_sku": "DEMO-SKU-C",
+      "text": "Mapping 614141000043 -> 614141000036 approved by rita (decision #3)"
+     }
+    },
+    "others": null
+   },
+   "expected": "{\"order\": {\"customer_id\": \"DEMO-CUST-01\", \"customer_name\": \"Northfield Demo Retail\", \"po_number\": \"VIDEO-DEMO-005\", \"currency\": \"USD\", \"ship_to_id\": \"DEMO-DC-01\", \"order_date\": \"2026-10-16\", \"requested_delivery_date\": \"2026-10-24\", \"lines\": [{\"line_index\": 0, \"source_line_id\": \"A\", \"printed_gtin\": \"614141000012\", \"customer_item_code\": null, \"description\": \"Demo granola case\", \"original_quantity\": \"18\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"432.00\", \"sku\": \"DEMO-SKU-A\", \"gtin\": \"614141000012\", \"quantity\": \"18\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"432.00\", \"resolved_by\": null, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"page\": 1, \"description_reference\": \"Demo granola case\"}, {\"line_index\": 1, \"source_line_id\": \"B\", \"printed_gtin\": \"614141000029\", \"customer_item_code\": null, \"description\": \"Demo cracker case\", \"original_quantity\": \"3\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"72.00\", \"sku\": \"DEMO-SKU-B\", \"gtin\": \"614141000029\", \"quantity\": \"3\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"72.00\", \"resolved_by\": null, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"page\": 1, \"description_reference\": \"Demo cracker case\"}], \"totals\": {\"printed_subtotal\": \"504.00\", \"printed_tax\": \"0.00\", \"printed_shipping\": \"0.00\", \"printed_total\": \"504.00\", \"computed_subtotal\": \"504.00\", \"computed_total\": \"504.00\", \"rounding\": \"ROUND_HALF_UP to 0.01\"}, \"reference_version\": \"REF-2026-10-v1\", \"policy_version\": \"POLICY-v1\"}, \"issues\": []}"
+  },
+  {
+   "name": "fixtures/demo/generated/VIDEO-DEMO-006.pdf / revalidation with reviewer mapping",
+   "input": {
+    "payload": "fixtures/demo/generated/VIDEO-DEMO-006.pdf",
+    "ref": "v2",
+    "rules": [
+     {
+      "id": 7,
+      "kind": "identifier_mapping",
+      "customer_id": "DEMO-CUST-01",
+      "obsolete_identifier": "614141000043",
+      "replacement_identifier": "614141000036",
+      "replacement_sku": "DEMO-SKU-C",
+      "reference_version": "REF-2026-10-v1",
+      "state": "active",
+      "source_document_id": 1,
+      "source_decision_id": 3,
+      "evidence": null,
+      "created_by": "reviewer:rita",
+      "created_at": "2026-10-15T10:00:00.000+00:00",
+      "activated_by": "administrator:alex",
+      "activated_at": "2026-10-15T10:05:00.000+00:00",
+      "revoked_by": null,
+      "revoked_at": null,
+      "revoke_reason": null
+     }
+    ],
+    "overrides": {
+     "outdated_identifier:2": {
+      "replacement_sku": "DEMO-SKU-C",
+      "text": "Mapped again by rita (decision #9)"
+     }
+    },
+    "others": null
+   },
+   "expected": "{\"order\": {\"customer_id\": \"DEMO-CUST-01\", \"customer_name\": \"Northfield Demo Retail\", \"po_number\": \"VIDEO-DEMO-005\", \"currency\": \"USD\", \"ship_to_id\": \"DEMO-DC-01\", \"order_date\": \"2026-10-16\", \"requested_delivery_date\": \"2026-10-24\", \"lines\": [{\"line_index\": 0, \"source_line_id\": \"A\", \"printed_gtin\": \"614141000012\", \"customer_item_code\": null, \"description\": \"Demo granola case\", \"original_quantity\": \"18\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"432.00\", \"sku\": \"DEMO-SKU-A\", \"gtin\": \"614141000012\", \"quantity\": \"18\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"432.00\", \"resolved_by\": null, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"page\": 1, \"description_reference\": \"Demo granola case\"}, {\"line_index\": 1, \"source_line_id\": \"B\", \"printed_gtin\": \"614141000029\", \"customer_item_code\": null, \"description\": \"Demo cracker case\", \"original_quantity\": \"3\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"72.00\", \"sku\": \"DEMO-SKU-B\", \"gtin\": \"614141000029\", \"quantity\": \"3\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"72.00\", \"resolved_by\": null, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"page\": 1, \"description_reference\": \"Demo cracker case\"}], \"totals\": {\"printed_subtotal\": \"504.00\", \"printed_tax\": \"0.00\", \"printed_shipping\": \"0.00\", \"printed_total\": \"504.00\", \"computed_subtotal\": \"504.00\", \"computed_total\": \"504.00\", \"rounding\": \"ROUND_HALF_UP to 0.01\"}, \"reference_version\": \"REF-2026-11-v2\", \"policy_version\": \"POLICY-v1\"}, \"issues\": []}"
+  },
+  {
+   "name": "fixtures/demo/generated/VIDEO-DEMO-006.pdf / item mapped by reviewer",
+   "input": {
+    "payload": "fixtures/demo/generated/VIDEO-DEMO-006.pdf",
+    "ref": "v1",
+    "rules": null,
+    "overrides": {
+     "unknown_item:2": {
+      "sku": "NEW-CASE",
+      "text": "Mapped to NEW-CASE by rita"
+     },
+     "unknown_item:0": {
+      "sku": "NEW-CASE",
+      "text": "Mapped to NEW-CASE by rita"
+     }
+    },
+    "others": null
+   },
+   "expected": "{\"order\": {\"customer_id\": \"DEMO-CUST-01\", \"customer_name\": \"Northfield Demo Retail\", \"po_number\": \"VIDEO-DEMO-005\", \"currency\": \"USD\", \"ship_to_id\": \"DEMO-DC-01\", \"order_date\": \"2026-10-16\", \"requested_delivery_date\": \"2026-10-24\", \"lines\": [{\"line_index\": 0, \"source_line_id\": \"A\", \"printed_gtin\": \"614141000012\", \"customer_item_code\": null, \"description\": \"Demo granola case\", \"original_quantity\": \"18\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"432.00\", \"sku\": \"DEMO-SKU-A\", \"gtin\": \"614141000012\", \"quantity\": \"18\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"432.00\", \"resolved_by\": null, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"page\": 1, \"description_reference\": \"Demo granola case\"}, {\"line_index\": 1, \"source_line_id\": \"B\", \"printed_gtin\": \"614141000029\", \"customer_item_code\": null, \"description\": \"Demo cracker case\", \"original_quantity\": \"3\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"72.00\", \"sku\": \"DEMO-SKU-B\", \"gtin\": \"614141000029\", \"quantity\": \"3\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"72.00\", \"resolved_by\": null, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"page\": 1, \"description_reference\": \"Demo cracker case\"}], \"totals\": {\"printed_subtotal\": \"504.00\", \"printed_tax\": \"0.00\", \"printed_shipping\": \"0.00\", \"printed_total\": \"504.00\", \"computed_subtotal\": \"504.00\", \"computed_total\": \"504.00\", \"rounding\": \"ROUND_HALF_UP to 0.01\"}, \"reference_version\": \"REF-2026-10-v1\", \"policy_version\": \"POLICY-v1\"}, \"issues\": []}"
+  },
+  {
+   "name": "fixtures/demo/generated/VIDEO-DEMO-006.pdf / quantity and price edits",
+   "input": {
+    "payload": "fixtures/demo/generated/VIDEO-DEMO-006.pdf",
+    "ref": "v1",
+    "rules": null,
+    "overrides": {
+     "edit:0": {
+      "quantity": "12"
+     },
+     "edit:1": {
+      "unit_price": "24.00"
+     }
+    },
+    "others": null
+   },
+   "expected": "{\"order\": {\"customer_id\": \"DEMO-CUST-01\", \"customer_name\": \"Northfield Demo Retail\", \"po_number\": \"VIDEO-DEMO-005\", \"currency\": \"USD\", \"ship_to_id\": \"DEMO-DC-01\", \"order_date\": \"2026-10-16\", \"requested_delivery_date\": \"2026-10-24\", \"lines\": [{\"line_index\": 0, \"source_line_id\": \"A\", \"printed_gtin\": \"614141000012\", \"customer_item_code\": null, \"description\": \"Demo granola case\", \"original_quantity\": \"18\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"432.00\", \"sku\": \"DEMO-SKU-A\", \"gtin\": \"614141000012\", \"quantity\": \"12\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"288.00\", \"resolved_by\": null, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"page\": 1, \"description_reference\": \"Demo granola case\", \"edited\": true}, {\"line_index\": 1, \"source_line_id\": \"B\", \"printed_gtin\": \"614141000029\", \"customer_item_code\": null, \"description\": \"Demo cracker case\", \"original_quantity\": \"3\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"72.00\", \"sku\": \"DEMO-SKU-B\", \"gtin\": \"614141000029\", \"quantity\": \"3\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"72.00\", \"resolved_by\": null, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"page\": 1, \"description_reference\": \"Demo cracker case\", \"edited\": true}], \"totals\": {\"printed_subtotal\": \"504.00\", \"printed_tax\": \"0.00\", \"printed_shipping\": \"0.00\", \"printed_total\": \"504.00\", \"computed_subtotal\": \"360.00\", \"computed_total\": \"360.00\", \"rounding\": \"ROUND_HALF_UP to 0.01\"}, \"reference_version\": \"REF-2026-10-v1\", \"policy_version\": \"POLICY-v1\"}, \"issues\": [{\"key\": \"total_mismatch:subtotal\", \"code\": \"total_mismatch\", \"title\": \"Printed total does not add up\", \"message\": \"Lines add up to 360.00; printed subtotal is 504.00. The printed value is kept.\", \"line_index\": null, \"printed_value\": \"504.00\", \"reference_value\": \"360.00\", \"reference_version\": null, \"proposed_action\": null, \"evidence\": null, \"page\": null, \"blocking\": true, \"actions\": [\"acknowledge_total_difference\", \"reject_order\"], \"fingerprint\": \"[\\\"total_mismatch\\\", null, \\\"504.00\\\", \\\"360.00\\\"]\"}, {\"key\": \"total_mismatch:total\", \"code\": \"total_mismatch\", \"title\": \"Printed total does not add up\", \"message\": \"Computed total 360.00; printed total is 504.00. The printed value is kept.\", \"line_index\": null, \"printed_value\": \"504.00\", \"reference_value\": \"360.00\", \"reference_version\": null, \"proposed_action\": null, \"evidence\": null, \"page\": null, \"blocking\": true, \"actions\": [\"acknowledge_total_difference\", \"reject_order\"], \"fingerprint\": \"[\\\"total_mismatch\\\", null, \\\"504.00\\\", \\\"360.00\\\"]\"}]}"
+  },
+  {
+   "name": "fixtures/demo/generated/VIDEO-DEMO-006.pdf / decimal edits",
+   "input": {
+    "payload": "fixtures/demo/generated/VIDEO-DEMO-006.pdf",
+    "ref": "v1",
+    "rules": null,
+    "overrides": {
+     "edit:0": {
+      "quantity": "10.50",
+      "unit_price": "23.995"
+     }
+    },
+    "others": null
+   },
+   "expected": "{\"order\": {\"customer_id\": \"DEMO-CUST-01\", \"customer_name\": \"Northfield Demo Retail\", \"po_number\": \"VIDEO-DEMO-005\", \"currency\": \"USD\", \"ship_to_id\": \"DEMO-DC-01\", \"order_date\": \"2026-10-16\", \"requested_delivery_date\": \"2026-10-24\", \"lines\": [{\"line_index\": 0, \"source_line_id\": \"A\", \"printed_gtin\": \"614141000012\", \"customer_item_code\": null, \"description\": \"Demo granola case\", \"original_quantity\": \"18\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"432.00\", \"sku\": \"DEMO-SKU-A\", \"gtin\": \"614141000012\", \"quantity\": \"10.50\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"251.95\", \"resolved_by\": null, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"page\": 1, \"description_reference\": \"Demo granola case\", \"edited\": true}, {\"line_index\": 1, \"source_line_id\": \"B\", \"printed_gtin\": \"614141000029\", \"customer_item_code\": null, \"description\": \"Demo cracker case\", \"original_quantity\": \"3\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"72.00\", \"sku\": \"DEMO-SKU-B\", \"gtin\": \"614141000029\", \"quantity\": \"3\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"72.00\", \"resolved_by\": null, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"page\": 1, \"description_reference\": \"Demo cracker case\"}], \"totals\": {\"printed_subtotal\": \"504.00\", \"printed_tax\": \"0.00\", \"printed_shipping\": \"0.00\", \"printed_total\": \"504.00\", \"computed_subtotal\": \"323.95\", \"computed_total\": \"323.95\", \"rounding\": \"ROUND_HALF_UP to 0.01\"}, \"reference_version\": \"REF-2026-10-v1\", \"policy_version\": \"POLICY-v1\"}, \"issues\": [{\"key\": \"total_mismatch:subtotal\", \"code\": \"total_mismatch\", \"title\": \"Printed total does not add up\", \"message\": \"Lines add up to 323.95; printed subtotal is 504.00. The printed value is kept.\", \"line_index\": null, \"printed_value\": \"504.00\", \"reference_value\": \"323.95\", \"reference_version\": null, \"proposed_action\": null, \"evidence\": null, \"page\": null, \"blocking\": true, \"actions\": [\"acknowledge_total_difference\", \"reject_order\"], \"fingerprint\": \"[\\\"total_mismatch\\\", null, \\\"504.00\\\", \\\"323.95\\\"]\"}, {\"key\": \"total_mismatch:total\", \"code\": \"total_mismatch\", \"title\": \"Printed total does not add up\", \"message\": \"Computed total 323.95; printed total is 504.00. The printed value is kept.\", \"line_index\": null, \"printed_value\": \"504.00\", \"reference_value\": \"323.95\", \"reference_version\": null, \"proposed_action\": null, \"evidence\": null, \"page\": null, \"blocking\": true, \"actions\": [\"acknowledge_total_difference\", \"reject_order\"], \"fingerprint\": \"[\\\"total_mismatch\\\", null, \\\"504.00\\\", \\\"323.95\\\"]\"}]}"
+  },
+  {
+   "name": "fixtures/demo/generated/VIDEO-DEMO-006.pdf / unreadable edit",
+   "input": {
+    "payload": "fixtures/demo/generated/VIDEO-DEMO-006.pdf",
+    "ref": "v1",
+    "rules": null,
+    "overrides": {
+     "edit:0": {
+      "quantity": "lots"
+     }
+    },
+    "others": null
+   },
+   "expected": "{\"order\": {\"customer_id\": \"DEMO-CUST-01\", \"customer_name\": \"Northfield Demo Retail\", \"po_number\": \"VIDEO-DEMO-005\", \"currency\": \"USD\", \"ship_to_id\": \"DEMO-DC-01\", \"order_date\": \"2026-10-16\", \"requested_delivery_date\": \"2026-10-24\", \"lines\": [{\"line_index\": 0, \"source_line_id\": \"A\", \"printed_gtin\": \"614141000012\", \"customer_item_code\": null, \"description\": \"Demo granola case\", \"original_quantity\": \"18\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"432.00\", \"sku\": \"DEMO-SKU-A\", \"gtin\": \"614141000012\", \"quantity\": null, \"unit\": null, \"unit_price\": \"24.00\", \"line_amount\": null, \"resolved_by\": null, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"page\": 1, \"description_reference\": \"Demo granola case\", \"edited\": true}, {\"line_index\": 1, \"source_line_id\": \"B\", \"printed_gtin\": \"614141000029\", \"customer_item_code\": null, \"description\": \"Demo cracker case\", \"original_quantity\": \"3\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"72.00\", \"sku\": \"DEMO-SKU-B\", \"gtin\": \"614141000029\", \"quantity\": \"3\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"72.00\", \"resolved_by\": null, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"page\": 1, \"description_reference\": \"Demo cracker case\"}], \"totals\": {\"printed_subtotal\": \"504.00\", \"printed_tax\": \"0.00\", \"printed_shipping\": \"0.00\", \"printed_total\": \"504.00\", \"computed_subtotal\": \"504.00\", \"computed_total\": \"504.00\", \"rounding\": \"ROUND_HALF_UP to 0.01\"}, \"reference_version\": \"REF-2026-10-v1\", \"policy_version\": \"POLICY-v1\"}, \"issues\": []}"
+  },
+  {
+   "name": "fixtures/demo/generated/VIDEO-DEMO-006.pdf / possible revision",
+   "input": {
+    "payload": "fixtures/demo/generated/VIDEO-DEMO-006.pdf",
+    "ref": "v1",
+    "rules": null,
+    "overrides": null,
+    "others": [
+     {
+      "document_id": 1,
+      "customer_id": "DEMO-CUST-01",
+      "po_number": null
+     },
+     {
+      "document_id": 2,
+      "customer_id": "DEMO-CUST-01",
+      "po_number": "VIDEO-DEMO-001"
+     },
+     {
+      "document_id": 3,
+      "customer_id": "DEMO-CUST-01",
+      "po_number": "EDGE-1"
+     },
+     {
+      "document_id": 4,
+      "customer_id": "DEMO-CUST-01",
+      "po_number": "DEMO-PO-001"
+     }
+    ]
+   },
+   "expected": "{\"order\": {\"customer_id\": \"DEMO-CUST-01\", \"customer_name\": \"Northfield Demo Retail\", \"po_number\": \"VIDEO-DEMO-005\", \"currency\": \"USD\", \"ship_to_id\": \"DEMO-DC-01\", \"order_date\": \"2026-10-16\", \"requested_delivery_date\": \"2026-10-24\", \"lines\": [{\"line_index\": 0, \"source_line_id\": \"A\", \"printed_gtin\": \"614141000012\", \"customer_item_code\": null, \"description\": \"Demo granola case\", \"original_quantity\": \"18\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"432.00\", \"sku\": \"DEMO-SKU-A\", \"gtin\": \"614141000012\", \"quantity\": \"18\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"432.00\", \"resolved_by\": null, \"evidence\": \"A | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\", \"page\": 1, \"description_reference\": \"Demo granola case\"}, {\"line_index\": 1, \"source_line_id\": \"B\", \"printed_gtin\": \"614141000029\", \"customer_item_code\": null, \"description\": \"Demo cracker case\", \"original_quantity\": \"3\", \"original_unit\": \"CASE\", \"printed_unit_price\": \"24.00\", \"printed_line_amount\": \"72.00\", \"sku\": \"DEMO-SKU-B\", \"gtin\": \"614141000029\", \"quantity\": \"3\", \"unit\": \"CASE\", \"unit_price\": \"24.00\", \"line_amount\": \"72.00\", \"resolved_by\": null, \"evidence\": \"B | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\", \"page\": 1, \"description_reference\": \"Demo cracker case\"}], \"totals\": {\"printed_subtotal\": \"504.00\", \"printed_tax\": \"0.00\", \"printed_shipping\": \"0.00\", \"printed_total\": \"504.00\", \"computed_subtotal\": \"504.00\", \"computed_total\": \"504.00\", \"rounding\": \"ROUND_HALF_UP to 0.01\"}, \"reference_version\": \"REF-2026-10-v1\", \"policy_version\": \"POLICY-v1\"}, \"issues\": []}"
   },
   {
    "name": "fixtures/regression/sample-po.txt / plain",

@@ -24,7 +24,7 @@ def test_demo_totals_match_golden_with_decimal():
     for order in ORDERS:
         subtotal = sum((Decimal(l["quantity"]) * Decimal(l["unit_price"]) for l in order["lines"]), Decimal("0"))
         total = subtotal + Decimal(order["tax"]) + Decimal(order["shipping"])
-        golden = GOLDEN[order["po_number"]]
+        golden = GOLDEN.get(order["file"]) or GOLDEN[order["po_number"]]
         assert subtotal == Decimal(golden["subtotal"])
         assert total == Decimal(golden["total"]) == Decimal(order["total"])
 
@@ -75,7 +75,7 @@ def test_proposed_mapping_is_not_active():
 
 def test_generated_pdfs_have_native_text_and_fictional_label():
     pdfs = sorted(GEN.glob("*.pdf"))
-    assert len(pdfs) == 6
+    assert len(pdfs) == 7
     for pdf in pdfs:
         reader = PdfReader(str(pdf))
         assert not reader.is_encrypted

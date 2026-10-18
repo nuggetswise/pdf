@@ -28,6 +28,7 @@ RECEIVED = {
     "VIDEO-DEMO-003": datetime(2026, 10, 15, 10, 5, tzinfo=timezone.utc),
     "VIDEO-DEMO-004": datetime(2026, 10, 16, 8, 50, tzinfo=timezone.utc),
     "VIDEO-DEMO-005": datetime(2026, 10, 16, 9, 20, tzinfo=timezone.utc),
+    "VIDEO-DEMO-006": datetime(2026, 10, 16, 11, 5, tzinfo=timezone.utc),
     "DEMO-PO-001": datetime(2026, 10, 14, 8, 30, tzinfo=timezone.utc),
 }
 
@@ -115,13 +116,15 @@ def write_text_pdf(text: str, title: str, path: Path) -> None:
     c.save()
 
 
-def write_eml(po: str, sender: str, subject: str, pdf_path: Path, path: Path) -> None:
+def write_eml(po: str, sender: str, subject: str, pdf_path: Path, path: Path, key: str | None = None) -> None:
+    # key: the fixture name when one PO number has several emails (a revision); defaults to the PO number.
+    key = key or po
     msg = EmailMessage()
     msg["From"] = sender
     msg["To"] = "order-agent@supplier-demo.example"
     msg["Subject"] = f"Fwd: {subject} [FICTIONAL TEST DATA]"
-    msg["Date"] = format_datetime(RECEIVED[po])
-    msg["Message-ID"] = f"<{po.lower()}@demo.invalid>"
+    msg["Date"] = format_datetime(RECEIVED[key])
+    msg["Message-ID"] = f"<{key.lower()}@demo.invalid>"
     msg["X-Demo-Notice"] = "Fictional local demo envelope. Not sent over the internet."
     msg.set_content(
         f"{BANNER}\n\nForwarded fictional purchase order {po}. "
@@ -129,7 +132,7 @@ def write_eml(po: str, sender: str, subject: str, pdf_path: Path, path: Path) ->
     )
     msg.add_attachment(pdf_path.read_bytes(), maintype="application", subtype="pdf",
                        filename=pdf_path.name)
-    msg.set_boundary(f"demo-boundary-{po.lower()}")
+    msg.set_boundary(f"demo-boundary-{key.lower()}")
     path.write_bytes(bytes(msg))
 
 
@@ -141,7 +144,7 @@ def main() -> None:
         pdf = OUT / f"{order['file']}.pdf"
         write_order_pdf(order, pdf)
         write_eml(order["po_number"], order["sender"], order["subject"], pdf,
-                  OUT / f"{order['file']}.eml")
+                  OUT / f"{order['file']}.eml", key=order["file"])
     sample_pdf = OUT / "DEMO-PO-001.pdf"
     write_text_pdf(SAMPLE.read_text(), "Fictional purchase order DEMO-PO-001", sample_pdf)
     write_eml("DEMO-PO-001", "orders@northfield-demo.example", "PO DEMO-PO-001",

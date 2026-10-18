@@ -11,8 +11,8 @@ test("the run is kept for the tab's session and nowhere else", async ({ page, co
   await expect(page.locator(".pdfpage img")).toBeVisible();
 
   await page.reload();
-  // 18 sample orders plus the uploaded one.
-  await expect(page.locator(".kpi b").first()).toHaveText("19");
+  // D74: only real orders count; the uploaded one.
+  await expect(page.locator(".kpi b").first()).toHaveText("1");
   await page.getByRole("tab", { name: "Orders", exact: true }).click(); await page.getByRole("button", { name: "All documents" }).click();
   await expect(page.locator(".mail")).toHaveCount(1);
   await page.locator(".mail").first().click();

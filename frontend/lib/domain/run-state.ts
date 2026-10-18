@@ -355,6 +355,24 @@ export const Approval = z.strictObject({
 export const PolicyChange = z.strictObject({ id, mode: PolicyMode, setBy: z.string(), effectiveAt: isoTime,
   customerId: z.string().optional(), channel: Channel.optional(), reason: z.string().optional() });
 
+/** D74: a supplier's order policy, set by an administrator like a price rule in an accounting system: which check,
+ *  for which customer and item, what happens, and from when. Applies to orders received after it was created. */
+export const PolicyRule = z.strictObject({
+  id,
+  check: z.enum(["price_mismatch", "moq_violation"]),
+  customerId: maybe(z.string()),
+  sku: maybe(z.string()),
+  action: z.literal("accept_automatically"),
+  /** Price only: accept when the printed price is within this percentage of the agreed price. */
+  tolerancePercent: maybe(decimalString),
+  effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  effectiveTo: maybe(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+  reason: z.string(),
+  createdBy: z.string(),
+  createdAt: isoTime,
+  endedAt: maybe(isoTime),
+});
+
 export const MemoryRule = z.strictObject({
   id,
   kind: z.literal("identifier_mapping"),
@@ -750,6 +768,8 @@ export const RunState = z.strictObject({
   approvals: z.array(Approval),
   policyHistory: z.array(PolicyChange).min(1),
   memoryRules: z.array(MemoryRule),
+  /** Added by D74. Optional so earlier runs and the Python exports load unchanged. */
+  policyRules: z.array(PolicyRule).optional(),
   deliveries: z.array(DeliveryAttempt),
   erpOrders: z.array(ErpOrder),
   audit: z.array(AuditEvent),
@@ -780,6 +800,7 @@ export type Decision = z.infer<typeof Decision>;
 export type Approval = z.infer<typeof Approval>;
 export type PolicyChange = z.infer<typeof PolicyChange>;
 export type MemoryRule = z.infer<typeof MemoryRule>;
+export type PolicyRule = z.infer<typeof PolicyRule>;
 export type DeliveryAttempt = z.infer<typeof DeliveryAttempt>;
 export type ErpOrder = z.infer<typeof ErpOrder>;
 export type AuditEvent = z.infer<typeof AuditEvent>;

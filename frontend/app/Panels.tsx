@@ -327,15 +327,26 @@ function AdminSettings({ health, onError }: { health: Health; onError: (e: strin
   const test = health.extractor_mode === "test";
   const setting = (key: "rehearsal_mode" | "erp_failure_mode", value: string) =>
     go(() => agent.run({ type: "setDemoSetting", role: "administrator", key, value }));
+  // D74: each section says why a supplier needs it. Approval policy lives in Rules.
   return (
     <div className="admin">
-      <h3>Administrator settings</h3>
-      <Supervision health={health} onError={onError} />
-      <Ownership onError={onError} />
-      <EdiSetting onError={onError} />
-      <ShippingSettings onError={onError} />
-      {test && <>
-      <h3>Test controls</h3>
+      <section className="setting-block" aria-labelledby="set-edi-h">
+        <h3 id="set-edi-h">Retailer connections</h3>
+        <p className="muted small">How each retailer receives your confirmations, ship notices and invoices through Trading Grid.</p>
+        <EdiSetting onError={onError} />
+      </section>
+      <section className="setting-block" aria-labelledby="set-ship-h">
+        <h3 id="set-ship-h">Ship dates and short stock</h3>
+        <p className="muted small">Used to promise ship dates on confirmations and to decide what happens when stock is short.</p>
+        <ShippingSettings onError={onError} />
+      </section>
+      <section className="setting-block" aria-labelledby="set-own-h">
+        <h3 id="set-own-h">Who handles what</h3>
+        <p className="muted small">New exceptions and findings are assigned to this person.</p>
+        <Ownership onError={onError} />
+      </section>
+      {test && <details className="presenter-tools">
+      <summary>Presenter tools (test mode only)</summary>
       <p className="muted small">Shown only when the app runs with the test adapter, never with the AI.</p>
       <label>Rehearsal mode (TEST ADAPTER, not AI)
         <select value={health.rehearsal_mode ? "on" : "off"} onChange={(e) => setting("rehearsal_mode", e.target.value)}>
@@ -351,7 +362,7 @@ function AdminSettings({ health, onError }: { health: Health; onError: (e: strin
         if (!confirm("Clear everything in this browser tab?")) return;
         await go(() => agent.resetDemo());
       }}>Clear this tab</button>
-      </>}
+      </details>}
     </div>
   );
 }
@@ -361,7 +372,7 @@ const MODE_LABEL: Record<string, string> = { review_all: "Supervised", exception
 
 /** D64: supervision per retailer and route. Automatic needs an administrator and a recorded reason. Blocking issues
  *  stop an order in both modes. */
-function Supervision({ health, onError }: { health: Health; onError: (e: string | null) => void }) {
+export function Supervision({ health, onError }: { health: Health; onError: (e: string | null) => void }) {
   const agent = useAgent();
   const s = agent.state;
   const customers = mergeReference((s.settings.referenceData as unknown as Reference | null) ?? bundledReference, s.referenceOverlay).customers;
@@ -392,8 +403,8 @@ function Supervision({ health, onError }: { health: Health; onError: (e: string 
   );
   return (
     <fieldset className="supervision">
-      <legend>Supervision</legend>
-      <p className="muted small">Supervised orders wait for approval. Automatic orders go to the ERP when every check passes. Blocking issues stop an order in both modes.</p>
+      <legend>Which orders need a person</legend>
+      <p className="muted small">Supervised orders wait for an approval. Automatic orders go to your ERP when every check passes. A failed check stops an order in both modes.</p>
       <div className="row"><b>Default for routes without a setting:</b> <span>{MODE_LABEL[health.policy.mode]}</span>
         {editor(null, null, health.policy.mode)}</div>
       <div className="scroll">

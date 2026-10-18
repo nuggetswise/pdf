@@ -8,8 +8,8 @@ test("the example PO: page view, stock check, split shipment and backorder dates
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   const forward = page.getByRole("region", { name: "Forward a purchase order" });
-  await expect(forward).toContainText("Maple Retail Group (FreshMart Markets) · PO-2026-104587");
-  await forward.getByRole("button", { name: "Forward to agent" }).click();
+  await expect(forward).toContainText("Maple Retail Group · PO-2026-104587");
+  await forward.getByRole("button", { name: "Forward Maple Retail Group · PO-2026-104587" }).click();
   const card = page.locator("[data-po=\"PO-2026-104587\"]");
   await expect(card).toContainText("waiting for one approval");
   await card.getByRole("button").click();

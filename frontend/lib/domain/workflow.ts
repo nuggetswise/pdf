@@ -3,11 +3,11 @@
 //
 // Separate states are kept separate: processing (documents[].status) -> review (orders[].reviewState) ->
 // approval (approvals[]) -> delivery (orders[].deliveryState, deliveries[]) -> ERP acknowledgement (erpOrders[]).
-import { dec, money, qty } from "./money";
+import { Dec, dec, money, qty } from "./money";
 import { mergeReference } from "./onboarding";
 import bundledReference from "./reference-data.v1.json";
 import {
-  type Approval, type AuditEvent, type Decision, type DeliveryAttempt, type MemoryRule, type Order,
+  type Approval, type AuditEvent, type Decision, type PolicyRule, type DeliveryAttempt, type MemoryRule, type Order,
   type OrderVersion, type PolicyChange, ReferenceData, type RunState, type SourceDocument, type ValidationResult,
   type Channel, HoldReason, RejectReason, emptyOverlay, emptyRunState,
 } from "./run-state";
@@ -318,7 +318,89 @@ function processAfterExtraction(r: Run, docId: number) {
       r.audit("document", docId, "memory_rule_applied", SYSTEM, line.resolved_by as unknown as Detail);
     }
   }
+  applyPolicies(r, docId);
   settle(r, docId);
+}
+
+// ---------- D74: supplier order policies ----------
+
+export const POLICY_ACTOR = "policy:";
+/** A decision a policy recorded, not a person. Such orders can still go through automatically. */
+export const byPolicy = (d: { actor: string }) => d.actor.startsWith(POLICY_ACTOR);
+const POLICY_DECISION: Record<PolicyRule["check"], Decision["action"]> = { price_mismatch: "accept_printed_price", moq_violation: "one_off_exception" };
+
+/** The active policy that accepts this open issue, if any. Only orders received after the policy was created count. */
+export function matchingPolicy(s: RunState, order: Order, issue: Issue, receivedAt: string): PolicyRule | null {
+  const line = issue.line_index === null ? null : (order.validation.order.lines[issue.line_index] as { sku?: string | null } | undefined);
+  const day = receivedAt.slice(0, 10);
+  return (s.policyRules ?? []).find((p) => p.check === issue.code && p.endedAt === null && p.createdAt <= receivedAt
+    && p.effectiveFrom <= day && (p.effectiveTo === null || day <= p.effectiveTo)
+    && (p.customerId === null || p.customerId === order.customerId) && (p.sku === null || p.sku === (line?.sku ?? null))
+    && withinTolerance(p, issue)) ?? null;
+}
+
+function withinTolerance(p: PolicyRule, issue: Issue): boolean {
+  if (p.check !== "price_mismatch") return true;
+  const printed = dec(String(issue.printed_value ?? "")); const ref = dec(String(issue.reference_value ?? "")); const tol = dec(p.tolerancePercent ?? "0");
+  if (!printed || !ref || !tol) return false;
+  const hundred = Dec.of("100"); const minus = Dec.of("-1");
+  const scaled = printed.mul(hundred);
+  return !scaled.lt(ref.mul(hundred.add(tol.mul(minus)))) && !ref.mul(hundred.add(tol)).lt(scaled);
+}
+
+function applyPolicies(r: Run, docId: number) {
+  const order = r.order(docId);
+  if (!order || !(r.s.policyRules ?? []).length) return;
+  const receivedAt = r.doc(docId).createdAt;
+  let changed = false;
+  for (const issue of openBlocking(order.validation)) {
+    const p = matchingPolicy(r.s, order, issue, receivedAt);
+    if (!p) continue;
+    const actor = `${POLICY_ACTOR}P-${p.id}`;
+    const decisionId = r.nextId(r.s.decisions);
+    const decision: Decision = { id: decisionId, documentId: docId, issueKey: issue.key, fingerprint: issue.fingerprint,
+      action: POLICY_DECISION[p.check], params: {}, reason: `Policy P-${p.id}: ${p.reason}`, actor, role: "administrator",
+      versionCreated: null, createdAt: r.now() };
+    r.s.decisions.push(decision);
+    decision.versionCreated = newVersion(r, docId, actor, decisionId);
+    r.audit("document", docId, "policy_applied", actor, { policy_id: p.id, issue: issue.key, action: decision.action });
+    changed = true;
+  }
+  if (changed) evaluate(r, docId);
+}
+
+export interface PolicyInput {
+  check: PolicyRule["check"]; customerId: string | null; sku: string | null; tolerancePercent: string | null;
+  effectiveFrom: string; effectiveTo: string | null; reason: string;
+}
+
+export function addPolicyRule(state: RunState, input: PolicyInput, who: Who, clock: Clock = systemClock): RunState {
+  if (who.role !== "administrator") throw new Forbidden("Only an administrator can set order policies");
+  const reason = input.reason.trim();
+  if (reason.length < MIN_REASON) throw new Conflict("Enter the reason for this policy");
+  if (input.effectiveTo && input.effectiveTo < input.effectiveFrom) throw new Conflict("The end date is before the start date");
+  if (input.check === "price_mismatch") {
+    const t = dec(input.tolerancePercent ?? "");
+    if (!t || t.lt(Dec.of("0")) || Dec.of("20").lt(t)) throw new Conflict("Enter a price tolerance from 0 to 20 percent");
+  }
+  return act(state, clock, (r) => {
+    const rules = r.s.policyRules ?? (r.s.policyRules = []);
+    const id = r.nextId(rules);
+    rules.push({ id, check: input.check, customerId: input.customerId, sku: input.sku, action: "accept_automatically",
+      tolerancePercent: input.check === "price_mismatch" ? input.tolerancePercent : null, effectiveFrom: input.effectiveFrom,
+      effectiveTo: input.effectiveTo, reason, createdBy: who.actor, createdAt: r.now(), endedAt: null });
+    r.audit("policy", id, "order_policy_added", who.actor, { ...input, reason });
+  });
+}
+
+export function endPolicyRule(state: RunState, id: number, who: Who, clock: Clock = systemClock): RunState {
+  if (who.role !== "administrator") throw new Forbidden("Only an administrator can end order policies");
+  return act(state, clock, (r) => {
+    const p = (r.s.policyRules ?? []).find((x) => x.id === id);
+    if (!p || p.endedAt) throw new Conflict("No active policy with that number");
+    p.endedAt = r.now();
+    r.audit("policy", id, "order_policy_ended", who.actor, { policy_id: id });
+  });
 }
 
 /** Move an order to its next state after any change: needs review, ready, approved, then delivery. */
@@ -342,7 +424,7 @@ function settle(r: Run, docId: number) {
       && a.event.startsWith("reference_"));
     // D59: a scan was read from images, so a person checks it against the page before it goes anywhere.
     const scanned = r.s.versions.find((v) => v.documentId === docId && v.version === version)?.payload.source === "scan";
-    if (policy.mode === "exception_only" && r.decisionsFor(docId).length === 0 && !onboarded && !scanned) {
+    if (policy.mode === "exception_only" && r.decisionsFor(docId).every(byPolicy) && !onboarded && !scanned) {
       approveVersion(r, docId, version, "system", `policy:exception_only#${policy.id}`, policy);
       deliverNow = true;
     } else if (order.reviewState !== "ready") {
@@ -734,7 +816,7 @@ export function setRuleState(state: RunState, ruleId: number, target: "active" |
 class ErpFailed extends Error {}
 class ErpTimeout extends Error {}
 
-function erpSubmit(r: Run, key: string, payload: RunState["erpOrders"][number]["payload"]): string {
+function erpSubmit(r: Run, key: string, payload: RunState["erpOrders"][number]["payload"], updates: string | null = null): string {
   const mode = r.s.settings.erpFailureMode;
   if (mode === "fail_next") {
     r.s.settings.erpFailureMode = "none";
@@ -742,7 +824,8 @@ function erpSubmit(r: Run, key: string, payload: RunState["erpOrders"][number]["
   }
   let erpId = r.s.erpOrders.find((e) => e.idempotencyKey === key)?.erpOrderId;
   if (!erpId) {
-    erpId = `SIM-ERP-${100001 + r.s.erpOrders.length}`;
+    // D74: an accepted revision updates the order the ERP already holds; it never creates a second one.
+    erpId = updates ?? `SIM-ERP-${100001 + r.s.erpOrders.length}`;
     r.s.erpOrders.push({ erpOrderId: erpId, idempotencyKey: key, payload, createdAt: r.now() });
   }
   if (mode === "timeout_next") {
@@ -791,16 +874,27 @@ function deliver(r: Run, docId: number) {
   const payload = { idempotency_key: key, approved_version: version,
     approval: { kind: approval.kind, actor: approval.actor, policy: approval.policyMode },
     order: structuredClone(order.validation.order) };
+  const revises = revisedOrder(r, docId);
   let erpId: string;
   try {
-    erpId = erpSubmit(r, key, payload);
+    erpId = erpSubmit(r, key, payload, revises?.erpOrderId ?? null);
   } catch (exc) {
     if (exc instanceof ErpFailed) { deliveryState(r, docId, attempt, "failed", exc.message, { key }); return; }
     if (exc instanceof ErpTimeout) { deliveryState(r, docId, attempt, "unknown", exc.message, { key }); return; }
     throw exc;
   }
-  deliveryState(r, docId, attempt, "erp_created", "ERP simulator acknowledged the order", { erpId, key });
+  deliveryState(r, docId, attempt, "erp_created", revises ? `ERP simulator updated ${erpId} to this revision`
+    : "ERP simulator acknowledged the order", { erpId, key });
+  if (revises) r.audit("document", docId, "erp_order_revised", SYSTEM, { erp_order_id: erpId, revises_document_id: revises.documentId });
   confirmOrder(r.s, r.now(), docId); // D45: simulated ORDRSP to the retailer, its own delivery state
+}
+
+/** The earlier order a person accepted this one as a revision of, when that order is already in the ERP. */
+function revisedOrder(r: Run, docId: number): Order | null {
+  if (!r.decisionsFor(docId).some((d) => d.action === "accept_as_revision")) return null;
+  const me = r.order(docId)!;
+  return r.s.orders.filter((o) => o.documentId < docId && o.customerId === me.customerId && o.poNumber === me.poNumber && o.erpOrderId)
+    .sort((a, b) => b.documentId - a.documentId)[0] ?? null;
 }
 
 export function retryDelivery(state: RunState, docId: number, who: Who, clock: Clock = systemClock): RunState {

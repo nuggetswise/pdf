@@ -85,7 +85,7 @@ describe("slice 1 fixtures", () => {
       const subtotal = order.lines.reduce((sum: Dec, l: Obj) => sum.add(Dec.of(l.quantity).mul(Dec.of(l.unit_price))),
         Dec.ZERO);
       const total = subtotal.add(Dec.of(order.tax)).add(Dec.of(order.shipping));
-      const golden = GOLDEN[order.po_number];
+      const golden = GOLDEN[order.file] ?? GOLDEN[order.po_number];
       expect(subtotal.eq(Dec.of(golden.subtotal))).toBe(true);
       expect(total.eq(Dec.of(golden.total)) && total.eq(Dec.of(order.total))).toBe(true);
     }
@@ -133,7 +133,7 @@ describe("slice 1 fixtures", () => {
   });
 
   it("demo emails are labelled and carry one PDF with native text and the fictional label", () => {
-    expect(Object.keys(EMAILS)).toHaveLength(6);
+    expect(Object.keys(EMAILS)).toHaveLength(7);
     for (const { envelope, attachments } of Object.values(EMAILS)) {
       expect(envelope.subjectMetadata).toContain("FICTIONAL TEST DATA");
       expect(envelope.messageId!.endsWith("@demo.invalid>")).toBe(true);

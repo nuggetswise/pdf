@@ -45,8 +45,8 @@ test("intake history: email text order, not an order, attachments kept as eviden
   await expect(page.locator(".mail")).toHaveCount(2);
   await page.screenshot({ path: "../docs/screenshots/app-20-intake-history.png", fullPage: true });
 
-  // Supervision is per retailer and route; automatic needs a reason.
-  await page.getByRole("tab", { name: "Settings" }).click();
+  // Supervision is per retailer and route; automatic needs a reason. It lives in Rules (D74).
+  await page.getByRole("tab", { name: "Rules" }).click();
   const row = page.locator(".supervision tr", { hasText: "Northfield Demo Retail" }).filter({ hasText: "Email text" });
   await row.getByRole("button", { name: "Change" }).click();
   await row.getByRole("combobox").selectOption("exception_only");

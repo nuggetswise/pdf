@@ -74,22 +74,28 @@ export function RetailerSuppliers({ customerId }: { customerId: string | null })
 
 export function Forward() {
   const agent = useAgent();
-  const sample = DEMO_EMAILS[0];
   const { error, wrap } = useWrap();
   const add = (f: File) => wrap(async () => {
     const bytes = new Uint8Array(await f.arrayBuffer());
     const isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name) || new TextDecoder().decode(bytes.slice(0, 5)) === "%PDF-";
     await (isPdf ? agent.uploadPdf(bytes, f.name) : agent.importEml(bytes));
   });
+  // D74: five fictional emails in story order. Each one is read by the same path as any forwarded order.
+  const forwarded = (name: string) => agent.ready && agent.state.envelopes.some((e) => e.messageId?.startsWith(`<${name.toLowerCase()}@`));
   return (
     <div className="forward-box">
-      <p className="how">Retailers keep emailing PDF purchase orders to you as they do today. You forward each one to your
-        agent address, <b>order-agent@supplier-demo.example</b>, or drop the email or PDF here. Any layout works.</p>
-      <div className="forward mailrow" aria-label="Example purchase order">
-        <Mail size={18} aria-hidden />
-        <div><b>{SAMPLE_LABELS[sample]}</b><div className="muted small">From {SAMPLE_SENDERS[sample]} · fictional example</div></div>
-        <button onClick={() => wrap(() => agent.forwardDemo(sample))}>Forward to agent</button>
-      </div>
+      <p className="how">Retailers email PDF purchase orders as they do today. Forward each one to
+        <b> order-agent@supplier-demo.example</b>, or drop the email or PDF here.</p>
+      <ol className="inbox-list" aria-label="Supplier inbox">
+        {DEMO_EMAILS.map((name) => (
+          <li key={name} className="forward mailrow">
+            <Mail size={18} aria-hidden />
+            <div><b>{SAMPLE_LABELS[name]}</b><div className="muted small">From {SAMPLE_SENDERS[name]} · fictional</div></div>
+            {forwarded(name) ? <span className="pill ok">Forwarded</span>
+              : <button aria-label={`Forward ${SAMPLE_LABELS[name]}`} onClick={() => wrap(() => agent.forwardDemo(name))}>Forward to agent</button>}
+          </li>
+        ))}
+      </ol>
       <label className="dropzone small-drop">
         <input type="file" accept=".pdf,application/pdf,.eml,message/rfc822" aria-label="Forward a purchase order"
           onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) add(f); }} />

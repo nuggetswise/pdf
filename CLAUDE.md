@@ -24,7 +24,7 @@
 - Regenerate fictional fixtures: `backend/.venv/bin/python scripts/generate_fixtures.py`
 - Regenerate the example PO (PDF and .eml): `backend/.venv/bin/python scripts/example_po.py`
 - Regenerate the Python side of the TypeScript parity check: `backend/.venv/bin/python scripts/validation_parity.py`
-- Regenerate the demo inbox the Vitest workflow tests forward: `backend/.venv/bin/python scripts/demo_inbox.py`
+- Regenerate the demo inbox the Vitest workflow tests forward: `backend/.venv/bin/python scripts/demo_inbox.py` (then copy VIDEO-DEMO-001/002/005/006.eml from fixtures/demo/generated to frontend/public/demo)
 - Regenerate the FastAPI read-endpoint answers the selectors are compared with: `backend/.venv/bin/python scripts/read_models.py`
 - Regenerate the edge-case intake PDFs (encrypted, text-free): `backend/.venv/bin/python scripts/intake_fixtures.py`
 - Regenerate the fictional intake test pack (expected results are hand-written, not regenerated): `backend/.venv/bin/python scripts/test_pack.py`

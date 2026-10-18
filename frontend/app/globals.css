@@ -585,3 +585,21 @@ select { max-width: 100%; }
   .masthead .role select, .mast-right { max-width: 100%; min-width: 0; }
   table.lines { display: block; overflow-x: auto; }
 }
+
+/* D74: lifecycle bar, filter tiles, exception context, five-email inbox, rules and settings sections. */
+.journey { display: grid; gap: 6px; }
+.stage-btn { all: unset; cursor: pointer; display: block; width: 100%; }
+.stage-btn:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; border-radius: 4px; }
+.next-action { margin: 0; font-size: 14px; }
+.linkish { background: none; border: 0; padding: 0; color: var(--cobalt); text-decoration: underline; cursor: pointer; font: inherit; }
+button.kpi { text-align: left; cursor: pointer; font: inherit; color: inherit; }
+button.kpi[aria-pressed="true"] { border-color: var(--cobalt); box-shadow: inset 0 0 0 2px var(--cobalt); }
+.q-context { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 4px 12px; margin: 8px 0 0; font-size: 13px; }
+.q-context dt { color: var(--muted); font-size: 12px; } .q-context dd { margin: 0; }
+.inbox-list { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 6px; }
+.inbox-list .mailrow { margin: 0; }
+.setting-block { margin-bottom: 20px; } .setting-block h3 { margin-bottom: 2px; }
+.presenter-tools { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
+.policy-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px 12px; }
+.policy-form label { display: grid; gap: 4px; font-size: 13px; }
+.rules > * { margin-bottom: 16px; }

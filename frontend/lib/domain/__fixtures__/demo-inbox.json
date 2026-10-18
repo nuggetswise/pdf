@@ -126,6 +126,27 @@
      ]
     }
    ]
+  },
+  "VIDEO-DEMO-006": {
+   "envelope": {
+    "messageId": "<video-demo-006@demo.invalid>",
+    "sender": "orders@northfield-demo.example",
+    "receivedAt": "2026-10-16T11:05:00+00:00",
+    "subjectMetadata": "Fwd: PO VIDEO-DEMO-005 revision 2 [FICTIONAL TEST DATA]",
+    "intakeMode": "local_forward_demo",
+    "rawSha256": "a279cb7bb562355b5ea540d29151e3e8efacbbbc9aa91e5bc450b74b1a4a6263"
+   },
+   "attachments": [
+    {
+     "originalFilename": "VIDEO-DEMO-006.pdf",
+     "sha256": "a66cb6ac526088e0945a4e23661e8d82580083f8e119b06ce519eba6bd53f95a",
+     "sizeBytes": 2389,
+     "pageCount": 1,
+     "pageText": [
+      "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nFICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER\nPURCHASE ORDER\nPO: VIDEO-DEMO-005\nCustomer: Northfield Demo Retail\nCustomer ID: DEMO-CUST-01\nSupplier: Marlow Demo Foods\nShip-to: DEMO-DC-01\nOrder date: 2026-10-16\nRequested delivery date: 2026-10-24\nCurrency: USD\nLine | GTIN | Description | Quantity | Unit | Unit price | Amount\nA | 614141000012 | Demo granola case | 18 | CASE | 24.00 | 432.00\nB | 614141000029 | Demo cracker case | 3 | CASE | 24.00 | 72.00\nSubtotal: 504.00\nTax amount: 0.00\nShipping amount: 0.00\nTotal: 504.00\nAll organisations, identifiers and commercial values are fictional test data.\nItem GTINs use GS1 example company prefix 0614141; 614141000043 is a retired item.\n"
+     ]
+    }
+   ]
   }
  }
 }

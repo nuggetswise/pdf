@@ -66,7 +66,8 @@ describe("the demo inbox", () => {
     const served = readdirSync(join(__dirname, "..", "..", "public", "demo")).sort();
     expect(served).toEqual(DEMO_EMAILS.map((n) => `${n}.eml`));
     for (const name of DEMO_EMAILS) {
-      expect(bytes(join(__dirname, "..", "..", "public", "demo", `${name}.eml`))).toStrictEqual(bytes(join(ROOT, "fixtures", "example", `${name}.eml`)));
+      const source = name.startsWith("VIDEO-") ? join(ROOT, "fixtures", "demo", "generated", `${name}.eml`) : join(ROOT, "fixtures", "example", `${name}.eml`);
+      expect(bytes(join(__dirname, "..", "..", "public", "demo", `${name}.eml`))).toStrictEqual(bytes(source));
     }
   });
 
@@ -74,7 +75,8 @@ describe("the demo inbox", () => {
     for (const bad of ["..%2F..%2Fsecrets", "../secrets", "nope", "constructor", "VIDEO-DEMO-001.eml", ""]) {
       expect(demoEmailPath(bad)).toBeNull();
     }
-    expect(demoEmailPath("VIDEO-DEMO-001")).toBeNull();
+    expect(demoEmailPath("VIDEO-DEMO-003")).toBeNull();
+    expect(demoEmailPath("VIDEO-DEMO-001")).toBe("/demo/VIDEO-DEMO-001.eml");
     expect(demoEmailPath("PO-2026-104587")).toBe("/demo/PO-2026-104587.eml");
   });
 });

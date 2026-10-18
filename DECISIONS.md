@@ -304,3 +304,12 @@ Mandip's follow-up to D71: close the gaps, fix the phone view, and say where an 
 - Each order shows "What <buyer> receives", the simulated acknowledgement. Generalises the D72 unit-change acknowledgement.
 - Next slice (decided, not built): one engine and one dataset for samples and uploads; real 855/860 segments; credit-hold response.
 - Schema `order-ops-v2`; a browser holding v1 state reseeds.
+
+## D74 Five real orders, order lifecycle, supplier order policies (2026-10-18)
+- Removed the 18-order sample inbox and its separate engine (D71 to D73 `lib/domain/ops`). It bypassed AI, ASN, invoice and learning. Orders now lists only documents that went through the real path. Reversible from git history.
+- The inbox offers five fictional emails in story order: PO-2026-104587 (stock short, backorder, 855/856/810), VIDEO-DEMO-001 (three checks, rule learning), VIDEO-DEMO-002 (rule reuse), VIDEO-DEMO-005 (clean), VIDEO-DEMO-006 (new: revision of 005, line A 12 to 18). The presenter forwards each one; nothing is processed before that.
+- An accepted revision now updates the ERP order the earlier version created (`erp_order_revised`), instead of creating a second order. This was a gap in the Intake engine.
+- Order policies (`policyRules`, optional in RunState): an administrator accepts a failed price or minimum-quantity check automatically for a customer and item, within a price tolerance, between dates, with a reason. Modelled on accounting-system price rules (QuickBooks Advanced Pricing) and ERP hold codes. Applied after validation as a recorded decision by `policy:P-n`; validation output and Python parity are unchanged. Applies only to orders received after the policy was saved. A policy decision does not stop automatic processing.
+- Supervision moved from Settings to Rules. Settings has three sections with a purpose line each; test controls are a collapsed "Presenter tools".
+- Order screen: an 8-step lifecycle bar (email to invoice) with clickable steps and one next action. Orders: filter tiles; exceptions show decision needed, value, requested delivery, owner and waiting time.
+- Narrative and feature inventory: docs/14-leadership-demo.md.
