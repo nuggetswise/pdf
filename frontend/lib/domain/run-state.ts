@@ -9,8 +9,6 @@
 // Money and quantities are always strings. A JSON number in any of those fields is rejected, so a
 // binary float can never enter the run.
 import { z } from "zod";
-import { SupplierReplyInterpretation } from "./reply";
-import { ManualRouteAssumptions } from "./manual-route-schema";
 import { PROFILE_IDS } from "./compliance";
 
 // ---------- primitives ----------
@@ -29,7 +27,7 @@ const jsonValue: z.ZodType<unknown> = z.lazy(() =>
 
 // ---------- closed sets ----------
 
-export const IntakeMode = z.enum(["eml_import", "demo_envelope_upload", "local_forward_demo"]);
+export const IntakeMode = z.enum(["eml_import", "manual_upload", "order_mailbox"]);
 export const DocumentStatus = z.enum([
   "received", "duplicate", "unsupported", "extracting", "extraction_unavailable", "extraction_failed",
   "extracted", "matching", "validating", "needs_review", "ready_for_approval", "approved", "rejected",
@@ -355,24 +353,6 @@ export const Approval = z.strictObject({
 export const PolicyChange = z.strictObject({ id, mode: PolicyMode, setBy: z.string(), effectiveAt: isoTime,
   customerId: z.string().optional(), channel: Channel.optional(), reason: z.string().optional() });
 
-/** D74: a supplier's order policy, set by an administrator like a price rule in an accounting system: which check,
- *  for which customer and item, what happens, and from when. Applies to orders received after it was created. */
-export const PolicyRule = z.strictObject({
-  id,
-  check: z.enum(["price_mismatch", "moq_violation"]),
-  customerId: maybe(z.string()),
-  sku: maybe(z.string()),
-  action: z.literal("accept_automatically"),
-  /** Price only: accept when the printed price is within this percentage of the agreed price. */
-  tolerancePercent: maybe(decimalString),
-  effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  effectiveTo: maybe(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
-  reason: z.string(),
-  createdBy: z.string(),
-  createdAt: isoTime,
-  endedAt: maybe(isoTime),
-});
-
 export const MemoryRule = z.strictObject({
   id,
   kind: z.literal("identifier_mapping"),
@@ -554,7 +534,7 @@ export const OutboundMessage = z.strictObject({
   sourceId: z.string(),
   idempotencyKey: z.string(),
   status: OutboundStatus,
-  format: z.enum(["edifact", "x12", "json"]),
+  format: z.enum(["x12", "json"]),
   body: z.string(),
   mapping: z.array(z.strictObject({ segment: z.string(), meaning: z.string() })),
   attempts: z.array(z.strictObject({ at: isoTime, outcome: z.string(), detail: z.string() })),
@@ -626,9 +606,6 @@ export const Portal = z.strictObject({
   /** D52: order quantities the supplier will not ship (backorder cancelled). */
   cancellations: z.array(z.strictObject({ documentId: id, lineIndex: z.number().int().nonnegative(), quantity: decimalString,
     reason: z.string(), createdBy: z.string(), createdAt: isoTime })).optional(),
-  /** D54: supplier replies to a PO, read by the agent and confirmed by a person. */
-  replies: z.array(z.strictObject({ id, documentId: id, text: z.string(), interpretation: SupplierReplyInterpretation,
-    appliedBy: z.string(), appliedAt: isoTime })).optional(),
   /** D67: the retailer's answer to a changed order confirmation (simulated retailer system, recorded in its view). */
   retailerResponses: z.array(z.strictObject({ id, documentId: id, messageId: id, decision: z.enum(["accepted", "declined"]),
     by: z.string(), at: isoTime })).optional(),
@@ -768,8 +745,6 @@ export const RunState = z.strictObject({
   approvals: z.array(Approval),
   policyHistory: z.array(PolicyChange).min(1),
   memoryRules: z.array(MemoryRule),
-  /** Added by D74. Optional so earlier runs and the Python exports load unchanged. */
-  policyRules: z.array(PolicyRule).optional(),
   deliveries: z.array(DeliveryAttempt),
   erpOrders: z.array(ErpOrder),
   audit: z.array(AuditEvent),
@@ -778,8 +753,6 @@ export const RunState = z.strictObject({
   portal: Portal.optional(),
   /** Added by D46. Optional for the same reason; absent means no session additions. */
   referenceOverlay: ReferenceOverlay.optional(),
-  /** Added by D49: the administrator's Act 1 assumptions. Optional; absent means the labelled defaults. */
-  manualRoute: ManualRouteAssumptions.optional(),
   /** D61: ERP stock. Absent means the bundled fictional stock file (erp-stock.v1.json). */
   erpStock: z.array(StockItem).optional(),
   /** D61: packing and transit days, and what to do when stock is short. Absent means the defaults. */
@@ -800,7 +773,6 @@ export type Decision = z.infer<typeof Decision>;
 export type Approval = z.infer<typeof Approval>;
 export type PolicyChange = z.infer<typeof PolicyChange>;
 export type MemoryRule = z.infer<typeof MemoryRule>;
-export type PolicyRule = z.infer<typeof PolicyRule>;
 export type DeliveryAttempt = z.infer<typeof DeliveryAttempt>;
 export type ErpOrder = z.infer<typeof ErpOrder>;
 export type AuditEvent = z.infer<typeof AuditEvent>;

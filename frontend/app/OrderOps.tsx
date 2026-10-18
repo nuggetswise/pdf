@@ -48,8 +48,7 @@ export function engineRows(s: RunState): Row[] {
     const o = s.orders.find((x) => x.documentId === d.id);
     const env = s.envelopes.find((e) => e.id === d.envelopeId);
     const open = o ? o.validation.issues.filter((i) => i.status === "open") : [];
-    // A decision a supplier policy recorded is not a person's; such an order still counts as automatic (D74).
-    const decided = s.decisions.some((x) => x.documentId === d.id && !x.actor.startsWith("policy:")) || s.approvals.some((x) => x.documentId === d.id && x.kind === "human");
+    const decided = s.decisions.some((x) => x.documentId === d.id) || s.approvals.some((x) => x.documentId === d.id && x.kind === "human");
     let bucket: Bucket; let state: [string, string]; let issue: string | null = null; let summary = "";
     if (IN_FLIGHT.has(d.status)) { bucket = "in_progress"; state = ["Reading", "info"]; }
     else if (d.status === "not_order" || d.status === "duplicate") { bucket = "closed"; state = [d.status === "duplicate" ? "Duplicate" : "Not an order", "muted"]; }

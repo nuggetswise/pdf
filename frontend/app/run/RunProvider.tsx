@@ -3,7 +3,7 @@
 // sends each action to the server one at a time, and runs the agent's background work: reading forwarded PDFs
 // and asking the server to extract them. The original PDFs are kept in this browser (IndexedDB) for the page view.
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { DEMO_EMAILS, demoEmailPath, ediText, intakeEdi, intakeEml, intakeUpload, type Intake } from "../../lib/intake/intake";
+import { SAMPLE_EMAILS, sampleEmailPath, ediText, intakeEdi, intakeEml, intakeUpload, type Intake } from "../../lib/intake/intake";
 import { IntakeRejected } from "../../lib/intake/pdf";
 import { browserPdfjs } from "../../lib/intake/pdfjs-browser";
 import { emptyRunState, RunState, runStateSizeBytes, SESSION_STORAGE_WARN_BYTES } from "../../lib/domain/run-state";
@@ -146,7 +146,7 @@ export function RunProvider({ children }: { children: ReactNode }) {
     return ids;
   }, [run, process]);
 
-  const readEml = useCallback(async (raw: Uint8Array, mode: "eml_import" | "local_forward_demo") => {
+  const readEml = useCallback(async (raw: Uint8Array, mode: "eml_import" | "order_mailbox") => {
     try {
       return await intakeEml(raw, mode, { pdfjs: await browserPdfjs() });
     } catch (e) {
@@ -156,11 +156,11 @@ export function RunProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const forwardDemo = useCallback(async (name: string) => {
-    const path = demoEmailPath(name);
+    const path = sampleEmailPath(name);
     if (!path) throw new Error("Unknown demo email");
     const r = await fetch(path, { cache: "no-store" });
     if (!r.ok) throw new Error(`Demo email could not be loaded (HTTP ${r.status})`);
-    return receive(await readEml(new Uint8Array(await r.arrayBuffer()), "local_forward_demo"));
+    return receive(await readEml(new Uint8Array(await r.arrayBuffer()), "order_mailbox"));
   }, [receive, readEml]);
 
   const importEml = useCallback(async (raw: Uint8Array) => receive(await readEml(raw, "eml_import")), [receive, readEml]);
@@ -230,4 +230,4 @@ export function useHealth(): Health | null {
   }), [state, extraction, ready]);
 }
 
-export { DEMO_EMAILS };
+export { SAMPLE_EMAILS };

@@ -1,0 +1,236 @@
+{
+  "_label": "FICTIONAL TEST DATA. Generated from fixtures/maple by maple-inbox.test.ts; do not edit.",
+  "emails": {
+    "milk": {
+      "envelope": {
+        "messageId": "<po-2026-104620@mapleretail.example>",
+        "sender": "Sarah Thompson <procurement@mapleretail.example>",
+        "receivedAt": "2026-10-15T13:00:00+00:00",
+        "subjectMetadata": "Purchase Order PO-2026-104620 - FreshMart Markets [FICTIONAL SAMPLE]",
+        "intakeMode": "order_mailbox",
+        "rawSha256": "16c70e65f1930184c188756aa1e18f4de55fdf248489fe5e4e1344503362e59d"
+      },
+      "attachments": [
+        {
+          "originalFilename": "PO-2026-104620.pdf",
+          "sha256": "121d7c76d2eaeb974b0de1e85250898e575235ec864d2ff2ed63842fec0bdaf5",
+          "sizeBytes": 3978,
+          "pageCount": 1,
+          "pageText": [
+            "PURCHASE ORDER\nMaple Retail Group Inc. | FreshMart Markets\nPO NUMBER\nPO-2026-104620\nPO DATE\nOctober 15, 2026\nREQUESTED DELIVERY\nNovember 20, 2026\nPAYMENT TERMS\nNet 30 Days\nCURRENCY\nUSD\nBUYER\nMaple Retail Group Inc.\nStore Banner: FreshMart Markets\nBuyer Contact: Sarah Thompson\nprocurement@mapleretail.example\n+1 614-555-0182\nSUPPLIER\nNorthern Foods Manufacturing Inc.\nSupplier ID: SUP-100245\nContact: David Chen\norders@northernfoods.example\n+1 312-555-0198\nSHIP TO\nFreshMart Distribution Center\n275 Logistics Parkway\nColumbus, OH 43217\nUnited States\nShip-To ID: MAPLE-DC-01\nBILL TO\nMaple Retail Group Inc.\n500 Commerce Boulevard\nColumbus, OH 43215\nUnited States\nORDER LINES\nLINE SUPPLIER SKU PRODUCT DESCRIPTION UOM QTY UNIT PRICE EXTENDED\n1 NF-MLK-001 Whole Milk 1 L (case of 12) Case 120 USD 18.00 USD 2,160.00\n2 NF-MLK-002 Semi-Skimmed Milk 1 L (case of 12) Case 100 USD 17.40 USD 1,740.00\nMerchandise Total USD 3,900.00\nFreight USD 275.00\nSales Tax USD 0.00\nTOTAL PURCHASE ORDER VALUE USD 4,175.00\nDELIVERY REQUIREMENTS\nShip Window\nNov 10 - Nov 17, 2026\nDelivery Window\n08:00 AM - 04:00 PM ET\nCarrier Appointment\nRequired\nASN\nRequired before arrival\nBarcode Standard\nGS1-128\nPalletized Shipment\nRequired\nSHIPPING TERMS ORDER NOTES\nIncoterms: FOB Destination\nPayment: Net 30 Days\n• Do not substitute items without approval.\n• Ship complete whenever possible.\n• Include the PO number on shipping documents and invoices.\n• Report expected shortages within 24 hours of order receipt.\nFictional sample purchase order for demonstration and testing. Not a real order. PO-2026-104620 | Page 1"
+          ]
+        }
+      ]
+    },
+    "cheese": {
+      "envelope": {
+        "messageId": "<po-2026-104633@mapleretail.example>",
+        "sender": "Sarah Thompson <procurement@mapleretail.example>",
+        "receivedAt": "2026-10-15T14:00:00+00:00",
+        "subjectMetadata": "Purchase Order PO-2026-104633 - FreshMart Markets [FICTIONAL SAMPLE]",
+        "intakeMode": "order_mailbox",
+        "rawSha256": "a0454450fe5c4f7bd939b145502e3ca0a3b3f876fd1f49f0cd89a3f885c6c449"
+      },
+      "attachments": [
+        {
+          "originalFilename": "PO-2026-104633.pdf",
+          "sha256": "158271ce5603b561277ca64c677b978a8d7e7104c784df1e54f40fdbaa0cee28",
+          "sizeBytes": 3982,
+          "pageCount": 1,
+          "pageText": [
+            "PURCHASE ORDER\nMaple Retail Group Inc. | FreshMart Markets\nPO NUMBER\nPO-2026-104633\nPO DATE\nOctober 15, 2026\nREQUESTED DELIVERY\nNovember 20, 2026\nPAYMENT TERMS\nNet 30 Days\nCURRENCY\nUSD\nBUYER\nMaple Retail Group Inc.\nStore Banner: FreshMart Markets\nBuyer Contact: Sarah Thompson\nprocurement@mapleretail.example\n+1 614-555-0182\nSUPPLIER\nNorthern Foods Manufacturing Inc.\nSupplier ID: SUP-100245\nContact: David Chen\norders@northernfoods.example\n+1 312-555-0198\nSHIP TO\nFreshMart Distribution Center\n275 Logistics Parkway\nColumbus, OH 43217\nUnited States\nShip-To ID: MAPLE-DC-01\nBILL TO\nMaple Retail Group Inc.\n500 Commerce Boulevard\nColumbus, OH 43215\nUnited States\nORDER LINES\nLINE SUPPLIER SKU PRODUCT DESCRIPTION UOM QTY UNIT PRICE EXTENDED\n1 NF-CHS-001 Cheddar Block 400 g (case of 12) Case 60 USD 54.60 USD 3,276.00\n2 NF-CHS-002 Mozzarella 250 g (case of 12) Case 85 USD 38.40 USD 3,264.00\nMerchandise Total USD 6,540.00\nFreight USD 275.00\nSales Tax USD 0.00\nTOTAL PURCHASE ORDER VALUE USD 6,815.00\nDELIVERY REQUIREMENTS\nShip Window\nNov 10 - Nov 17, 2026\nDelivery Window\n08:00 AM - 04:00 PM ET\nCarrier Appointment\nRequired\nASN\nRequired before arrival\nBarcode Standard\nGS1-128\nPalletized Shipment\nRequired\nSHIPPING TERMS ORDER NOTES\nIncoterms: FOB Destination\nPayment: Net 30 Days\n• Do not substitute items without approval.\n• Ship complete whenever possible.\n• Include the PO number on shipping documents and invoices.\n• Report expected shortages within 24 hours of order receipt.\nFictional sample purchase order for demonstration and testing. Not a real order. PO-2026-104633 | Page 1"
+          ]
+        }
+      ]
+    },
+    "moq": {
+      "envelope": {
+        "messageId": "<po-2026-104701@mapleretail.example>",
+        "sender": "Sarah Thompson <procurement@mapleretail.example>",
+        "receivedAt": "2026-10-16T08:00:00+00:00",
+        "subjectMetadata": "Purchase Order PO-2026-104701 - FreshMart Markets [FICTIONAL SAMPLE]",
+        "intakeMode": "order_mailbox",
+        "rawSha256": "c412eb761c0d7b2934f432379586b3e82a31b6edc616169056fbaee839302505"
+      },
+      "attachments": [
+        {
+          "originalFilename": "PO-2026-104701.pdf",
+          "sha256": "5ba33bc3f1b0c8e431537091cf396a0cbdfff01182579208060f4074983b73af",
+          "sizeBytes": 3863,
+          "pageCount": 1,
+          "pageText": [
+            "PURCHASE ORDER\nMaple Retail Group Inc. | FreshMart Markets\nPO NUMBER\nPO-2026-104701\nPO DATE\nOctober 15, 2026\nREQUESTED DELIVERY\nNovember 20, 2026\nPAYMENT TERMS\nNet 30 Days\nCURRENCY\nUSD\nBUYER\nMaple Retail Group Inc.\nStore Banner: FreshMart Markets\nBuyer Contact: Sarah Thompson\nprocurement@mapleretail.example\n+1 614-555-0182\nSUPPLIER\nNorthern Foods Manufacturing Inc.\nSupplier ID: SUP-100245\nContact: David Chen\norders@northernfoods.example\n+1 312-555-0198\nSHIP TO\nFreshMart Distribution Center\n275 Logistics Parkway\nColumbus, OH 43217\nUnited States\nShip-To ID: MAPLE-DC-01\nBILL TO\nMaple Retail Group Inc.\n500 Commerce Boulevard\nColumbus, OH 43215\nUnited States\nORDER LINES\nLINE SUPPLIER SKU PRODUCT DESCRIPTION UOM QTY UNIT PRICE EXTENDED\n1 NF-CHS-002 Mozzarella 250 g (case of 12) Case 6 USD 38.40 USD 230.40\nMerchandise Total USD 230.40\nFreight USD 0.00\nSales Tax USD 0.00\nTOTAL PURCHASE ORDER VALUE USD 230.40\nDELIVERY REQUIREMENTS\nShip Window\nNov 10 - Nov 17, 2026\nDelivery Window\n08:00 AM - 04:00 PM ET\nCarrier Appointment\nRequired\nASN\nRequired before arrival\nBarcode Standard\nGS1-128\nPalletized Shipment\nRequired\nSHIPPING TERMS ORDER NOTES\nIncoterms: FOB Destination\nPayment: Net 30 Days\n• Do not substitute items without approval.\n• Ship complete whenever possible.\n• Include the PO number on shipping documents and invoices.\n• Report expected shortages within 24 hours of order receipt.\nFictional sample purchase order for demonstration and testing. Not a real order. PO-2026-104701 | Page 1"
+          ]
+        }
+      ]
+    },
+    "gtin1": {
+      "envelope": {
+        "messageId": "<po-2026-104702@mapleretail.example>",
+        "sender": "Sarah Thompson <procurement@mapleretail.example>",
+        "receivedAt": "2026-10-16T09:00:00+00:00",
+        "subjectMetadata": "Purchase Order PO-2026-104702 - FreshMart Markets [FICTIONAL SAMPLE]",
+        "intakeMode": "order_mailbox",
+        "rawSha256": "a430935495d6f7605fcbbda43762781dd66620f5c3e93953c820c21b72ae1788"
+      },
+      "attachments": [
+        {
+          "originalFilename": "PO-2026-104702.pdf",
+          "sha256": "7e0b9da4318b9eea58636cb9ce8495cc83c610dc23a1e37aa193cd97c77006c0",
+          "sizeBytes": 3872,
+          "pageCount": 1,
+          "pageText": [
+            "PURCHASE ORDER\nMaple Retail Group Inc. | FreshMart Markets\nPO NUMBER\nPO-2026-104702\nPO DATE\nOctober 15, 2026\nREQUESTED DELIVERY\nNovember 20, 2026\nPAYMENT TERMS\nNet 30 Days\nCURRENCY\nUSD\nBUYER\nMaple Retail Group Inc.\nStore Banner: FreshMart Markets\nBuyer Contact: Sarah Thompson\nprocurement@mapleretail.example\n+1 614-555-0182\nSUPPLIER\nNorthern Foods Manufacturing Inc.\nSupplier ID: SUP-100245\nContact: David Chen\norders@northernfoods.example\n+1 312-555-0198\nSHIP TO\nFreshMart Distribution Center\n275 Logistics Parkway\nColumbus, OH 43217\nUnited States\nShip-To ID: MAPLE-DC-01\nBILL TO\nMaple Retail Group Inc.\n500 Commerce Boulevard\nColumbus, OH 43215\nUnited States\nORDER LINES\nLINE SUPPLIER SKU PRODUCT DESCRIPTION UOM QTY UNIT PRICE EXTENDED\n1 614141200078 Cheddar Block 400 g (case of 12) Case 20 USD 52.80 USD 1,056.00\nMerchandise Total USD 1,056.00\nFreight USD 0.00\nSales Tax USD 0.00\nTOTAL PURCHASE ORDER VALUE USD 1,056.00\nDELIVERY REQUIREMENTS\nShip Window\nNov 10 - Nov 17, 2026\nDelivery Window\n08:00 AM - 04:00 PM ET\nCarrier Appointment\nRequired\nASN\nRequired before arrival\nBarcode Standard\nGS1-128\nPalletized Shipment\nRequired\nSHIPPING TERMS ORDER NOTES\nIncoterms: FOB Destination\nPayment: Net 30 Days\n• Do not substitute items without approval.\n• Ship complete whenever possible.\n• Include the PO number on shipping documents and invoices.\n• Report expected shortages within 24 hours of order receipt.\nFictional sample purchase order for demonstration and testing. Not a real order. PO-2026-104702 | Page 1"
+          ]
+        }
+      ]
+    },
+    "gtin2": {
+      "envelope": {
+        "messageId": "<po-2026-104703@mapleretail.example>",
+        "sender": "Sarah Thompson <procurement@mapleretail.example>",
+        "receivedAt": "2026-10-16T10:00:00+00:00",
+        "subjectMetadata": "Purchase Order PO-2026-104703 - FreshMart Markets [FICTIONAL SAMPLE]",
+        "intakeMode": "order_mailbox",
+        "rawSha256": "2c96c5b3e25c33aec2f1a689e57d9a935df2b626cbbee962fb9fca41f23d4348"
+      },
+      "attachments": [
+        {
+          "originalFilename": "PO-2026-104703.pdf",
+          "sha256": "d5282b424542f790781863efa017289132f07ff65eea57c770d1f33bc474528a",
+          "sizeBytes": 3875,
+          "pageCount": 1,
+          "pageText": [
+            "PURCHASE ORDER\nMaple Retail Group Inc. | FreshMart Markets\nPO NUMBER\nPO-2026-104703\nPO DATE\nOctober 15, 2026\nREQUESTED DELIVERY\nNovember 20, 2026\nPAYMENT TERMS\nNet 30 Days\nCURRENCY\nUSD\nBUYER\nMaple Retail Group Inc.\nStore Banner: FreshMart Markets\nBuyer Contact: Sarah Thompson\nprocurement@mapleretail.example\n+1 614-555-0182\nSUPPLIER\nNorthern Foods Manufacturing Inc.\nSupplier ID: SUP-100245\nContact: David Chen\norders@northernfoods.example\n+1 312-555-0198\nSHIP TO\nFreshMart Distribution Center\n275 Logistics Parkway\nColumbus, OH 43217\nUnited States\nShip-To ID: MAPLE-DC-01\nBILL TO\nMaple Retail Group Inc.\n500 Commerce Boulevard\nColumbus, OH 43215\nUnited States\nORDER LINES\nLINE SUPPLIER SKU PRODUCT DESCRIPTION UOM QTY UNIT PRICE EXTENDED\n1 614141200078 Cheddar Block 400 g (case of 12) Case 24 USD 52.80 USD 1,267.20\nMerchandise Total USD 1,267.20\nFreight USD 0.00\nSales Tax USD 0.00\nTOTAL PURCHASE ORDER VALUE USD 1,267.20\nDELIVERY REQUIREMENTS\nShip Window\nNov 10 - Nov 17, 2026\nDelivery Window\n08:00 AM - 04:00 PM ET\nCarrier Appointment\nRequired\nASN\nRequired before arrival\nBarcode Standard\nGS1-128\nPalletized Shipment\nRequired\nSHIPPING TERMS ORDER NOTES\nIncoterms: FOB Destination\nPayment: Net 30 Days\n• Do not substitute items without approval.\n• Ship complete whenever possible.\n• Include the PO number on shipping documents and invoices.\n• Report expected shortages within 24 hours of order receipt.\nFictional sample purchase order for demonstration and testing. Not a real order. PO-2026-104703 | Page 1"
+          ]
+        }
+      ]
+    },
+    "gtin3": {
+      "envelope": {
+        "messageId": "<po-2026-104704@mapleretail.example>",
+        "sender": "Sarah Thompson <procurement@mapleretail.example>",
+        "receivedAt": "2026-10-16T11:00:00+00:00",
+        "subjectMetadata": "Purchase Order PO-2026-104704 - FreshMart Markets [FICTIONAL SAMPLE]",
+        "intakeMode": "order_mailbox",
+        "rawSha256": "eac68163c1e291085305e472efa8661aae52541ab112ac6763ca9dfc19136a6e"
+      },
+      "attachments": [
+        {
+          "originalFilename": "PO-2026-104704.pdf",
+          "sha256": "4b2b311264b91d9a97dda226ad97cdd6b2fe6a8293fcb75972a8d0e87526e0b4",
+          "sizeBytes": 3870,
+          "pageCount": 1,
+          "pageText": [
+            "PURCHASE ORDER\nMaple Retail Group Inc. | FreshMart Markets\nPO NUMBER\nPO-2026-104704\nPO DATE\nOctober 15, 2026\nREQUESTED DELIVERY\nNovember 20, 2026\nPAYMENT TERMS\nNet 30 Days\nCURRENCY\nUSD\nBUYER\nMaple Retail Group Inc.\nStore Banner: FreshMart Markets\nBuyer Contact: Sarah Thompson\nprocurement@mapleretail.example\n+1 614-555-0182\nSUPPLIER\nNorthern Foods Manufacturing Inc.\nSupplier ID: SUP-100245\nContact: David Chen\norders@northernfoods.example\n+1 312-555-0198\nSHIP TO\nFreshMart Distribution Center\n275 Logistics Parkway\nColumbus, OH 43217\nUnited States\nShip-To ID: MAPLE-DC-01\nBILL TO\nMaple Retail Group Inc.\n500 Commerce Boulevard\nColumbus, OH 43215\nUnited States\nORDER LINES\nLINE SUPPLIER SKU PRODUCT DESCRIPTION UOM QTY UNIT PRICE EXTENDED\n1 614141200078 Cheddar Block 400 g (case of 12) Case 18 USD 52.80 USD 950.40\nMerchandise Total USD 950.40\nFreight USD 0.00\nSales Tax USD 0.00\nTOTAL PURCHASE ORDER VALUE USD 950.40\nDELIVERY REQUIREMENTS\nShip Window\nNov 10 - Nov 17, 2026\nDelivery Window\n08:00 AM - 04:00 PM ET\nCarrier Appointment\nRequired\nASN\nRequired before arrival\nBarcode Standard\nGS1-128\nPalletized Shipment\nRequired\nSHIPPING TERMS ORDER NOTES\nIncoterms: FOB Destination\nPayment: Net 30 Days\n• Do not substitute items without approval.\n• Ship complete whenever possible.\n• Include the PO number on shipping documents and invoices.\n• Report expected shortages within 24 hours of order receipt.\nFictional sample purchase order for demonstration and testing. Not a real order. PO-2026-104704 | Page 1"
+          ]
+        }
+      ]
+    },
+    "gtin4": {
+      "envelope": {
+        "messageId": "<po-2026-104705@mapleretail.example>",
+        "sender": "Sarah Thompson <procurement@mapleretail.example>",
+        "receivedAt": "2026-10-16T12:00:00+00:00",
+        "subjectMetadata": "Purchase Order PO-2026-104705 - FreshMart Markets [FICTIONAL SAMPLE]",
+        "intakeMode": "order_mailbox",
+        "rawSha256": "730c0af6c55b27b88572497350c7d745a1e45a2da38f44ea5e127567cf49cb3e"
+      },
+      "attachments": [
+        {
+          "originalFilename": "PO-2026-104705.pdf",
+          "sha256": "8c67ef1eaeb21a48d7cab13b98862d1bc52b9c46af4bc044a1a1f07f87342706",
+          "sizeBytes": 3870,
+          "pageCount": 1,
+          "pageText": [
+            "PURCHASE ORDER\nMaple Retail Group Inc. | FreshMart Markets\nPO NUMBER\nPO-2026-104705\nPO DATE\nOctober 15, 2026\nREQUESTED DELIVERY\nNovember 20, 2026\nPAYMENT TERMS\nNet 30 Days\nCURRENCY\nUSD\nBUYER\nMaple Retail Group Inc.\nStore Banner: FreshMart Markets\nBuyer Contact: Sarah Thompson\nprocurement@mapleretail.example\n+1 614-555-0182\nSUPPLIER\nNorthern Foods Manufacturing Inc.\nSupplier ID: SUP-100245\nContact: David Chen\norders@northernfoods.example\n+1 312-555-0198\nSHIP TO\nFreshMart Distribution Center\n275 Logistics Parkway\nColumbus, OH 43217\nUnited States\nShip-To ID: MAPLE-DC-01\nBILL TO\nMaple Retail Group Inc.\n500 Commerce Boulevard\nColumbus, OH 43215\nUnited States\nORDER LINES\nLINE SUPPLIER SKU PRODUCT DESCRIPTION UOM QTY UNIT PRICE EXTENDED\n1 614141200078 Cheddar Block 400 g (case of 12) Case 12 USD 52.80 USD 633.60\nMerchandise Total USD 633.60\nFreight USD 0.00\nSales Tax USD 0.00\nTOTAL PURCHASE ORDER VALUE USD 633.60\nDELIVERY REQUIREMENTS\nShip Window\nNov 10 - Nov 17, 2026\nDelivery Window\n08:00 AM - 04:00 PM ET\nCarrier Appointment\nRequired\nASN\nRequired before arrival\nBarcode Standard\nGS1-128\nPalletized Shipment\nRequired\nSHIPPING TERMS ORDER NOTES\nIncoterms: FOB Destination\nPayment: Net 30 Days\n• Do not substitute items without approval.\n• Ship complete whenever possible.\n• Include the PO number on shipping documents and invoices.\n• Report expected shortages within 24 hours of order receipt.\nFictional sample purchase order for demonstration and testing. Not a real order. PO-2026-104705 | Page 1"
+          ]
+        }
+      ]
+    },
+    "each": {
+      "envelope": {
+        "messageId": "<po-2026-104706@mapleretail.example>",
+        "sender": "Sarah Thompson <procurement@mapleretail.example>",
+        "receivedAt": "2026-10-16T13:00:00+00:00",
+        "subjectMetadata": "Purchase Order PO-2026-104706 - FreshMart Markets [FICTIONAL SAMPLE]",
+        "intakeMode": "order_mailbox",
+        "rawSha256": "6b31d416e4e549444b0c19859a3722475660eb52415d400602b05b57cb805d7f"
+      },
+      "attachments": [
+        {
+          "originalFilename": "PO-2026-104706.pdf",
+          "sha256": "434005752890d22d4326cdb36535f62bf34dc3ba62fd41a1a011bf8faefb703d",
+          "sizeBytes": 3857,
+          "pageCount": 1,
+          "pageText": [
+            "PURCHASE ORDER\nMaple Retail Group Inc. | FreshMart Markets\nPO NUMBER\nPO-2026-104706\nPO DATE\nOctober 15, 2026\nREQUESTED DELIVERY\nNovember 20, 2026\nPAYMENT TERMS\nNet 30 Days\nCURRENCY\nUSD\nBUYER\nMaple Retail Group Inc.\nStore Banner: FreshMart Markets\nBuyer Contact: Sarah Thompson\nprocurement@mapleretail.example\n+1 614-555-0182\nSUPPLIER\nNorthern Foods Manufacturing Inc.\nSupplier ID: SUP-100245\nContact: David Chen\norders@northernfoods.example\n+1 312-555-0198\nSHIP TO\nFreshMart Distribution Center\n275 Logistics Parkway\nColumbus, OH 43217\nUnited States\nShip-To ID: MAPLE-DC-01\nBILL TO\nMaple Retail Group Inc.\n500 Commerce Boulevard\nColumbus, OH 43215\nUnited States\nORDER LINES\nLINE SUPPLIER SKU PRODUCT DESCRIPTION UOM QTY UNIT PRICE EXTENDED\n1 NF-MLK-001 Whole Milk 1 L (each) EA 120 USD 1.50 USD 180.00\nMerchandise Total USD 180.00\nFreight USD 0.00\nSales Tax USD 0.00\nTOTAL PURCHASE ORDER VALUE USD 180.00\nDELIVERY REQUIREMENTS\nShip Window\nNov 10 - Nov 17, 2026\nDelivery Window\n08:00 AM - 04:00 PM ET\nCarrier Appointment\nRequired\nASN\nRequired before arrival\nBarcode Standard\nGS1-128\nPalletized Shipment\nRequired\nSHIPPING TERMS ORDER NOTES\nIncoterms: FOB Destination\nPayment: Net 30 Days\n• Do not substitute items without approval.\n• Ship complete whenever possible.\n• Include the PO number on shipping documents and invoices.\n• Report expected shortages within 24 hours of order receipt.\nFictional sample purchase order for demonstration and testing. Not a real order. PO-2026-104706 | Page 1"
+          ]
+        }
+      ]
+    },
+    "otherBuyer": {
+      "envelope": {
+        "messageId": "<po-2026-104707@mapleretail.example>",
+        "sender": "Sarah Thompson <procurement@mapleretail.example>",
+        "receivedAt": "2026-10-16T14:00:00+00:00",
+        "subjectMetadata": "Purchase Order PO-2026-104707 - FreshMart Markets [FICTIONAL SAMPLE]",
+        "intakeMode": "order_mailbox",
+        "rawSha256": "092ff51465888b07e69cba31c060d19c956097235dc4aebd4e0ef1678b02ab6f"
+      },
+      "attachments": [
+        {
+          "originalFilename": "PO-2026-104707.pdf",
+          "sha256": "bf8bfccfb15221cbfc4e9afd0648e17a6eb4120183b3a0767a35959d3a8825a6",
+          "sizeBytes": 3873,
+          "pageCount": 1,
+          "pageText": [
+            "PURCHASE ORDER\nMaple Retail Group Inc. | FreshMart Markets\nPO NUMBER\nPO-2026-104707\nPO DATE\nOctober 15, 2026\nREQUESTED DELIVERY\nNovember 20, 2026\nPAYMENT TERMS\nNet 30 Days\nCURRENCY\nUSD\nBUYER\nBirchwood Test Market Ltd.\nStore Banner: Birchwood\nBuyer Contact: Test Buyer\nbuying@birchwood-test.example\n+1 555-555-0100\nSUPPLIER\nNorthern Foods Manufacturing Inc.\nSupplier ID: SUP-100245\nContact: David Chen\norders@northernfoods.example\n+1 312-555-0198\nSHIP TO\nFreshMart Distribution Center\n275 Logistics Parkway\nColumbus, OH 43217\nUnited States\nShip-To ID: BIRCH-DC-01\nBILL TO\nMaple Retail Group Inc.\n500 Commerce Boulevard\nColumbus, OH 43215\nUnited States\nORDER LINES\nLINE SUPPLIER SKU PRODUCT DESCRIPTION UOM QTY UNIT PRICE EXTENDED\n1 614141200078 Cheddar Block 400 g (case of 12) Case 12 USD 52.80 USD 633.60\nMerchandise Total USD 633.60\nFreight USD 0.00\nSales Tax USD 0.00\nTOTAL PURCHASE ORDER VALUE USD 633.60\nDELIVERY REQUIREMENTS\nShip Window\nNov 10 - Nov 17, 2026\nDelivery Window\n08:00 AM - 04:00 PM ET\nCarrier Appointment\nRequired\nASN\nRequired before arrival\nBarcode Standard\nGS1-128\nPalletized Shipment\nRequired\nSHIPPING TERMS ORDER NOTES\nIncoterms: FOB Destination\nPayment: Net 30 Days\n• Do not substitute items without approval.\n• Ship complete whenever possible.\n• Include the PO number on shipping documents and invoices.\n• Report expected shortages within 24 hours of order receipt.\nFictional sample purchase order for demonstration and testing. Not a real order. PO-2026-104707 | Page 1"
+          ]
+        }
+      ]
+    },
+    "badShipTo": {
+      "envelope": {
+        "messageId": "<po-2026-104708@mapleretail.example>",
+        "sender": "Sarah Thompson <procurement@mapleretail.example>",
+        "receivedAt": "2026-10-16T16:00:00+00:00",
+        "subjectMetadata": "Purchase Order PO-2026-104708 - FreshMart Markets [FICTIONAL SAMPLE]",
+        "intakeMode": "order_mailbox",
+        "rawSha256": "74f849aa0b6a1323d76bed396ae5edb5eb6a708e6860a2e67ace4aaa36e9f8ce"
+      },
+      "attachments": [
+        {
+          "originalFilename": "PO-2026-104708.pdf",
+          "sha256": "062dfb1aee457cb8f5e08b759ed0575317d93662c64d916b0918a437c0937e8d",
+          "sizeBytes": 3870,
+          "pageCount": 1,
+          "pageText": [
+            "PURCHASE ORDER\nMaple Retail Group Inc. | FreshMart Markets\nPO NUMBER\nPO-2026-104708\nPO DATE\nOctober 15, 2026\nREQUESTED DELIVERY\nNovember 20, 2026\nPAYMENT TERMS\nNet 30 Days\nCURRENCY\nUSD\nBUYER\nMaple Retail Group Inc.\nStore Banner: FreshMart Markets\nBuyer Contact: Sarah Thompson\nprocurement@mapleretail.example\n+1 614-555-0182\nSUPPLIER\nNorthern Foods Manufacturing Inc.\nSupplier ID: SUP-100245\nContact: David Chen\norders@northernfoods.example\n+1 312-555-0198\nSHIP TO\nFreshMart Distribution Center\n275 Logistics Parkway\nColumbus, OH 43217\nUnited States\nShip-To ID: MAPLE-DC-09\nBILL TO\nMaple Retail Group Inc.\n500 Commerce Boulevard\nColumbus, OH 43215\nUnited States\nORDER LINES\nLINE SUPPLIER SKU PRODUCT DESCRIPTION UOM QTY UNIT PRICE EXTENDED\n1 NF-MLK-002 Semi-Skimmed Milk 1 L (case of 12) Case 40 USD 17.40 USD 696.00\nMerchandise Total USD 696.00\nFreight USD 0.00\nSales Tax USD 0.00\nTOTAL PURCHASE ORDER VALUE USD 696.00\nDELIVERY REQUIREMENTS\nShip Window\nNov 10 - Nov 17, 2026\nDelivery Window\n08:00 AM - 04:00 PM ET\nCarrier Appointment\nRequired\nASN\nRequired before arrival\nBarcode Standard\nGS1-128\nPalletized Shipment\nRequired\nSHIPPING TERMS ORDER NOTES\nIncoterms: FOB Destination\nPayment: Net 30 Days\n• Do not substitute items without approval.\n• Ship complete whenever possible.\n• Include the PO number on shipping documents and invoices.\n• Report expected shortages within 24 hours of order receipt.\nFictional sample purchase order for demonstration and testing. Not a real order. PO-2026-104708 | Page 1"
+          ]
+        }
+      ]
+    },
+    "milkRevision": {
+      "envelope": {
+        "messageId": "<po-2026-104620-r2@mapleretail.example>",
+        "sender": "Sarah Thompson <procurement@mapleretail.example>",
+        "receivedAt": "2026-10-16T15:00:00+00:00",
+        "subjectMetadata": "Purchase Order PO-2026-104620 - FreshMart Markets [FICTIONAL SAMPLE]",
+        "intakeMode": "order_mailbox",
+        "rawSha256": "996e9334aaa4b221f8a07424b74a2eb4326bdae11fa03b0f9e3bf8f7c31722ab"
+      },
+      "attachments": [
+        {
+          "originalFilename": "PO-2026-104620-r2.pdf",
+          "sha256": "76a1f70a271a790c9dcbf64a9bda1e1cdf56eeb9c95d20f04a8344e63e0c8623",
+          "sizeBytes": 3974,
+          "pageCount": 1,
+          "pageText": [
+            "PURCHASE ORDER\nMaple Retail Group Inc. | FreshMart Markets\nPO NUMBER\nPO-2026-104620\nPO DATE\nOctober 15, 2026\nREQUESTED DELIVERY\nNovember 20, 2026\nPAYMENT TERMS\nNet 30 Days\nCURRENCY\nUSD\nBUYER\nMaple Retail Group Inc.\nStore Banner: FreshMart Markets\nBuyer Contact: Sarah Thompson\nprocurement@mapleretail.example\n+1 614-555-0182\nSUPPLIER\nNorthern Foods Manufacturing Inc.\nSupplier ID: SUP-100245\nContact: David Chen\norders@northernfoods.example\n+1 312-555-0198\nSHIP TO\nFreshMart Distribution Center\n275 Logistics Parkway\nColumbus, OH 43217\nUnited States\nShip-To ID: MAPLE-DC-01\nBILL TO\nMaple Retail Group Inc.\n500 Commerce Boulevard\nColumbus, OH 43215\nUnited States\nORDER LINES\nLINE SUPPLIER SKU PRODUCT DESCRIPTION UOM QTY UNIT PRICE EXTENDED\n1 NF-MLK-001 Whole Milk 1 L (case of 12) Case 150 USD 18.00 USD 2,700.00\n2 NF-MLK-002 Semi-Skimmed Milk 1 L (case of 12) Case 100 USD 17.40 USD 1,740.00\nMerchandise Total USD 4,440.00\nFreight USD 275.00\nSales Tax USD 0.00\nTOTAL PURCHASE ORDER VALUE USD 4,715.00\nDELIVERY REQUIREMENTS\nShip Window\nNov 10 - Nov 17, 2026\nDelivery Window\n08:00 AM - 04:00 PM ET\nCarrier Appointment\nRequired\nASN\nRequired before arrival\nBarcode Standard\nGS1-128\nPalletized Shipment\nRequired\nSHIPPING TERMS ORDER NOTES\nIncoterms: FOB Destination\nPayment: Net 30 Days\n• Do not substitute items without approval.\n• Ship complete whenever possible.\n• Include the PO number on shipping documents and invoices.\n• Report expected shortages within 24 hours of order receipt.\nFictional sample purchase order for demonstration and testing. Not a real order. PO-2026-104620 | Page 1"
+          ]
+        }
+      ]
+    }
+  }
+}

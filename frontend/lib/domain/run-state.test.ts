@@ -1,26 +1,25 @@
 import { describe, expect, it } from "vitest";
-import fullDemoRun from "./__fixtures__/full-demo-run.json";
+import { forward, mapleRun, tickClock } from "./__fixtures__/maple";
 import { emptyRunState, RunState, runStateSizeBytes, SESSION_STORAGE_WARN_BYTES } from "./run-state";
 
-// full-demo-run.json is the Python prototype's SQLite state after the 15-step guided demo
-// (rehearsal mode, fictional fixtures), exported by scripts/export_run_state.py.
-const exported = structuredClone(fullDemoRun) as unknown;
+// A run the screens could produce: the milk and cheese POs delivered to the ERP, then the milk email received again
+// (an identical file, so a duplicate). Fictional Maple fixtures.
+const clock = tickClock(Date.parse("2026-10-16T09:00:00.000Z"));
+const exported = JSON.parse(JSON.stringify(forward(mapleRun(), "milk", clock).state)) as unknown;
 
 describe("RunState schema", () => {
-  it("accepts the full guided-demo export without dropping or changing anything", () => {
+  it("accepts a complete Maple run without dropping or changing anything", () => {
     const parsed = RunState.parse(exported);
     expect(parsed).toEqual(exported);
   });
 
-  it("carries every table of the demo run", () => {
+  it("carries every table of the run", () => {
     const s = RunState.parse(exported);
-    expect(s.envelopes).toHaveLength(6);
+    expect(s.envelopes).toHaveLength(3);
     expect(s.documents.map((d) => d.status)).toContain("duplicate");
     expect(s.orders.map((o) => o.deliveryState)).toContain("erp_created");
     expect(s.erpOrders.length).toBeGreaterThan(0);
-    expect(s.memoryRules[0].state).toBe("revoked");
-    expect(s.deliveries.map((d) => d.state)).toContain("unknown");
-    expect(s.policyHistory.map((p) => p.mode)).toEqual(expect.arrayContaining(["review_all", "exception_only"]));
+    expect(s.policyHistory.map((p) => p.mode)).toEqual(["review_all"]);
     expect(s.documents.every((d) => d.pageText.length === d.pageCount)).toBe(true);
   });
 

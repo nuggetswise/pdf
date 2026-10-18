@@ -172,7 +172,7 @@ const EVENT_LABEL: Record<string, string> = {
   invoice_submitted: "Invoice created", extraction_retry_requested: "Reading retried", duplicate: "Duplicate file",
   retailer_revision_accepted: "Retailer accepted the revision", retailer_revision_declined: "Retailer declined the revision",
   reference_customer_added: "Customer added", reference_customer_assigned: "Customer assigned", reference_ship_to_added: "Ship-to added",
-  reference_product_added: "Product added", supplier_reply_applied: "Supplier reply applied", backorder_cancelled: "Backorder cancelled",
+  reference_product_added: "Product added", backorder_cancelled: "Backorder cancelled",
 };
 const detailText = (d: Record<string, unknown>) => {
   const parts: string[] = [];

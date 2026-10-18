@@ -7,7 +7,7 @@ import { Dec, dec, money, qty } from "./money";
 import { mergeReference } from "./onboarding";
 import bundledReference from "./reference-data.v1.json";
 import {
-  type Approval, type AuditEvent, type Decision, type PolicyRule, type DeliveryAttempt, type MemoryRule, type Order,
+  type Approval, type AuditEvent, type Decision, type DeliveryAttempt, type MemoryRule, type Order,
   type OrderVersion, type PolicyChange, ReferenceData, type RunState, type SourceDocument, type ValidationResult,
   type Channel, HoldReason, RejectReason, emptyOverlay, emptyRunState,
 } from "./run-state";
@@ -119,7 +119,7 @@ export function channelOf(s: RunState, docId: number): Channel {
   if (d?.kind === "email_body") return "email_body";
   if (d?.kind === "edi") return "edi";
   const env = d ? s.envelopes.find((e) => e.id === d.envelopeId) : undefined;
-  return env?.intakeMode === "demo_envelope_upload" ? "upload" : "email_attachment";
+  return env?.intakeMode === "manual_upload" ? "upload" : "email_attachment";
 }
 
 /** intake.store_intake: one envelope and its PDFs. An identical file is marked duplicate and not processed. */
@@ -318,89 +318,7 @@ function processAfterExtraction(r: Run, docId: number) {
       r.audit("document", docId, "memory_rule_applied", SYSTEM, line.resolved_by as unknown as Detail);
     }
   }
-  applyPolicies(r, docId);
   settle(r, docId);
-}
-
-// ---------- D74: supplier order policies ----------
-
-export const POLICY_ACTOR = "policy:";
-/** A decision a policy recorded, not a person. Such orders can still go through automatically. */
-export const byPolicy = (d: { actor: string }) => d.actor.startsWith(POLICY_ACTOR);
-const POLICY_DECISION: Record<PolicyRule["check"], Decision["action"]> = { price_mismatch: "accept_printed_price", moq_violation: "one_off_exception" };
-
-/** The active policy that accepts this open issue, if any. Only orders received after the policy was created count. */
-export function matchingPolicy(s: RunState, order: Order, issue: Issue, receivedAt: string): PolicyRule | null {
-  const line = issue.line_index === null ? null : (order.validation.order.lines[issue.line_index] as { sku?: string | null } | undefined);
-  const day = receivedAt.slice(0, 10);
-  return (s.policyRules ?? []).find((p) => p.check === issue.code && p.endedAt === null && p.createdAt <= receivedAt
-    && p.effectiveFrom <= day && (p.effectiveTo === null || day <= p.effectiveTo)
-    && (p.customerId === null || p.customerId === order.customerId) && (p.sku === null || p.sku === (line?.sku ?? null))
-    && withinTolerance(p, issue)) ?? null;
-}
-
-function withinTolerance(p: PolicyRule, issue: Issue): boolean {
-  if (p.check !== "price_mismatch") return true;
-  const printed = dec(String(issue.printed_value ?? "")); const ref = dec(String(issue.reference_value ?? "")); const tol = dec(p.tolerancePercent ?? "0");
-  if (!printed || !ref || !tol) return false;
-  const hundred = Dec.of("100"); const minus = Dec.of("-1");
-  const scaled = printed.mul(hundred);
-  return !scaled.lt(ref.mul(hundred.add(tol.mul(minus)))) && !ref.mul(hundred.add(tol)).lt(scaled);
-}
-
-function applyPolicies(r: Run, docId: number) {
-  const order = r.order(docId);
-  if (!order || !(r.s.policyRules ?? []).length) return;
-  const receivedAt = r.doc(docId).createdAt;
-  let changed = false;
-  for (const issue of openBlocking(order.validation)) {
-    const p = matchingPolicy(r.s, order, issue, receivedAt);
-    if (!p) continue;
-    const actor = `${POLICY_ACTOR}P-${p.id}`;
-    const decisionId = r.nextId(r.s.decisions);
-    const decision: Decision = { id: decisionId, documentId: docId, issueKey: issue.key, fingerprint: issue.fingerprint,
-      action: POLICY_DECISION[p.check], params: {}, reason: `Policy P-${p.id}: ${p.reason}`, actor, role: "administrator",
-      versionCreated: null, createdAt: r.now() };
-    r.s.decisions.push(decision);
-    decision.versionCreated = newVersion(r, docId, actor, decisionId);
-    r.audit("document", docId, "policy_applied", actor, { policy_id: p.id, issue: issue.key, action: decision.action });
-    changed = true;
-  }
-  if (changed) evaluate(r, docId);
-}
-
-export interface PolicyInput {
-  check: PolicyRule["check"]; customerId: string | null; sku: string | null; tolerancePercent: string | null;
-  effectiveFrom: string; effectiveTo: string | null; reason: string;
-}
-
-export function addPolicyRule(state: RunState, input: PolicyInput, who: Who, clock: Clock = systemClock): RunState {
-  if (who.role !== "administrator") throw new Forbidden("Only an administrator can set order policies");
-  const reason = input.reason.trim();
-  if (reason.length < MIN_REASON) throw new Conflict("Enter the reason for this policy");
-  if (input.effectiveTo && input.effectiveTo < input.effectiveFrom) throw new Conflict("The end date is before the start date");
-  if (input.check === "price_mismatch") {
-    const t = dec(input.tolerancePercent ?? "");
-    if (!t || t.lt(Dec.of("0")) || Dec.of("20").lt(t)) throw new Conflict("Enter a price tolerance from 0 to 20 percent");
-  }
-  return act(state, clock, (r) => {
-    const rules = r.s.policyRules ?? (r.s.policyRules = []);
-    const id = r.nextId(rules);
-    rules.push({ id, check: input.check, customerId: input.customerId, sku: input.sku, action: "accept_automatically",
-      tolerancePercent: input.check === "price_mismatch" ? input.tolerancePercent : null, effectiveFrom: input.effectiveFrom,
-      effectiveTo: input.effectiveTo, reason, createdBy: who.actor, createdAt: r.now(), endedAt: null });
-    r.audit("policy", id, "order_policy_added", who.actor, { ...input, reason });
-  });
-}
-
-export function endPolicyRule(state: RunState, id: number, who: Who, clock: Clock = systemClock): RunState {
-  if (who.role !== "administrator") throw new Forbidden("Only an administrator can end order policies");
-  return act(state, clock, (r) => {
-    const p = (r.s.policyRules ?? []).find((x) => x.id === id);
-    if (!p || p.endedAt) throw new Conflict("No active policy with that number");
-    p.endedAt = r.now();
-    r.audit("policy", id, "order_policy_ended", who.actor, { policy_id: id });
-  });
 }
 
 /** Move an order to its next state after any change: needs review, ready, approved, then delivery. */
@@ -424,7 +342,7 @@ function settle(r: Run, docId: number) {
       && a.event.startsWith("reference_"));
     // D59: a scan was read from images, so a person checks it against the page before it goes anywhere.
     const scanned = r.s.versions.find((v) => v.documentId === docId && v.version === version)?.payload.source === "scan";
-    if (policy.mode === "exception_only" && r.decisionsFor(docId).every(byPolicy) && !onboarded && !scanned) {
+    if (policy.mode === "exception_only" && r.decisionsFor(docId).length === 0 && !onboarded && !scanned) {
       approveVersion(r, docId, version, "system", `policy:exception_only#${policy.id}`, policy);
       deliverNow = true;
     } else if (order.reviewState !== "ready") {

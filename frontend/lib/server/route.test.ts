@@ -1,7 +1,7 @@
 // The /api/extract route handler, called directly (no server, no network).
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { GET, POST } from "../../app/api/extract/route";
-import { EMAILS } from "../domain/__fixtures__/demo";
+import { EMAILS } from "../domain/__fixtures__/maple";
 
 const saved = { ...process.env };
 beforeEach(() => {
@@ -19,13 +19,13 @@ describe("/api/extract", () => {
   });
 
   it("POST in rehearsal mode returns the TEST ADAPTER's evidence-checked version", async () => {
-    const pages = EMAILS["VIDEO-DEMO-002"].attachments[0].pageText;
+    const pages = EMAILS.cheese.attachments[0].pageText;
     const res = await post(JSON.stringify({ pages, rehearsal: true }));
     expect(res.status).toBe(200);
     const out = await res.json();
     expect(out.ok).toBe(true);
     expect(out.payload.extractor.is_ai).toBe(false);
-    expect(out.payload.header.total).toMatchObject({ value: "306.00", evidence_verified: true });
+    expect(out.payload.header.total).toMatchObject({ value: "6,815.00", evidence_verified: true });
   });
 
   it("POST without a key and outside rehearsal says extraction is unavailable", async () => {

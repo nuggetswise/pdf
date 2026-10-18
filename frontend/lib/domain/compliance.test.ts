@@ -1,11 +1,10 @@
-// D47 retailer compliance: GS1 keys, the rule checks, packing with SSCCs, invoice tax and allowances, the
-// three-way match, and that a message the retailer would reject is never sent.
-// All parties and items are FICTIONAL (GS1 demonstration prefix 952; "Birchwood Demo Market" is invented).
+// D47, D75 retailer compliance (X12): GS1 keys, the rule checks, packing with SSCCs, invoice tax and allowances, the
+// three-way match, and that a document the retailer would reject is never sent.
+// All parties and items are FICTIONAL (GS1 demonstration prefix 952; "Birchwood Test Market" is invented).
 import { describe, expect, it } from "vitest";
-import { ADMIN, REVIEWER } from "./__fixtures__/demo";
+import { ADMIN, REVIEWER, mapleRun } from "./__fixtures__/maple";
 import { ASN, BUYER, custId, sessionOrder, setUp } from "./__fixtures__/retailer";
-import { replayGuidedDemo } from "./__fixtures__/replay";
-import { blocking, checkMessage, parseInterchange, RULES, SOURCES } from "./compliance";
+import { blocking, checkMessage } from "./compliance";
 import { fictionalGln, gln, isGln, isGtin, isSscc, sscc } from "./gs1";
 import { partnerFor, saveTradingPartner } from "./partners";
 import {
@@ -22,34 +21,24 @@ describe("GS1 keys", () => {
     expect(sscc("0614141", 123456789, "1")).toBe("106141411234567897"); // GS1's published SSCC example
     expect(isSscc(sscc("9520000", 42))).toBe(true);
     expect(isGln(fictionalGln("buyer", 1))).toBe(true);
-    expect(isGtin("614141000012")).toBe(true); // demo item GTIN-12 on GS1 example prefix 0614141
-  });
-
-  it("cites a source for every sourced rule and every source is used", () => {
-    for (const r of RULES) {
-      if (r.basis === "sourced") expect(r.sources.length).toBeGreaterThan(0);
-      for (const id of r.sources) expect(SOURCES[id].url).toMatch(/^https:\/\//);
-    }
-    const used = new Set(RULES.flatMap((r) => r.sources));
-    expect(Object.keys(SOURCES).filter((k) => !used.has(k as keyof typeof SOURCES) && k !== "gs1_prefixes")).toEqual([]);
+    expect(isGtin("614141100019")).toBe(true); // Maple item GTIN-12 on GS1 example prefix 0614141
   });
 });
 
-describe("fictional demo partner (US, X12)", () => {
+describe("the fictional Maple partner (US, X12)", () => {
   it("passes every rule, including valid item GTINs", () => {
-    const s = submitAsn(replayGuidedDemo(), 1, { lines: [{ lineIndex: 0, shippedQty: "4" }, { lineIndex: 1, shippedQty: "2" },
-      { lineIndex: 2, shippedQty: "1" }], estimatedDelivery: "2026-10-20" }, REVIEWER, clock);
+    const s = submitAsn(mapleRun(), 1, { lines: [{ lineIndex: 0, shippedQty: "40" }, { lineIndex: 1, shippedQty: "20" }],
+      estimatedDelivery: "2026-10-20" }, REVIEWER, clock);
     const desadv = portalForOrder(s, 1).asnMessages.find((m) => m.kind === "DESADV")!;
     expect(desadv.format).toBe("x12");
     expect(desadv.compliance).toMatchObject({ profile: "x12_retail", findings: [] });
     expect(desadv.compliance!.rulesPassed).toBe(desadv.compliance!.rulesChecked);
-    expect(partnerFor(s, "DEMO-CUST-01")).toMatchObject({ profile: "x12_retail", isDefault: true, fictional: true });
+    expect(partnerFor(s, "MAPLE-01")).toMatchObject({ profile: "x12_retail", isDefault: true, fictional: true });
   });
 
   it("blocks an ASN with no estimated delivery date and says why", () => {
-    const s = replayGuidedDemo();
-    const input = { lines: [{ lineIndex: 0, shippedQty: "4" }, { lineIndex: 1, shippedQty: "2" }, { lineIndex: 2, shippedQty: "1" }],
-      estimatedDelivery: "" };
+    const s = mapleRun();
+    const input = { lines: [{ lineIndex: 0, shippedQty: "40" }, { lineIndex: 1, shippedQty: "20" }], estimatedDelivery: "" };
     expect(() => submitAsn(s, 1, input, REVIEWER, clock)).toThrow(/would reject this X12 856 ship notice.*Estimated delivery date \(DTM\*017\) is missing/);
     expect(portalForOrder(s, 1).asn).toBeNull();
   });
@@ -66,8 +55,9 @@ describe("a real retailer (customer added from its PO)", () => {
     const r = retryOutbound(setUp(s, docId), conf.id, REVIEWER, clock);
     const after = portalForOrder(r, docId).confirmation!;
     expect(after.status).toBe("delivered");
-    expect(after.body).toContain(`NAD+BY+${BUYER}::9'`);
-    expect(blocking(checkMessage("ORDRSP", after.body, "eancom2002"))).toEqual([]);
+    expect(after.body).toContain(`N1*BY*`);
+    expect(after.body).toContain(BUYER);
+    expect(blocking(checkMessage("ORDRSP", after.body, "x12_retail"))).toEqual([]);
   });
 
   it("refuses the ASN until GLNs exist, with the reason, and records nothing", () => {
@@ -75,13 +65,13 @@ describe("a real retailer (customer added from its PO)", () => {
     expect(() => submitAsn(s, docId, ASN, REVIEWER, clock)).toThrow(/Buyer has no valid GLN/);
     const ok = submitAsn(setUp(s, docId), docId, ASN, REVIEWER, clock);
     const desadv = portalForOrder(ok, docId).asnMessages.find((m) => m.kind === "DESADV")!;
-    expect(desadv.compliance).toMatchObject({ profile: "eancom2002", findings: [] });
+    expect(desadv.compliance).toMatchObject({ profile: "x12_retail", findings: [] });
     expect(desadv.compliance!.rulesPassed).toBe(desadv.compliance!.rulesChecked);
   });
 
   it("refuses a GLN with a wrong check digit when it is entered", () => {
     const { s, docId } = sessionOrder();
-    expect(() => saveTradingPartner(s, { customerId: custId(s, docId), profile: "eancom2002", buyerGln: "9520010007770",
+    expect(() => saveTradingPartner(s, { customerId: custId(s, docId), profile: "x12_retail", buyerGln: "9520010007770",
       shipToGlns: [] }, REVIEWER, clock)).toThrow(/not a valid GLN/);
   });
 
@@ -99,27 +89,12 @@ describe("a real retailer (customer added from its PO)", () => {
     expect(all.every(isSscc)).toBe(true);
     expect(r.portal!.ssccSerial).toBe(6);
     const body = portalForOrder(r, docId).asnMessages.find((m) => m.kind === "DESADV")!.body;
-    expect(body.match(/^CPS\+/gm)).toHaveLength(7); // consignment + 2 pallets + 4 cartons
-    expect(body).toContain("CNT+2:4'");
+    // One HL loop each: the shipment, the order, 2 pallets, 4 cartons and the 4 item lines inside them; CTT counts them.
+    expect(body.match(/^HL\*/gm)).toHaveLength(12);
+    expect(body).toContain("CTT*12~");
     // The next packing starts after the last serial used.
     expect(packShipment([{ lineIndex: 0, sourceLineId: "1", shippedQty: "1" }], undefined, "9520000", 6).pallets[0].sscc)
       .toBe(sscc("9520000", 7));
-  });
-
-  it("MediaMarktSaturn profile: an invoice without VAT numbers or an EDI agreement reference is refused", () => {
-    const { s: s0, docId } = sessionOrder();
-    let s = setUp(s0, docId, "mediamarktsaturn");
-    s = submitAsn(s, docId, ASN, REVIEWER, clock);
-    const asnId = portalForOrder(s, docId).asn!.id;
-    const inv = { lines: [{ lineIndex: 0, quantity: "12" }, { lineIndex: 1, quantity: "5" }] };
-    expect(() => submitInvoice(s, asnId, inv, REVIEWER, clock)).toThrow(/Buyer VAT registration number \(RFF\+VA\) is missing/);
-    expect(() => submitInvoice(s, asnId, inv, REVIEWER, clock)).toThrow(/EDI agreement reference \(RFF\+CT\)/);
-    s = setUp(s, docId, "mediamarktsaturn", { buyerVatId: "DE999999999", contractRef: "EDI-AGR-DEMO-1" });
-    const ok = submitInvoice(s, asnId, inv, REVIEWER, clock);
-    const invoic = portalForOrder(ok, docId).invoiceMessages.find((m) => m.kind === "INVOIC")!;
-    expect(invoic.compliance!.findings).toEqual([]);
-    expect(invoic.body).toContain("RFF+CT:EDI-AGR-DEMO-1'");
-    expect(invoic.body).toContain(`NAD+BY+${BUYER}::9'\nRFF+VA:DE999999999'`);
   });
 });
 
@@ -142,21 +117,20 @@ describe("invoice tax, allowances and three-way match", () => {
     expect(inv.taxByRate).toEqual([{ rate: "7", taxable: "49.00", tax: "3.43" }, { rate: "19", taxable: "137.50", tax: "26.13" }]);
     expect([inv.subtotal, inv.taxableAmount, inv.taxAmount, inv.total]).toEqual(["174.00", "186.50", "29.56", "216.06"]);
     const body = portalForOrder(r, docId).invoiceMessages.find((m) => m.kind === "INVOIC")!.body;
-    expect(body).toContain("ALC+A+++1+DI'\nPCD+3:2'\nMOA+204:2.50'\nTAX+7+VAT+++:::19+S'");
-    expect(body).toContain("ALC+C+++1+FC'\nMOA+23:15.00'");
-    expect(body).toContain("MOA+77:216.06'\nMOA+79:174.00'\nMOA+125:186.50'\nMOA+176:29.56'");
+    // X12 810 amounts are in cents: the 2% allowance is 2.50, the freight charge 15.00, the invoice total 216.06.
+    expect(body).toContain("SAC*A*C310***250**3*2~");
+    expect(body).toContain("SAC*C*D240***1500~");
+    expect(body).toContain("TDS*21606~");
+    expect(body).toContain("TXI*ST*29.56~");
   });
 
   it("the totals rule catches a message whose numbers do not add up", () => {
     const { s, asnId } = prepared();
     const d = draftInvoice(s, asnId, { lines: [{ lineIndex: 0, quantity: "10" }, { lineIndex: 1, quantity: "5" }] }, "reviewer:rita", clock.now());
     expect(blocking(d.compliance)).toEqual([]);
-    const tampered = d.message.text.replace(/MOA\+77:[\d.]+'/, "MOA+77:999.99'");
-    expect(blocking(checkMessage("INVOIC", tampered, "eancom2002")).map((f) => f.text)).toEqual([
-      "MOA+77 is 999.99; taxable amount plus tax is 207.06."]);
-    const badLine = d.message.text.replace("MOA+203:125.00'", "MOA+203:126.00'");
-    expect(blocking(checkMessage("INVOIC", badLine, "eancom2002")).map((f) => f.ruleId)).toEqual(
-      expect.arrayContaining(["INVOICE-LINES", "INVOICE-TOTALS"]));
+    expect(d.message.text).toContain("TDS*20706~"); // 174.00 lines + 33.06 tax at 19% and 7%: see the tax test above
+    const tampered = d.message.text.replace("TDS*20706~", "TDS*99999~");
+    expect(blocking(checkMessage("INVOIC", tampered, "x12_retail")).map((f) => f.ruleId)).toContain("X12-TOTAL");
   });
 
   it("three-way match: a short shipment is explained, a quantity that is not the ASN's is refused", () => {
@@ -183,15 +157,11 @@ describe("invoice tax, allowances and three-way match", () => {
   });
 });
 
-describe("parser", () => {
-  it("reads released characters back", () => {
-    expect(parseInterchange("UNA:+.? 'RFF+ON:A?+B?:C?'D??'")).toEqual([{ tag: "RFF", els: [["ON", "A+B:C'D?"]] }]);
-  });
+describe("drafting", () => {
   it("draftAsn does not change the run", () => {
-    const s = replayGuidedDemo();
+    const s = mapleRun();
     const before = JSON.stringify(s);
-    draftAsn(s, 1, { lines: [{ lineIndex: 0, shippedQty: "4" }, { lineIndex: 1, shippedQty: "2" }, { lineIndex: 2, shippedQty: "1" }] },
-      ADMIN.actor, clock.now());
+    draftAsn(s, 1, { lines: [{ lineIndex: 0, shippedQty: "40" }, { lineIndex: 1, shippedQty: "20" }] }, ADMIN.actor, clock.now());
     expect(JSON.stringify(s)).toBe(before);
   });
 });

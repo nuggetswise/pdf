@@ -5,7 +5,7 @@
 import { asnTiming, type AsnTiming } from "../lib/domain/asn-timing";
 import { labelsFor, ssccBarcodeSvg, ssccText } from "../lib/domain/labels";
 import { useMemo, useState } from "react";
-import { type ComplianceResult, PROFILES, PROFILE_IDS, type ProfileId, SOURCES, type SourceId } from "../lib/domain/compliance";
+import { type ComplianceResult, PROFILES } from "../lib/domain/compliance";
 import { FICTIONAL_LABEL } from "../lib/domain/gs1";
 import { addWorkdays } from "../lib/domain/dates";
 import { firstShipOn, retailerRules } from "../lib/domain/fulfilment";
@@ -19,8 +19,8 @@ import { Role } from "./api";
 import { useAgent } from "./run/RunProvider";
 
 const KIND_LABEL: Record<OutboundMessage["kind"], string> = {
-  ORDRSP: "Order confirmation (EDIFACT ORDRSP)", DESADV: "Shipping notice (EDIFACT DESADV)",
-  INVOIC: "Invoice (EDIFACT INVOIC)", ERP_SHIPMENT: "Shipment record in supplier ERP", ERP_INVOICE: "Invoice record in supplier ERP", ERP_ORDER_CHANGE: "Backorder cancelled in supplier ERP",
+  ORDRSP: "Order confirmation (X12 855)", DESADV: "Ship notice (X12 856)",
+  INVOIC: "Invoice (X12 810)", ERP_SHIPMENT: "Shipment record in supplier ERP", ERP_INVOICE: "Invoice record in supplier ERP", ERP_ORDER_CHANGE: "Backorder cancelled in supplier ERP",
 };
 const CHANNEL_LABEL = { retailer_edi_outbox: "Trading Grid, to the retailer (simulated)", supplier_erp: "Supplier ERP simulator" };
 const STATUS_TONE = { delivered: "ok", pending: "warn", failed: "bad" } as const;
@@ -54,12 +54,7 @@ export function ComplianceBox({ result, sent = false }: { result: ComplianceResu
           {result.findings.map((f, i) => (
             <li key={i} className={f.severity}>
               <span className={`pill ${f.severity === "block" ? "bad" : "warn"}`}>{f.severity === "block" ? "Blocks" : "Warning"}</span> {f.text}
-              <span className="muted small"> · {f.ruleId} · {f.basis === "sourced" ? "sourced: " : "inferred from the standard"}
-                {f.sources.map((s, j) => {
-                  const src = SOURCES[s as SourceId];
-                  return src ? <span key={s}>{j ? ", " : ""}<a href={src.url} target="_blank" rel="noreferrer">{src.title}</a></span> : null;
-                })}
-              </span>
+              <span className="muted small"> · {f.ruleId} · inferred from the standard</span>
             </li>
           ))}
         </ul>
@@ -235,18 +230,14 @@ function EdiSetup({ docId, role }: { docId: number; role: Role }) {
   const needsSetup = !partner.fictional && partner.isDefault;
   const [open, setOpen] = useState(needsSetup);
   const [f, setF] = useState(() => ({
-    supplierName: sup.name ?? "", supplierGln: sup.gln, supplierVat: sup.vatId ?? "", prefix: sup.companyPrefix,
-    taxType: sup.taxType, defaultTaxRate: sup.defaultTaxRate ?? "",
+    supplierName: sup.name ?? "", supplierGln: sup.gln, prefix: sup.companyPrefix,
+    defaultTaxRate: sup.defaultTaxRate ?? "",
     discPct: sup.paymentTerms?.discountPercent ?? "", discDays: String(sup.paymentTerms?.discountDays ?? ""),
     netDays: String(sup.paymentTerms?.netDays ?? "30"),
-    profile: partner.profile, buyerGln: partner.buyerGln ?? "", buyerVat: partner.buyerVatId ?? "",
-    contractRef: partner.contractRef ?? "", vendorNumber: partner.vendorNumber ?? "", shipToGln: partner.shipToGlns.find((t) => t.shipToId === shipKey)?.gln ?? "",
+    buyerGln: partner.buyerGln ?? "", vendorNumber: partner.vendorNumber ?? "", shipToGln: partner.shipToGlns.find((t) => t.shipToId === shipKey)?.gln ?? "",
   }));
   const { error, wrap } = useWrap();
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
-  const profiles = PROFILE_IDS;
-  // US X12 retailers need no VAT numbers or EDI agreement reference; those fields stay for the EANCOM profiles.
-  const x12 = f.profile === "x12_retail";
   return (
     <div className="flow edi-setup" aria-label="EDI setup">
       <h4>
@@ -261,11 +252,11 @@ function EdiSetup({ docId, role }: { docId: number; role: Role }) {
           if (role === "viewer") return;
           void wrap(async () => {
             await agent.run({ type: "saveSupplierSetup", role, name: f.supplierName || null, gln: f.supplierGln,
-              vatId: x12 ? sup.vatId : f.supplierVat || null, companyPrefix: f.prefix, taxType: x12 ? "SALES" : f.taxType, defaultTaxRate: f.defaultTaxRate || null,
+              vatId: sup.vatId, companyPrefix: f.prefix, taxType: "SALES", defaultTaxRate: f.defaultTaxRate || null,
               paymentTerms: /^\d+$/.test(f.netDays) ? { netDays: Number(f.netDays), discountPercent: f.discPct || null,
                 discountDays: /^\d+$/.test(f.discDays) ? Number(f.discDays) : null } : null });
-            await agent.run({ type: "saveTradingPartner", role, customerId: ord.customer_id ?? "", profile: f.profile,
-              buyerGln: f.buyerGln || null, buyerVatId: x12 ? partner.buyerVatId : f.buyerVat || null, contractRef: x12 ? partner.contractRef : f.contractRef || null,
+            await agent.run({ type: "saveTradingPartner", role, customerId: ord.customer_id ?? "", profile: partner.profile,
+              buyerGln: f.buyerGln || null, buyerVatId: partner.buyerVatId, contractRef: partner.contractRef,
               vendorNumber: f.vendorNumber || null,
               shipToGlns: [...partner.shipToGlns.filter((t) => t.shipToId !== shipKey),
                 ...(f.shipToGln ? [{ shipToId: shipKey, gln: f.shipToGln }] : [])] });
@@ -275,25 +266,18 @@ function EdiSetup({ docId, role }: { docId: number; role: Role }) {
           <fieldset><legend>Your company (supplier)</legend>
             <label>Name<input value={f.supplierName} onChange={set("supplierName")} /></label>
             <label>Supplier GLN<input value={f.supplierGln} onChange={set("supplierGln")} inputMode="numeric" /></label>
-            {!x12 && <label>Supplier VAT number<input value={f.supplierVat} onChange={set("supplierVat")} /></label>}
             <label>GS1 company prefix (for SSCCs)<input value={f.prefix} onChange={set("prefix")} inputMode="numeric" /></label>
-            {!x12 && <label>Tax type<select value={f.taxType} onChange={set("taxType")}><option>VAT</option><option>GST</option><option value="SALES">Sales tax</option></select></label>}
             <label>Early payment discount %<input value={f.discPct} onChange={set("discPct")} inputMode="decimal" placeholder="e.g. 2" /></label>
             <label>if paid within (days)<input value={f.discDays} onChange={set("discDays")} inputMode="numeric" placeholder="e.g. 10" /></label>
             <label>Net days (payment due)<input value={f.netDays} onChange={set("netDays")} inputMode="numeric" /></label>
-            <label>{x12 ? "Default sales tax %" : "Default tax rate %"}<input value={f.defaultTaxRate} onChange={set("defaultTaxRate")} inputMode="decimal" /></label>
+            <label>Default sales tax %<input value={f.defaultTaxRate} onChange={set("defaultTaxRate")} inputMode="decimal" /></label>
           </fieldset>
           <fieldset><legend>Retailer {ord.customer_id}</legend>
-            <label>Retailer rules<select value={f.profile} onChange={set("profile")}>
-              {profiles.map((id) => <option key={id} value={id}>{PROFILES[id as ProfileId].name}</option>)}
-            </select></label>
             <label>Buyer GLN<input value={f.buyerGln} onChange={set("buyerGln")} inputMode="numeric" /></label>
-            {!x12 && <label>Buyer VAT number<input value={f.buyerVat} onChange={set("buyerVat")} /></label>}
             <label>Your vendor number at this retailer (optional)<input value={f.vendorNumber} onChange={set("vendorNumber")} /></label>
             <label>Delivery GLN for {ord.ship_to_id ?? "this PO (no ship-to printed)"}<input value={f.shipToGln} onChange={set("shipToGln")} inputMode="numeric" /></label>
-            {!x12 && <label>EDI agreement / contract reference<input value={f.contractRef} onChange={set("contractRef")} /></label>}
           </fieldset>
-          <p className="muted small">{PROFILES[f.profile as ProfileId].summary}</p>
+          <p className="muted small">{PROFILES[partner.profile].summary}</p>
           {error && <div className="alert bad" role="alert">{error}</div>}
           {role !== "viewer" && <div className="btns"><button className="primary" type="submit">Save EDI setup</button></div>}
         </form>
@@ -538,8 +522,8 @@ export function EdiView({ role }: { role: Role }) {
   const [open, setOpen] = useState<number | null>(null);
   const { error, wrap } = useWrap();
   const download = (m: OutboundMessage) => {
-    const ext = m.format === "edifact" ? "edi" : m.format === "x12" ? "x12" : "json";
-    const blob = new Blob([m.body], { type: m.format === "edifact" ? "application/edifact" : m.format === "x12" ? "application/edi-x12" : "application/json" });
+    const ext = m.format === "x12" ? "x12" : "json";
+    const blob = new Blob([m.body], { type: m.format === "x12" ? "application/edi-x12" : "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

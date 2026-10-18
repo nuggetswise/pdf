@@ -1,14 +1,13 @@
 // D51: GS1-128 labels, the ASN clock and carrier details on the 856.
 import { describe, expect, it } from "vitest";
-import { REVIEWER } from "./__fixtures__/demo";
-import { replayGuidedDemo } from "./__fixtures__/replay";
+import { REVIEWER, mapleRun } from "./__fixtures__/maple";
 import { asnTiming } from "./asn-timing";
 import { gs1128Values, gs1128Widths, labelsFor, ssccBarcodeSvg } from "./labels";
 import { portalForOrder, submitAsn } from "./portal";
 import { checkX12 } from "./x12";
 
 const clock = { now: () => "2026-10-15T09:30:00.000Z" };
-const ship = { lines: [{ lineIndex: 0, shippedQty: "4" }, { lineIndex: 1, shippedQty: "2" }, { lineIndex: 2, shippedQty: "1" }],
+const ship = { lines: [{ lineIndex: 0, shippedQty: "40" }, { lineIndex: 1, shippedQty: "20" }],
   estimatedDelivery: "2026-10-20", packing: { cartonsPerPallet: 2 } };
 
 describe("GS1-128 barcodes", () => {
@@ -27,30 +26,30 @@ describe("GS1-128 barcodes", () => {
 
 describe("labels for an ASN", () => {
   it("one label per pallet and carton, carrying its SSCC and contents", () => {
-    const s = submitAsn(replayGuidedDemo(), 1, ship, REVIEWER, clock);
+    const s = submitAsn(mapleRun(), 1, ship, REVIEWER, clock);
     const asn = portalForOrder(s, 1).asn!;
     const labels = labelsFor(s, asn);
-    expect(labels.map((l) => l.kind)).toEqual(["pallet", "carton", "carton", "pallet", "carton"]);
-    expect(labels[1].contents[0]).toMatchObject({ sku: "DEMO-SKU-A", gtin: "614141000012", quantity: "4" });
-    expect(new Set(labels.map((l) => l.sscc)).size).toBe(5);
+    expect(labels.map((l) => l.kind)).toEqual(["pallet", "carton", "carton"]);
+    expect(labels[1].contents[0]).toMatchObject({ sku: "NF-MLK-001", gtin: "614141100019", quantity: "40" });
+    expect(new Set(labels.map((l) => l.sscc)).size).toBe(3);
   });
 });
 
 describe("carrier details", () => {
   it("go on the 856 as TD5 and REF and pass the X12 checks", () => {
-    const s = submitAsn(replayGuidedDemo(), 1, { ...ship, carrierScac: "demo", bolNumber: "BOL-77", trackingNumber: "PRO 123" },
+    const s = submitAsn(mapleRun(), 1, { ...ship, carrierScac: "nfmi", bolNumber: "BOL-77", trackingNumber: "PRO 123" },
       REVIEWER, clock);
     const p = portalForOrder(s, 1);
-    expect(p.asn).toMatchObject({ carrierScac: "DEMO", bolNumber: "BOL-77", trackingNumber: "PRO 123" });
+    expect(p.asn).toMatchObject({ carrierScac: "NFMI", bolNumber: "BOL-77", trackingNumber: "PRO 123" });
     const body = p.asnMessages.find((m) => m.kind === "DESADV")!.body;
-    expect(body).toContain("TD5**2*DEMO~");
+    expect(body).toContain("TD5**2*NFMI~");
     expect(body).toContain("REF*BM*BOL-77~");
     expect(body).toContain("REF*CN*PRO 123~");
     expect(checkX12("DESADV", body).findings).toEqual([]);
   });
   it("refuses a bad SCAC or a reference with separators", () => {
-    expect(() => submitAsn(replayGuidedDemo(), 1, { ...ship, carrierScac: "U1" }, REVIEWER, clock)).toThrow(/2 to 4 letters/);
-    expect(() => submitAsn(replayGuidedDemo(), 1, { ...ship, bolNumber: "A*B~" }, REVIEWER, clock)).toThrow(/letters, digits/);
+    expect(() => submitAsn(mapleRun(), 1, { ...ship, carrierScac: "U1" }, REVIEWER, clock)).toThrow(/2 to 4 letters/);
+    expect(() => submitAsn(mapleRun(), 1, { ...ship, bolNumber: "A*B~" }, REVIEWER, clock)).toThrow(/letters, digits/);
   });
 });
 

@@ -8,7 +8,7 @@
 // Money in X12 is decimal where the element is R (PO1/IT1 prices, SN1 quantities) and implied two decimals
 // (N2, cents) in TDS and SAC amounts, as the standard defines them.
 import type { ComplianceResult, Finding } from "./compliance";
-import type { EdiAllowance, EdiInvoiceTotals, EdiLine, EdiMessage, EdiPallet, EdiParties, Segment } from "./edifact";
+import type { EdiAllowance, EdiInvoiceTotals, EdiLine, EdiMessage, EdiPallet, EdiParties, Segment } from "./edi-types";
 import { isGln, isGtin, isSscc } from "./gs1";
 import { Dec } from "./money";
 

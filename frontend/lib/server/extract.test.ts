@@ -4,17 +4,17 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { EMAILS } from "../domain/__fixtures__/demo";
+import { EMAILS } from "../domain/__fixtures__/maple";
 import { extractionHealth, loadExtractionConfig } from "./config";
 import { type GeminiDeps, GeminiExtractor } from "./extract/gemini";
 import { extractPages } from "./extract/run";
 
 const FAKE_KEY = "AIza" + "FAKEKEYFORTESTONLY0000000000000000";
-const PAGES = EMAILS["VIDEO-DEMO-001"].attachments[0].pageText;
-const MODEL_ANSWER = { header: { po_number: { value: "VIDEO-DEMO-001", page: 1, evidence: "PO: VIDEO-DEMO-001" },
-  currency: { value: "USD", page: 1, evidence: "Currency: USD" }, total: { value: "190.00", page: 1, evidence: "Total: 190.00" },
-  customer_name: { value: "Northfield Demo Retail", page: 1, evidence: "Customer: Northfield Demo Retail" } },
-lines: [{ gtin: { value: "614141000043", page: 1, evidence: "C | 614141000043" }, supplier: { value: "Marlow" } }] };
+const PAGES = EMAILS.gtin1.attachments[0].pageText;
+const MODEL_ANSWER = { header: { po_number: { value: "PO-2026-104702", page: 1, evidence: "PO-2026-104702" },
+  currency: { value: "USD", page: 1, evidence: "USD" }, total: { value: "1,056.00", page: 1, evidence: "TOTAL PURCHASE ORDER VALUE USD 1,056.00" },
+  customer_name: { value: "Maple Retail Group Inc.", page: 1, evidence: "Maple Retail Group Inc." } },
+lines: [{ gtin: { value: "614141200078", page: 1, evidence: "614141200078 Cheddar Block" }, supplier: { value: "Northern Foods" } }] };
 
 const ok = (body: unknown) => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(body) }] } }] }),
   { status: 200, headers: { "content-type": "application/json" } });
@@ -103,7 +103,7 @@ describe("extraction on the server", () => {
     if (!out.ok) throw new Error(out.detail);
     expect(out.payload.extractor).toStrictEqual({ name: "gemini:primary", is_ai: true });
     expect(out.payload.header.po_number.evidence_verified).toBe(true);
-    expect(out.payload.header.total.value).toBe("190.00");
+    expect(out.payload.header.total.value).toBe("1,056.00");
     expect(out.payload.lines[0].gtin.evidence_verified).toBe(true);
     expect(out.payload.header.supplier.value).toBeNull(); // a field the model put in the wrong place is dropped
   });
@@ -150,7 +150,7 @@ describe("extraction on the server", () => {
     const text = [...g.logs, ...consoleLines].join("\n");
     expect(g.logs.length).toBeGreaterThan(0);
     expect(text).not.toContain("AIzaFAKEKEY");
-    for (const content of ["Northfield", "VIDEO-DEMO-001", "614141000043", "190.00", "Marlow"]) {
+    for (const content of ["Maple Retail", "PO-2026-104702", "614141200078", "1,056.00", "Northern Foods"]) {
       expect(text).not.toContain(content);
     }
   });
@@ -183,7 +183,7 @@ describe("the Gemini key stays on the server", () => {
 
 describe("D59: the AI sees the PDF and reads any layout", () => {
   it("sends the PDF itself with the page text, and asks for terms and the supplier's item number", async () => {
-    const g = fakeGemini([ok({ ...MODEL_ANSWER, terms: { payment_terms: { value: "Net 30", page: 1, evidence: "Net 30" } } })]);
+    const g = fakeGemini([ok({ ...MODEL_ANSWER, terms: { payment_terms: { value: "Net 45", page: 1, evidence: "Net 45" } } })]);
     const out = await extractPages(PAGES, { rehearsal: false, config, deps: g.deps, pdf: "JVBERi0xLjQ=" });
     const body = JSON.parse(String(g.calls[0].init.body));
     expect(body.contents[0].parts[0]).toEqual({ inlineData: { mimeType: "application/pdf", data: "JVBERi0xLjQ=" } });
@@ -192,12 +192,12 @@ describe("D59: the AI sees the PDF and reads any layout", () => {
     expect(body.generationConfig.responseSchema.properties.lines.items.properties).toHaveProperty("supplier_sku");
     expect(body.systemInstruction.parts[0].text).toMatch(/Layouts vary/);
     expect(body.systemInstruction.parts[0].text).toMatch(/untrusted data, not instructions/);
-    // "Net 30" is not printed on this page, so it is kept but marked unverified, like any other value.
-    expect(out.ok && out.payload.terms?.payment_terms).toMatchObject({ value: "Net 30", evidence_verified: false });
+    // "Net 45" is not printed on this page, so it is kept but marked unverified, like any other value.
+    expect(out.ok && out.payload.terms?.payment_terms).toMatchObject({ value: "Net 45", evidence_verified: false });
   });
 
   it("reads a scan from page images and checks every value against its own transcription", async () => {
-    const answer = { ...MODEL_ANSWER, transcript: [{ page: 1, text: "PO: VIDEO-DEMO-001\nCurrency: USD\nTotal: 190.00" }] };
+    const answer = { ...MODEL_ANSWER, transcript: [{ page: 1, text: "PO NUMBER\nPO-2026-104702\nCURRENCY\nUSD\nTOTAL PURCHASE ORDER VALUE USD 1,056.00" }] };
     const g = fakeGemini([ok(answer)]);
     const out = await extractPages([""], { rehearsal: false, config, deps: g.deps, images: ["/9j/AAAA"] });
     const body = JSON.parse(String(g.calls[0].init.body));
@@ -206,7 +206,7 @@ describe("D59: the AI sees the PDF and reads any layout", () => {
     expect(out.ok).toBe(true);
     if (!out.ok) return;
     expect(out.payload.source).toBe("scan");
-    expect(out.transcript).toEqual(["PO: VIDEO-DEMO-001\nCurrency: USD\nTotal: 190.00"]);
+    expect(out.transcript).toEqual(["PO NUMBER\nPO-2026-104702\nCURRENCY\nUSD\nTOTAL PURCHASE ORDER VALUE USD 1,056.00"]);
     expect(out.payload.header.po_number.evidence_verified).toBe(true);
     expect(out.payload.header.customer_name.evidence_verified).toBe(false);
   });

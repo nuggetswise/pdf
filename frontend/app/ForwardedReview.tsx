@@ -17,8 +17,7 @@ import { useAgent } from "./run/RunProvider";
 
 const dateTime = (iso: string) => new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 const time = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-const person = (actor: string) => actor.startsWith("policy:") ? `order policy ${actor.slice(7)}`
-  : ({ "reviewer:rita": "Rita, order desk", "administrator:alex": "Alex, operations lead" } as Record<string, string>)[actor] ?? actor.split(":")[1] ?? actor;
+const person = (actor: string) => ({ "reviewer:rita": "Rita, order desk", "administrator:alex": "Alex, operations lead" } as Record<string, string>)[actor] ?? actor.split(":")[1] ?? actor;
 
 /** The workflow's issue codes in the order-review vocabulary. */
 export function issueType(i: Issue): IssueType {
@@ -365,7 +364,7 @@ const EVENT_TEXT: Record<string, string> = {
   needs_review: "Waiting for a decision", ready_for_approval: "Ready for approval", approved: "Approved", rejected: "Rejected",
   decision_recorded: "Decision recorded", approval_invalidated: "Approval withdrawn", on_hold: "Put on hold", hold_released: "Hold released",
   memory_rule_applied: "Saved rule applied", fulfilment_decided: "Shipping decision", asn_submitted: "Advance ship notice created",
-  invoice_submitted: "Invoice created", delivery_retry_requested: "ERP retry requested", supplier_reply_applied: "Supplier reply applied",
+  invoice_submitted: "Invoice created", delivery_retry_requested: "ERP retry requested",
 };
 
 function FwdHistory({ d }: { d: DocDetail }) {

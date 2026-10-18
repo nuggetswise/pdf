@@ -307,7 +307,7 @@ export function OrderView({ d, role, onAct, onRun, onApprove, onRetry, highlight
     <div className={`order ${highlight ?? ""}`}>
       <div className="order-head">
         <div>
-          <div className="eyebrow">{d.envelope.intake_mode === "demo_envelope_upload" && !d.envelope.sender ? `Uploaded purchase order · ${d.document.original_filename ?? "PDF"}` : `Purchase order from ${d.envelope.sender ?? "unknown sender"}`}</div>
+          <div className="eyebrow">{d.envelope.intake_mode === "manual_upload" && !d.envelope.sender ? `Uploaded purchase order · ${d.document.original_filename ?? "PDF"}` : `Purchase order from ${d.envelope.sender ?? "unknown sender"}`}</div>
           <h3>{v?.po_number ?? d.latest_version?.payload.header.po_number?.value ?? `Document #${d.document.id}`}
             {v?.customer_name && <span className="sub"> · {v.customer_name} ({v.customer_id ?? "unknown"})</span>}</h3>
         </div>

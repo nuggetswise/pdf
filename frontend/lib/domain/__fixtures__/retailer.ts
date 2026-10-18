@@ -1,6 +1,6 @@
 // Test helper (D47): a FICTIONAL retailer that is not in the reference data, onboarded from its PO as a real
 // supplier would (D46), with valid GTINs, GLNs and SSCCs on the GS1 demonstration prefix 952.
-import { INTAKE_ACTOR, REVIEWER, extract, tickClock } from "./demo";
+import { INTAKE_ACTOR, REVIEWER, extract, tickClock } from "./maple";
 import { gln, gs1CheckDigit } from "../gs1";
 import { saveSupplierSetup, saveTradingPartner } from "../partners";
 import { type RunState, emptyRunState } from "../run-state";
@@ -19,9 +19,9 @@ export function sessionOrder(): { s: RunState; docId: number } {
   const t = tickClock();
   const text = `FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER
 PURCHASE ORDER
-PO: BW-DEMO-6001
-Customer: Birchwood Demo Market
-Supplier: Marlow Demo Foods
+PO: BW-TEST-6001
+Customer: Birchwood Test Market
+Supplier: Northern Foods Manufacturing Inc.
 Currency: EUR
 Line | GTIN | Description | Quantity | Unit | Unit price | Amount
 1 | ${G1} | Demo maple cookies 300g | 12 | CASE | 12.50 | 150.00
@@ -32,7 +32,7 @@ Shipping amount: 0.00
 Total: 199.00
 `;
   const r = receive(emptyRunState(t.now()), { messageId: null, sender: null, receivedAt: null, subjectMetadata: null,
-    intakeMode: "demo_envelope_upload", rawSha256: null },
+    intakeMode: "manual_upload", rawSha256: null },
   [{ originalFilename: "po.pdf", sha256: "b".repeat(64), sizeBytes: text.length, pageCount: 1, pageText: [text] }], INTAKE_ACTOR, t);
   const docId = r.documentIds[0];
   let s = extract(r.state, docId, t);
@@ -43,10 +43,10 @@ Total: 199.00
   return { s, docId };
 }
 export const custId = (s: RunState, docId: number) => s.orders.find((o) => o.documentId === docId)!.validation.order.customer_id!;
-export const setUp = (s: RunState, docId: number, profile: "eancom2002" | "mediamarktsaturn" = "eancom2002", extra = {}) => {
-  let r = saveSupplierSetup(s, { name: "Marlow Demo Foods", gln: SUPPLIER, vatId: "DE000000000", companyPrefix: "9520000",
-    taxType: "VAT", defaultTaxRate: "19" }, REVIEWER, clock);
-  r = saveTradingPartner(r, { customerId: custId(s, docId), profile, buyerGln: BUYER, shipToGlns: [
+export const setUp = (s: RunState, docId: number, extra = {}) => {
+  let r = saveSupplierSetup(s, { name: "Northern Foods Manufacturing Inc.", gln: SUPPLIER, vatId: null, companyPrefix: "9520000",
+    taxType: "SALES", defaultTaxRate: "19" }, REVIEWER, clock);
+  r = saveTradingPartner(r, { customerId: custId(s, docId), profile: "x12_retail", buyerGln: BUYER, shipToGlns: [
     { shipToId: "(no ship-to on the PO)", gln: DC }], ...extra }, REVIEWER, clock);
   return r;
 };

@@ -20,7 +20,7 @@ const baseCustomers = (s: RunState): { fictional: boolean; customers: RefCustome
 
 /** The labelled fictional supplier used until a reviewer enters the real one. */
 export const FICTIONAL_SUPPLIER: Omit<SupplierSetup, "updatedBy" | "updatedAt"> = {
-  name: "Fictional demo supplier", gln: FICTIONAL_GLN.supplier, vatId: null, companyPrefix: DEMO_COMPANY_PREFIX,
+  name: "Northern Foods Manufacturing Inc.", gln: FICTIONAL_GLN.supplier, vatId: null, companyPrefix: DEMO_COMPANY_PREFIX,
   taxType: "SALES", defaultTaxRate: "0", paymentTerms: { discountPercent: "2", discountDays: 10, netDays: 30 },
 };
 

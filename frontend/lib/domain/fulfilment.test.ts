@@ -1,6 +1,6 @@
 // D61: stock check, ship date and the short-stock choice, on the example purchase order (fictional ERP stock).
 import { describe, expect, it } from "vitest";
-import { REVIEWER, tickClock } from "./__fixtures__/demo";
+import { REVIEWER, tickClock } from "./__fixtures__/maple";
 import { addWorkdays, isoDate, isoRange, subtractWorkdays } from "./dates";
 import { exampleRun } from "./__fixtures__/example";
 import { decideFulfilment, receiveStock, setStock, shipFromErp } from "./portal";

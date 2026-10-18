@@ -1,7 +1,7 @@
 // D46 session onboarding: a reviewer adds the customer and products a real PO uses, for this session only.
 // All data is FICTIONAL test data ("Birchwood Demo Market" is invented and not in the reference file).
 import { describe, expect, it } from "vitest";
-import { ADMIN, INTAKE_ACTOR, REVIEWER, VIEWER, extract, tickClock } from "./__fixtures__/demo";
+import { ADMIN, INTAKE_ACTOR, REVIEWER, VIEWER, extract, tickClock } from "./__fixtures__/maple";
 import { RunState, emptyRunState } from "./run-state";
 import {
   Conflict, Forbidden, addCustomer, addProduct, addShipTo, approve, assignCustomer, receive, resetDemo, setPolicy,
@@ -31,7 +31,7 @@ let n = 0;
 function upload(s: RunState, text: string, clock = tickClock()) {
   const sha = (++n).toString(16).padStart(64, "0");
   const r = receive(s, { messageId: null, sender: null, receivedAt: null, subjectMetadata: null,
-    intakeMode: "demo_envelope_upload", rawSha256: null },
+    intakeMode: "manual_upload", rawSha256: null },
   [{ originalFilename: "po.pdf", sha256: sha, sizeBytes: text.length, pageCount: 1, pageText: [text] }], INTAKE_ACTOR, clock);
   return { state: extract(r.state, r.documentIds[0], clock), docId: r.documentIds[0] };
 }

@@ -60,12 +60,12 @@ function evidenceNote(a: EmailAttachment): string {
 }
 
 /**
- * A forwarded .eml: a demo inbox email ("local_forward_demo") or one the user imports ("eml_import").
+ * A forwarded .eml: a demo inbox email ("order_mailbox") or one the user imports ("eml_import").
  * D62: an email is never refused for lacking a PDF. Every attachment is listed; PDFs and EDI order files are read;
  * anything else, or a PDF that cannot be read, is kept as evidence with a note. When no attachment can carry an
  * order, the email's own text becomes the document the agent reads, so body and attachment never both make an order.
  */
-export async function intakeEml(raw: Uint8Array, mode: "eml_import" | "local_forward_demo", opts: IntakeOptions):
+export async function intakeEml(raw: Uint8Array, mode: "eml_import" | "order_mailbox", opts: IntakeOptions):
   Promise<Intake> {
   const email = await parseEml(raw, opts.maxBytes ?? MAX_UPLOAD_BYTES);
   const docs: IncomingDocument[] = [];
@@ -110,7 +110,7 @@ export async function intakeEdi(data: Uint8Array, filename: string | null): Prom
   const text = ediText(data);
   if (!text) throw new IntakeRejected("invalid", "File is not an X12 interchange");
   return {
-    envelope: { messageId: null, sender: null, receivedAt: null, subjectMetadata: null, intakeMode: "demo_envelope_upload", rawSha256: null },
+    envelope: { messageId: null, sender: null, receivedAt: null, subjectMetadata: null, intakeMode: "manual_upload", rawSha256: null },
     attachments: [{ originalFilename: safeDisplayName(filename), sha256: await sha256Hex(data), sizeBytes: data.length, pageCount: 1,
       pageText: [text], kind: "edi" }],
     pdfBytes: [null],
@@ -123,32 +123,26 @@ export async function intakeUpload(pdf: Uint8Array, filename: string | null, fie
   const checked = await check([{ filename, data: pdf }], opts);
   return {
     envelope: { messageId: null, sender: fields.sender || null, receivedAt: null, subjectMetadata: fields.subject || null,
-      intakeMode: "demo_envelope_upload", rawSha256: null },
+      intakeMode: "manual_upload", rawSha256: null },
     attachments: checked.map((c) => c.document), pdfBytes: checked.map((c) => c.bytes),
   };
 }
 
-/** D74: the five-order demo inbox, fictional emails served from public/demo/, in story order. Any other name is refused. */
-export const DEMO_EMAILS = ["PO-2026-104587", "VIDEO-DEMO-001", "VIDEO-DEMO-002", "VIDEO-DEMO-005", "VIDEO-DEMO-006"] as const;
-export type DemoEmail = (typeof DEMO_EMAILS)[number];
+/** The two fictional Maple emails the test environment can receive, served from public/samples/. Any other name is refused. */
+export const SAMPLE_EMAILS = ["PO-2026-104620", "PO-2026-104633"] as const;
+export type SampleEmail = (typeof SAMPLE_EMAILS)[number];
 
 /** What each email is, in the words a supplier would use. */
-export const SAMPLE_LABELS: Record<DemoEmail, string> = {
-  "PO-2026-104587": "Maple Retail Group · PO-2026-104587",
-  "VIDEO-DEMO-001": "Northfield Demo Retail · VIDEO-DEMO-001",
-  "VIDEO-DEMO-002": "Northfield Demo Retail · VIDEO-DEMO-002",
-  "VIDEO-DEMO-005": "Northfield Demo Retail · VIDEO-DEMO-005",
-  "VIDEO-DEMO-006": "Northfield Demo Retail · VIDEO-DEMO-005, revision 2",
+export const SAMPLE_LABELS: Record<SampleEmail, string> = {
+  "PO-2026-104620": "Maple Retail Group · PO-2026-104620 · Milk",
+  "PO-2026-104633": "Maple Retail Group · PO-2026-104633 · Cheese",
 };
 /** Who sent the fictional email, from its own headers. */
-export const SAMPLE_SENDERS: Record<DemoEmail, string> = {
-  "PO-2026-104587": "procurement@mapleretail.example",
-  "VIDEO-DEMO-001": "orders@northfield-demo.example",
-  "VIDEO-DEMO-002": "orders@northfield-demo.example",
-  "VIDEO-DEMO-005": "orders@northfield-demo.example",
-  "VIDEO-DEMO-006": "orders@northfield-demo.example",
+export const SAMPLE_SENDERS: Record<SampleEmail, string> = {
+  "PO-2026-104620": "procurement@mapleretail.example",
+  "PO-2026-104633": "procurement@mapleretail.example",
 };
 
-export function demoEmailPath(name: string): string | null {
-  return (DEMO_EMAILS as readonly string[]).includes(name) ? `/demo/${name}.eml` : null;
+export function sampleEmailPath(name: string): string | null {
+  return (SAMPLE_EMAILS as readonly string[]).includes(name) ? `/samples/${name}.eml` : null;
 }

@@ -1,6 +1,6 @@
 "use client";
-// D54: the supplier and retailer sides. The supplier home is Order operations (D71); this file keeps the forward box,
-// the forwarded-order state line, the plain-language reply and the retailer's view of the standard EDI it receives.
+// D54: the supplier and retailer sides. The supplier home is Orders; this file keeps the order mailbox, the order
+// state line and the retailer's view of the standard EDI it receives.
 // Nothing here is a script; every card is read from the run's state.
 import { useState } from "react";
 import { FileCheck2, Mail, Network, Receipt, Truck } from "lucide-react";
@@ -9,10 +9,9 @@ import { portalForOrder } from "../lib/domain/portal";
 import { showDate } from "../lib/domain/dates";
 import { firstShipOn } from "../lib/domain/fulfilment";
 import { partsText } from "./Fulfilment";
-import { type ReplyPoLine, type SupplierReplyInterpretation, replyRows } from "../lib/domain/reply";
 import type { OutboundMessage, RunState } from "../lib/domain/run-state";
 import { IN_FLIGHT, type Role } from "./api";
-import { DEMO_EMAILS, useAgent } from "./run/RunProvider";
+import { SAMPLE_EMAILS, useAgent } from "./run/RunProvider";
 
 type Order = RunState["orders"][number];
 const STATUS_TONE = { delivered: "ok", pending: "warn", failed: "bad" } as const;
@@ -51,7 +50,7 @@ export function RetailerSuppliers({ customerId }: { customerId: string | null })
   const msgs = s ? (s.portal?.outbound ?? []).filter((m) => m.channel === "retailer_edi_outbox").filter(forRetailer(s, customerId)) : [];
   const orders = s?.orders ?? [];
   const untouched = orders.filter((o) => o.deliveryState === "erp_created" && o.validation.issues.length === 0).length;
-  const supplier = s?.portal?.supplier?.name ?? "Fictional demo supplier";
+  const supplier = s?.portal?.supplier?.name ?? "Northern Foods Manufacturing Inc.";
   return (
     <section className="panel" aria-label="Suppliers">
       <header className="panel-head"><h3>Suppliers</h3></header>
@@ -87,7 +86,7 @@ export function Forward() {
       <p className="how">Retailers email PDF purchase orders as they do today. Forward each one to
         <b> order-agent@supplier-demo.example</b>, or drop the email or PDF here.</p>
       <ol className="inbox-list" aria-label="Supplier inbox">
-        {DEMO_EMAILS.map((name) => (
+        {SAMPLE_EMAILS.map((name) => (
           <li key={name} className="forward mailrow">
             <Mail size={18} aria-hidden />
             <div><b>{SAMPLE_LABELS[name]}</b><div className="muted small">From {SAMPLE_SENDERS[name]} · fictional</div></div>
@@ -129,56 +128,6 @@ export function supplierState(s: RunState, docId: number): { text: string; tone:
   else text = "Checked.";
   const shipments = (p?.shipments ?? []).map((x) => `Shipped ${x.asn.lines.filter((l) => !l.shippedQty.startsWith("0")).length} line(s) on ${x.asn.despatchDate}: ${x.asn.asnNumber}${x.invoice ? ` and invoice ${x.invoice.invoiceNumber}` : ""} sent to the retailer.`);
   return { text, tone, shipments };
-}
-
-const poLines = (o: Order): ReplyPoLine[] => o.validation.order.lines.map((l) => ({ sourceLineId: l.source_line_id,
-  description: l.description, quantity: l.quantity, unit: l.unit, unitPrice: l.unit_price }));
-
-export function ReplyBox({ o, role }: { o: Order; role: Role }) {
-  const agent = useAgent();
-  const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [interp, setInterp] = useState<SupplierReplyInterpretation | null>(null);
-  const { error, wrap } = useWrap();
-  if (role === "viewer") return null;
-  const lines = poLines(o);
-  const read = () => wrap(async () => {
-    setBusy(true);
-    try {
-      const r = await fetch("/api/reply", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, lines, today: new Date().toISOString().slice(0, 10), rehearsal: agent.state.settings.rehearsalMode }) });
-      const j = await r.json() as { ok: boolean; interpretation?: SupplierReplyInterpretation; detail?: string };
-      if (!j.ok || !j.interpretation) throw new Error(j.detail ?? "The reply could not be read");
-      setInterp(j.interpretation);
-    } finally { setBusy(false); }
-  });
-  const rows = interp ? replyRows(interp, lines) : [];
-  const l0 = o.validation.order.lines[0];
-  const example = `Example: We can ship ${l0?.quantity ? Math.max(1, Math.floor(Number(l0.quantity) / 2)) : 50} of line ${l0?.source_line_id ?? 1} on Friday. The rest ships in two weeks.`;
-  return (
-    <div className="reply" aria-label="Reply to the retailer">
-      <label>Reply to the retailer, in your own words
-        <textarea rows={3} value={text} aria-label="Supplier's reply" placeholder="Enter your reply to the buyer." onChange={(e) => { setText(e.target.value); setInterp(null); }} />
-      </label>
-      <div className="btns"><button onClick={read} disabled={busy || !text.trim()}>{busy ? "Reading…" : "Read reply"}</button>
-        <button type="button" className="ghost" onClick={() => { setText(example.replace(/^Example: /, "")); setInterp(null); }}>Use example</button>
-        <span className="muted small">Only changes to quantity, price or date are applied.</span></div>
-      <p className="muted small" aria-label="Reply example">{example}</p>
-      {interp && (
-        <div className="reply-read" aria-label="What the agent understood">
-          <p className="muted small">{interp.interpreter.isAi ? `Read by AI (${interp.interpreter.name}).` : `${interp.interpreter.name}.`} Each change is tied to the words it came from.</p>
-          {rows.length === 0 ? <p>No changes found.</p> : (
-            <table className="lines"><tbody>
-              {rows.map((r, i) => <tr key={i}><th>{r.label}</th><td>{r.from} → <b>{r.to}</b></td><td className="mono small">“{r.evidence}”</td></tr>)}
-            </tbody></table>
-          )}
-          {interp.unclear.map((u, i) => <p key={i} className="alert warn">{u}</p>)}
-          {rows.length > 0 && <button className="primary" onClick={() => wrap(() => agent.run({ type: "applySupplierReply", role, docId: o.documentId, text, interpretation: interp }))}>Confirm changes to the retailer</button>}
-        </div>
-      )}
-      {error && <div className="alert bad" role="alert">{error}</div>}
-    </div>
-  );
 }
 
 const KIND_ICON = { ORDRSP: FileCheck2, DESADV: Truck, INVOIC: Receipt } as const;

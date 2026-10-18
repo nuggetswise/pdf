@@ -307,12 +307,11 @@ export function Workspace({ role, focus = null, section = null }: { role: Role; 
 }
 
 /** Settings live on their own tab so the inbox shows only what a supplier needs to process an order. */
-export function SettingsView({ role, health, pilot }: { role: Role; health: Health | null; pilot?: React.ReactNode }) {
+export function SettingsView({ role, health }: { role: Role; health: Health | null }) {
   const [error, setError] = useState<string | null>(null);
   return (
     <section className="settings" aria-label="Settings">
       {error && <div className="alert bad" role="alert">{error}</div>}
-      {pilot}
       {role !== "administrator" ? <p className="placeholder">Only an administrator can change settings.</p>
         : health ? <AdminSettings health={health} onError={setError} /> : <p className="placeholder">Loading…</p>}
     </section>

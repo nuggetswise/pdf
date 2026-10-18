@@ -3,7 +3,6 @@ import { useState } from "react";
 import {
   Activity, ArrowLeft, Bot, Building2, FileStack, Home, Inbox, ListChecks, type LucideIcon, Send as Outbox, Settings, Store, Users,
 } from "lucide-react";
-import { pilotRows, toCsv } from "../lib/domain/pilot";
 import { PEOPLE, Role } from "./api";
 import { ErpView, MemoryView, SettingsView, Workspace } from "./Panels";
 import { EdiView } from "./Portal";
@@ -68,18 +67,6 @@ function App() {
   const current: [Tab, string, LucideIcon, string] = tab === "work" ? ["work", "All documents", Inbox, "Every forwarded document, how it was read, and any decision waiting"]
     : NAV[view].find((n) => n[0] === tab) ?? NAV[view][0];
 
-  const pilot = agent.ready && agent.state.orders.length > 0 && (
-    <div className="btns pilot-export">
-      <button className="ghost" onClick={() => {
-        const blob = new Blob([toCsv(pilotRows(agent.state))], { type: "text/csv" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url; a.download = "order-agent-pilot.csv"; a.click();
-        URL.revokeObjectURL(url);
-      }}>Export pilot measurements (CSV)</button>
-      <span className="muted small">One row per order: route, supervision, timings, corrections, exceptions, ERP attempts, outcome and findings. Savings are not calculated.</span>
-    </div>
-  );
 
   return (
     <div className="app">
@@ -152,7 +139,7 @@ function App() {
           {tab === "rules" && <RulesView role={role} health={health} />}
           {tab === "sent" && <ErpView role={role} />}
           {tab === "sent" && <EdiView role={role} />}
-          {tab === "settings" && <SettingsView role={role} health={health} pilot={pilot} />}
+          {tab === "settings" && <SettingsView role={role} health={health} />}
           {tab === "received" && <RetailerInbox customerId={viewingAs} />}
           {tab === "suppliers" && <RetailerSuppliers customerId={viewingAs} />}
         </main>

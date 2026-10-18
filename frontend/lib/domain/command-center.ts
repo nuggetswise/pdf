@@ -35,7 +35,7 @@ const lineLabel = (s: RunState, docId: number, lineIndex: number) => {
   return l ? `Line ${l.source_line_id}${l.description ? ` · ${l.description}` : ""}` : `Line ${lineIndex + 1}`;
 };
 const firstOrdrsp = (s: RunState, docId: number): OutboundMessage | undefined =>
-  (s.portal?.outbound ?? []).filter((m) => m.kind === "ORDRSP" && m.documentId === docId && !m.idempotencyKey.includes(":reply-"))[0];
+  (s.portal?.outbound ?? []).filter((m) => m.kind === "ORDRSP" && m.documentId === docId)[0];
 const receivedAt = (s: RunState, docId: number) => {
   const d = s.documents.find((x) => x.id === docId);
   const env = d && s.envelopes.find((e) => e.id === d.envelopeId);

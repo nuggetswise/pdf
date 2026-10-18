@@ -4,17 +4,16 @@
 // receiver whether it already holds the message. Nothing leaves the browser tab: the "Retailer EDI outbox"
 // and the "supplier ERP" are records in RunState.portal.received.
 //
-// D47: every EDIFACT message is checked against the trading partner's compliance profile before it is sent.
+// D47: every X12 document is checked against the trading partner's compliance profile before it is sent.
 // An ASN or invoice that would fail a blocking rule is refused with the reasons, so nothing the retailer would
 // reject leaves the portal. The ASN carries a pallet and carton hierarchy with SSCCs; the invoice carries tax
 // per rate and allowances or charges, and is matched line by line against the order and the ASN.
 import { buildDesadvX12, buildInvoicX12, buildOrdrspX12 } from "./x12";
 import { type ComplianceResult, PROFILES, blocking, checkMessage, rateKey, refusal } from "./compliance";
 import {
-  type EdiAllowance, type EdiLine, type EdiMessage, type EdiParties, type EdiPallet, buildDesadv, buildInvoic, buildOrdrsp,
-} from "./edifact";
+  type EdiAllowance, type EdiLine, type EdiMessage, type EdiParties, type EdiPallet,
+} from "./edi-types";
 import { sscc } from "./gs1";
-import { MAX_REPLY_CHARS, SupplierReplyInterpretation } from "./reply";
 import { Dec, money } from "./money";
 import { partnerFor, supplierSetup, termsText, validRate } from "./partners";
 import {
@@ -114,8 +113,8 @@ function dispatch(s: Run, now: string, msg: OutboundMessage) {
 
 const summary = (c: ComplianceResult): ComplianceSummary =>
   ({ profile: c.profile, rulesChecked: c.rulesChecked, rulesPassed: c.rulesPassed, findings: c.findings });
-const edifact = (m: EdiMessage, c: ComplianceResult) => ({
-  format: c.profile === "x12_retail" ? "x12" as const : "edifact" as const, body: m.text,
+const ediMessage = (m: EdiMessage, c: ComplianceResult) => ({
+  format: "x12" as const, body: m.text,
   mapping: m.segments.map((x) => ({ segment: x.raw, meaning: x.meaning })), compliance: summary(c) });
 const json = (v: unknown, mapping: { segment: string; meaning: string }[]) =>
   ({ format: "json" as const, body: JSON.stringify(v, null, 2), mapping });
@@ -161,24 +160,22 @@ const isIsoDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(
 
 // ---------- step 1: order confirmation, automatic on ERP delivery ----------
 
-function ordrspFor(s: RunState, o: OrderRow, createdAt: string, reply?: SupplierReplyInterpretation, n = 0) {
+function ordrspFor(s: RunState, o: OrderRow, createdAt: string) {
   const erpOrderId = o.erpOrderId!;
   const ctx = ediContext(s, o);
   // D61: the stock plan the supplier settled: per line what ships when, what is backordered, what will not ship.
   const parts = o.fulfilment?.status === "confirmed" ? o.fulfilment.parts : [];
   const lines = o.validation.order.lines.map((l) => {
-    const c = reply?.lines.find((x) => x.sourceLineId === l.source_line_id);
-    const base = ediLine(o, l.line_index, c?.quantity ?? l.quantity ?? "0");
+    const base = ediLine(o, l.line_index, l.quantity ?? "0");
     const mine = parts.filter((p) => p.lineIndex === l.line_index);
-    const schedule = !c && mine.length ? mine.map((p) => ({ quantity: p.quantity,
+    const schedule = mine.length ? mine.map((p) => ({ quantity: p.quantity,
       code: (p.kind === "now" ? "IA" : p.kind === "backorder" ? "IB" : "IR") as "IA" | "IB" | "IR", date: p.shipOn })) : undefined;
-    return c ? { ...base, orderedQty: l.quantity ?? undefined, unitPrice: c.unitPrice ?? l.unit_price ?? undefined,
-      orderedPrice: l.unit_price ?? undefined } : { ...base, ...(schedule ? { schedule } : {}) };
+    return { ...base, ...(schedule ? { schedule } : {}) };
   });
-  const ref = `ORDRSP-${erpOrderId.replace(/^SIM-ERP-/, "")}${n ? `-C${n}` : ""}`;
-  const msg = (ctx.profile === "x12_retail" ? buildOrdrspX12 : buildOrdrsp)({ ref, createdAt, erpOrderId,
+  const ref = `ORDRSP-${erpOrderId.replace(/^SIM-ERP-/, "")}`;
+  const msg = buildOrdrspX12({ ref, createdAt, erpOrderId,
     orderDate: orderDate(o.validation.order, "order_date", o.validation.order.order_date) ?? o.validation.order.order_date,
-    shipDate: reply?.shipDate ?? firstShipOn(parts) ?? null, ...ctx.parties }, lines);
+    shipDate: firstShipOn(parts) ?? null, ...ctx.parties }, lines);
   return { msg, check: checkMessage("ORDRSP", msg.text, ctx.profile) };
 }
 
@@ -195,7 +192,7 @@ export function confirmOrder(state: RunState, now: string, docId: number) {
   if (o.fulfilment.parts.some((p) => p.kind === "cancelled")) cancelShort(s, now, o, "Stock short: shipping what is available");
   const { msg: built, check } = ordrspFor(s, o, now);
   const msg = addMessage(s, now, { kind: "ORDRSP", channel: "retailer_edi_outbox", documentId: docId, sourceType: "order",
-    sourceId: o.erpOrderId, idempotencyKey: key, ...edifact(built, check) });
+    sourceId: o.erpOrderId, idempotencyKey: key, ...ediMessage(built, check) });
   if (blocking(check).length) {
     note(msg, now, "pending", "held", `Held, not sent: ${refusal(check)} Fix the EDI setup, then retry.`);
     return;
@@ -203,65 +200,9 @@ export function confirmOrder(state: RunState, now: string, docId: number) {
   dispatch(s, now, msg);
 }
 
-// ---------- D54: the supplier's plain-language reply, confirmed by a person ----------
-
-/**
- * Apply a reply the agent read: a changed order acknowledgement goes to the retailer, the supplier's ERP order is
- * updated, and quantity the supplier will not ship is closed so the ASN and invoice follow the confirmed quantities.
- */
-export function applySupplierReply(state: RunState, docId: number, text: string, interpretation: unknown, who: Who,
-  clock: Clock = systemClock): RunState {
-  requireReviewer(who.role);
-  const parsed = SupplierReplyInterpretation.safeParse(interpretation);
-  if (!parsed.success) throw new Conflict("The reply could not be applied; read it again");
-  const interp = parsed.data;
-  const body = text.trim();
-  if (!body || body.length > MAX_REPLY_CHARS) throw new Conflict("Write a reply of up to 4,000 characters");
-  if (!interp.lines.length && !interp.shipDate) throw new Conflict("The reply changes nothing on the order");
-  return act(state, clock, (s, now) => {
-    const o = orderFor(s, docId);
-    if (o.deliveryState !== "erp_created" || !o.erpOrderId) throw new Conflict("Apply a reply once the order is in the ERP");
-    if (s.portal.asns.some((a) => a.documentId === docId)) throw new Conflict("This order has started shipping; change it with the shipment instead");
-    const open = openQuantities(s, docId);
-    const cuts: { lineIndex: number; quantity: string; sku: string | null }[] = [];
-    for (const c of interp.lines) {
-      const l = o.validation.order.lines.find((x) => x.source_line_id === c.sourceLineId);
-      if (!l) throw new Conflict(`Line ${c.sourceLineId} is not on this order`);
-      if (!c.quantity) continue;
-      const left = open.get(l.line_index) ?? Dec.ZERO;
-      const q = Dec.of(c.quantity);
-      if (left.lt(q)) throw new Conflict(`Line ${c.sourceLineId}: the reply offers ${c.quantity}, more than the ${left.toFixedPoint()} ordered. Ask the retailer for a new PO instead`);
-      if (q.lt(left)) cuts.push({ lineIndex: l.line_index, quantity: left.add(q.mul(NEG)).toFixedPoint(), sku: l.sku ?? null });
-    }
-    s.portal.replies ??= [];
-    const id = nextId(s.portal.replies);
-    s.portal.replies.push({ id, documentId: docId, text: body, interpretation: interp, appliedBy: who.actor, appliedAt: now });
-    s.portal.cancellations ??= [];
-    for (const c of cuts) {
-      s.portal.cancellations.push({ documentId: docId, lineIndex: c.lineIndex, quantity: c.quantity,
-        reason: "Supplier reply: cannot ship the full quantity", createdBy: who.actor, createdAt: now });
-    }
-    s.audit.push({ id: nextId(s.audit), entityType: "document", entityId: docId, event: "supplier_reply_applied", actor: who.actor,
-      detail: { reply_id: id, changes: interp.lines.length, ship_date: interp.shipDate, interpreter: interp.interpreter.name }, createdAt: now });
-    const { msg: built, check } = ordrspFor(s, o, now, interp, id);
-    const msg = addMessage(s, now, { kind: "ORDRSP", channel: "retailer_edi_outbox", documentId: docId, sourceType: "order",
-      sourceId: o.erpOrderId, idempotencyKey: `ORDRSP:${o.erpOrderId}:reply-${id}`, ...edifact(built, check) });
-    if (blocking(check).length) note(msg, now, "pending", "held", `Held, not sent: ${refusal(check)} Fix the EDI setup, then retry.`);
-    else dispatch(s, now, msg);
-    const erp = addMessage(s, now, { kind: "ERP_ORDER_CHANGE", channel: "supplier_erp", documentId: docId, sourceType: "order",
-      sourceId: `REPLY-${o.erpOrderId}-${id}`, idempotencyKey: `ERP-REPLY:${o.erpOrderId}:${id}`,
-      ...json({ order_change_for: o.erpOrderId, reduce_quantity: cuts.map((c) => ({ sku: c.sku, by: c.quantity })),
-        price_changes: interp.lines.filter((c) => c.unitPrice).map((c) => ({ line: c.sourceLineId, unit_price: c.unitPrice })),
-        ship_date: interp.shipDate, source: "supplier reply" },
-      [{ segment: "reduce_quantity", meaning: "Quantity the supplier will not ship; the ERP lowers the order line" },
-        { segment: "price_changes", meaning: "Price the supplier quoted; awaits the retailer's acceptance" }]) });
-    dispatch(s, now, erp);
-  });
-}
-
 /**
  * D54: the supplier marks the order shipped in their own ERP. The agent builds the ASN from what is still open
- * (so a reply that cut a quantity ships the confirmed amount) and the invoice from the ASN. Both go to the retailer
+ * (what the stock plan confirmed) and the invoice from the ASN. Both go to the retailer
  * with the usual checks; the supplier types neither.
  */
 export function shipFromErp(state: RunState, docId: number, ship: { carrierScac: string; trackingNumber: string },
@@ -312,7 +253,7 @@ export function decideFulfilment(state: RunState, docId: number, input: { choice
   return act(state, clock, (s, now) => {
     const o = orderFor(s, docId);
     if (o.deliveryState !== "erp_created" || !o.fulfilment) throw new Conflict("The stock check runs once the order is in the ERP");
-    if (s.portal.outbound.some((m) => m.kind === "ORDRSP" && m.documentId === docId)) throw new Conflict("The retailer already has the confirmation; change it with a reply instead");
+    if (s.portal.outbound.some((m) => m.kind === "ORDRSP" && m.documentId === docId)) throw new Conflict("The retailer already has the confirmation");
     const shipOn = input.shipOn?.trim() || null;
     if (shipOn && !isIsoDate(shipOn)) throw new Conflict("Ship date must be a date (YYYY-MM-DD)");
     let parts;
@@ -375,7 +316,6 @@ export function setFulfilmentSettings(state: RunState, input: unknown, who: Who,
   });
 }
 
-export const repliesFor = (s: RunState, docId: number) => (s.portal?.replies ?? []).filter((r) => r.documentId === docId);
 
 // ---------- step 2: ASN with packing ----------
 
@@ -495,7 +435,7 @@ export function draftAsn(s: RunState, docId: number, input: AsnInput, actor: str
   const ctx = ediContext(s, o);
   const ediPallets: EdiPallet[] = pallets.map((p) => ({ sscc: p.sscc,
     cartons: p.cartons.map((c) => ({ sscc: c.sscc, lines: c.contents.map((x) => ediLine(o, x.lineIndex, x.quantity)) })) }));
-  const message = (ctx.profile === "x12_retail" ? buildDesadvX12 : buildDesadv)({ ref: asn.asnNumber, createdAt: now, despatchDate, estimatedDelivery: estimatedDelivery || null,
+  const message = buildDesadvX12({ ref: asn.asnNumber, createdAt: now, despatchDate, estimatedDelivery: estimatedDelivery || null,
     carrierScac: carrierScac || null, bolNumber: bolNumber || null, trackingNumber: trackingNumber || null, ...ctx.parties }, ediPallets);
   return { asn, message, compliance: checkMessage("DESADV", message.text, ctx.profile), lastSerial };
 }
@@ -527,7 +467,7 @@ export function submitAsn(state: RunState, docId: number, input: AsnInput, who: 
         { segment: "lines[].shipped_qty", meaning: "Quantity actually shipped, as entered on the ASN" },
         { segment: "pallets[].sscc", meaning: "Pallet and carton SSCCs, to print on the logistic labels" }]) });
     const edi = addMessage(s, now, { kind: "DESADV", channel: "retailer_edi_outbox", documentId: docId, sourceType: "asn",
-      sourceId: asn.asnNumber, idempotencyKey: `DESADV:${asn.asnNumber}`, ...edifact(message, compliance) });
+      sourceId: asn.asnNumber, idempotencyKey: `DESADV:${asn.asnNumber}`, ...ediMessage(message, compliance) });
     dispatch(s, now, erp);
     dispatch(s, now, edi);
     consumeStock(s, shippedLines.map((l) => ({ sku: l.sku, quantity: l.shippedQty }))); // D61: the ERP issues the goods
@@ -672,7 +612,7 @@ export function draftInvoice(s: RunState, asnId: number, input: InvoiceInput, ac
     createdBy: actor, createdAt: now };
   const ctx = ediContext(s, o);
   const edi: EdiAllowance[] = allowances.map((a) => ({ ...a }));
-  const message = (ctx.profile === "x12_retail" ? buildInvoicX12 : buildInvoic)({ ref: invoice.invoiceNumber, createdAt: now, asnRef: asn.asnNumber, taxType: sup.taxType,
+  const message = buildInvoicX12({ ref: invoice.invoiceNumber, createdAt: now, asnRef: asn.asnNumber, taxType: sup.taxType,
     orderDate: o.validation.order.order_date, terms: invoice.terms ? { ...invoice.terms, termsText: termsText(invoice.terms), dueDate: invoice.dueDate } : undefined,
     ...ctx.parties }, lines.map((l) => ({ ...l, customerItemCode: o.validation.order.lines.find((x) => x.line_index === l.lineIndex)
     ?.customer_item_code ?? null })), edi, totals);
@@ -704,7 +644,7 @@ export function submitInvoice(state: RunState, asnId: number, input: InvoiceInpu
         { segment: "invoice_amount", meaning: "Taxable amount plus tax; exact decimals, tax rounded half-up to cents per rate" }]) });
     const edi = addMessage(s, now, { kind: "INVOIC", channel: "retailer_edi_outbox", documentId: asn.documentId,
       sourceType: "invoice", sourceId: inv.invoiceNumber, idempotencyKey: `INVOIC:${inv.invoiceNumber}`,
-      ...edifact(message, compliance) });
+      ...ediMessage(message, compliance) });
     dispatch(s, now, erp);
     dispatch(s, now, edi);
   });
@@ -723,7 +663,7 @@ export function retryOutbound(state: RunState, messageId: number, who: Who, cloc
     if (msg.kind === "ORDRSP" && msg.attempts.some((a) => a.outcome === "held")
       && !s.portal.received.some((r) => r.idempotencyKey === msg.idempotencyKey)) {
       const { msg: built, check } = ordrspFor(s, orderFor(s, msg.documentId), msg.createdAt);
-      Object.assign(msg, edifact(built, check));
+      Object.assign(msg, ediMessage(built, check));
       if (blocking(check).length) {
         note(msg, now, "pending", "held", `Still held: ${refusal(check)}`);
         return;

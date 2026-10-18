@@ -9,12 +9,11 @@ import { Channel, DecisionAction, ExtractionPayload, FindingType, HoldReason, In
 import {
   Conflict, Forbidden, type Who, addCustomer, addProduct, addShipTo, approve, assignCustomer, decide, failExtraction, holdOrder, receive,
   recordExtraction, recoverDeliveries, rejectOrder, releaseHold, resetDemo, retryDelivery, retryExtraction, setDemoSetting, setPolicy,
-  setRoutePolicy, setRuleState, addPolicyRule, endPolicyRule, startExtraction, treatAsOrder,
+  setRoutePolicy, setRuleState, startExtraction, treatAsOrder,
 } from "../domain/workflow";
 import { assignFinding, reconcileFindings, respondToRevision, setFindingOwnership } from "../domain/command-center";
 import { read850 } from "../domain/extract/x12-850";
-import { setManualRouteAssumptions } from "../domain/manual-route";
-import { applySupplierReply, cancelBackorder, decideFulfilment, receiveStock, retryOutbound, setFulfilmentSettings, setStock, shipFromErp, setEdiFailureMode, submitAsn, submitInvoice } from "../domain/portal";
+import { cancelBackorder, decideFulfilment, receiveStock, retryOutbound, setFulfilmentSettings, setStock, shipFromErp, setEdiFailureMode, submitAsn, submitInvoice } from "../domain/portal";
 import { saveSupplierSetup, saveTradingPartner } from "../domain/partners";
 import { PROFILE_IDS } from "../domain/compliance";
 
@@ -22,7 +21,7 @@ import { PROFILE_IDS } from "../domain/compliance";
 const ACTOR: Record<z.infer<typeof Role>, string> = {
   reviewer: "reviewer:rita", administrator: "administrator:alex", viewer: "viewer:viewer",
 };
-const INTAKE_ACTOR = "intake:local-demo-inbox";
+const INTAKE_ACTOR = "intake:order-mailbox";
 const RETRY_ACTOR: Who = { actor: "user:demo-operator", role: "viewer" };
 
 const Role = z.enum(["viewer", "reviewer", "administrator"]);
@@ -76,12 +75,6 @@ export const Action = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("rejectOrder"), role: Role, docId, reasonCode: RejectReason.nullable() }),
   z.strictObject({ type: z.literal("setRoutePolicy"), role: Role, customerId: z.string().min(1).max(200), channel: Channel,
     mode: z.enum(["review_all", "exception_only"]), reason: shortText.nullable().optional() }),
-  // D74: supplier order policies.
-  z.strictObject({ type: z.literal("addPolicyRule"), role: Role, check: z.enum(["price_mismatch", "moq_violation"]),
-    customerId: z.string().min(1).max(200).nullable(), sku: z.string().min(1).max(200).nullable(),
-    tolerancePercent: z.string().regex(/^\d{1,2}(\.\d{1,2})?$/).nullable(), effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    effectiveTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(), reason: shortText }),
-  z.strictObject({ type: z.literal("endPolicyRule"), role: Role, policyId: docId }),
   // D66, D67: proposed Command Center.
   z.strictObject({ type: z.literal("assignFinding"), role: Role, findingId: docId, owner: z.string().max(200).nullable() }),
   z.strictObject({ type: z.literal("setFindingOwnership"), role: Role, findingType: z.union([FindingType, z.literal("order_review")]), owner: z.string().max(200).nullable() }),
@@ -124,7 +117,6 @@ export const Action = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("setStock"), role: Role, sku: z.string().min(1).max(80), onHand: z.string().max(20),
     leadTimeDays: z.number().int() }),
   z.strictObject({ type: z.literal("setFulfilmentSettings"), role: Role, settings: z.unknown() }),
-  z.strictObject({ type: z.literal("applySupplierReply"), role: Role, docId, text: z.string().max(4000), interpretation: z.unknown() }),
   z.strictObject({ type: z.literal("shipFromErp"), role: Role, docId, carrierScac: z.string().max(4),
     trackingNumber: z.string().min(1).max(40) }),
   z.strictObject({ type: z.literal("submitInvoice"), role: Role, asnId: docId,
@@ -147,9 +139,6 @@ export const Action = z.discriminatedUnion("type", [
     shipToGlns: z.array(z.strictObject({ shipToId: z.string().max(200), gln: z.string().max(40) })).max(50) }),
   z.strictObject({ type: z.literal("retryOutbound"), role: Role, messageId: docId }),
   z.strictObject({ type: z.literal("setEdiFailureMode"), role: Role, value: z.enum(["none", "fail_next", "hold_next"]) }),
-  // D49: Act 1 assumptions (checked in full by setManualRouteAssumptions).
-  z.strictObject({ type: z.literal("setManualRouteAssumptions"), role: Role,
-    values: z.record(z.string().max(40), z.string().max(20)) }),
 ]);
 export type Action = z.infer<typeof Action>;
 
@@ -213,11 +202,6 @@ function apply(s: RunState, a: Action): { state: RunState; documentIds?: number[
       return { state: setPolicy(s, a.mode, who(a.role), undefined, a.reason ?? null) };
     case "setRoutePolicy":
       return { state: setRoutePolicy(s, a.customerId, a.channel, a.mode, a.reason ?? null, who(a.role)) };
-    case "addPolicyRule":
-      return { state: addPolicyRule(s, { check: a.check, customerId: a.customerId, sku: a.sku, tolerancePercent: a.tolerancePercent,
-        effectiveFrom: a.effectiveFrom, effectiveTo: a.effectiveTo, reason: a.reason }, who(a.role)) };
-    case "endPolicyRule":
-      return { state: endPolicyRule(s, a.policyId, who(a.role)) };
     case "treatAsOrder":
       return { state: treatAsOrder(s, a.docId, who(a.role)) };
     case "holdOrder":
@@ -242,8 +226,6 @@ function apply(s: RunState, a: Action): { state: RunState; documentIds?: number[
       return { state: submitAsn(s, a.docId, { lines: a.lines, despatchDate: a.despatchDate,
         estimatedDelivery: a.estimatedDelivery, carrierScac: a.carrierScac, bolNumber: a.bolNumber,
         trackingNumber: a.trackingNumber, packing: a.packing }, who(a.role)) };
-    case "applySupplierReply":
-      return { state: applySupplierReply(s, a.docId, a.text, a.interpretation, who(a.role)) };
     case "shipFromErp":
       return { state: shipFromErp(s, a.docId, { carrierScac: a.carrierScac, trackingNumber: a.trackingNumber }, who(a.role)) };
     case "decideFulfilment":
@@ -270,8 +252,6 @@ function apply(s: RunState, a: Action): { state: RunState; documentIds?: number[
       return { state: retryOutbound(s, a.messageId, who(a.role)) };
     case "setEdiFailureMode":
       return { state: setEdiFailureMode(s, a.value, who(a.role)) };
-    case "setManualRouteAssumptions":
-      return { state: setManualRouteAssumptions(s, a.values, who(a.role)) };
   }
 }
 

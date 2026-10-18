@@ -1,15 +1,14 @@
 "use client";
 // D61: stock and ship date for one order, in the order itself. The agent checks ERP stock when the order reaches
-// the ERP; a shortage waits here for a person, then the retailer is told what ships when. Below: the supplier's
-// reply in their own words, and "mark shipped" once the goods leave (both moved here from Today).
+// the ERP; a shortage waits here for a person, then the retailer is told what ships when. Below: "mark shipped"
+// once the goods leave.
 import { useState } from "react";
 import { CalendarClock, PackageCheck, PackageX, Truck } from "lucide-react";
 import { showDate } from "../lib/domain/dates";
 import { earliestShipOn, firstShipOn, stockOf } from "../lib/domain/fulfilment";
-import { openQuantities, portalForOrder, repliesFor, shippable } from "../lib/domain/portal";
+import { openQuantities, portalForOrder, shippable } from "../lib/domain/portal";
 import type { RunState, ShipPart } from "../lib/domain/run-state";
 import type { Role } from "./api";
-import { ReplyBox } from "./LiveView";
 import { useAgent } from "./run/RunProvider";
 
 type Order = RunState["orders"][number];
@@ -56,7 +55,6 @@ export function FulfilmentPanel({ docId, role }: { docId: number; role: Role }) 
   const p = portalForOrder(s, docId);
   const left = [...openQuantities(s, docId).values()].some((q) => !q.isZero());
   const canShip = shippable(s, docId).some((x) => !x.qty.isZero());
-  const replied = repliesFor(s, docId).length > 0;
   const deciding = f.status === "needs_decision";
   const parts = deciding ? f.options[pick]?.parts ?? [] : f.parts;
   const earliest = earliestShipOn(f, pick);
@@ -140,8 +138,6 @@ export function FulfilmentPanel({ docId, role }: { docId: number; role: Role }) 
         <p className="muted small">{CHOICE_TEXT[f.choice as Choice]?.[0]}, chosen by {f.decidedBy.split(":")[1]}.</p>
       )}
 
-      {!deciding && !p.asn && !replied && <ReplyBox o={o} role={role} />}
-      {replied && !p.asn && <p className="muted small">Your reply was confirmed to the retailer.</p>}
 
       {!deciding && left && role !== "viewer" && (
         <div className="ship" aria-label="Mark shipped">
