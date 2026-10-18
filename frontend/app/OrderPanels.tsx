@@ -148,7 +148,7 @@ const EVENT_LABEL: Record<string, string> = {
   awaiting_customer: "Customer asked to correct", decision_recorded: "Decision recorded", approval_invalidated: "Approval withdrawn",
   on_hold: "Put on hold", hold_released: "Hold released", classified_not_order: "Classified as not an order",
   classification_corrected: "Classification corrected", delivery_retry_requested: "ERP retry requested", memory_rule_applied: "Memory rule applied",
-  amendment_held: "Change held after ERP delivery", fulfilment_decided: "Shipping decision", asn_submitted: "Advance ship notice created",
+  amendment_held: "Change held after ERP delivery", fulfilment_decided: "Shipping decision", asn_submitted: "Ship notice created",
   invoice_submitted: "Invoice created", extraction_retry_requested: "Reading retried", duplicate: "Duplicate file",
   retailer_revision_accepted: "Retailer accepted the revision", retailer_revision_declined: "Retailer declined the revision",
   reference_customer_added: "Customer added", reference_customer_assigned: "Customer assigned", reference_ship_to_added: "Ship-to added",

@@ -313,3 +313,17 @@ Mandip's follow-up to D71: close the gaps, fix the phone view, and say where an 
 - Supervision moved from Settings to Rules. Settings has three sections with a purpose line each; test controls are a collapsed "Presenter tools".
 - Order screen: an 8-step lifecycle bar (email to invoice) with clickable steps and one next action. Orders: filter tiles; exceptions show decision needed, value, requested delivery, owner and waiting time.
 - Narrative and feature inventory: docs/14-leadership-demo.md.
+
+
+## D75 One retailer, one supplier, read-only ERP rules, legacy removed (2026-10-18)
+Supersedes D71 to D74 where they conflict.
+- Product data is Maple Retail Group (MAPLE-01) and Northern Foods Manufacturing Inc. Two sample POs, milk (every check passes) and cheese (one price finding, then short Mozzarella). One made-up unknown buyer, Birchwood Test Market, exists only in test fixtures.
+- Removed: the Python backend and its parity and replay files, Northfield, Lakeshore and VIDEO-DEMO data, EANCOM/EDIFACT (owner's choice), the plain-words reply box (owner's choice), order policies, the manual-route cost model and CSV, the older order screen and document workspace, the Sent tab, orphan screenshots, docs 12 and 13. Recoverable from git (last commit before removal 39c879e).
+- Expected results are hand-written (`fixtures/maple`, `fixtures/test-pack`), replacing the Python cross-check. Numbers in unit tests are derived by hand from the printed POs.
+- ERP-owned values are read-only. Rules shows the snapshot (REF-2026-10-v1), the 17 checks and approved corrections. There is no sync button, because a button that changes nothing would break the rule that a success message needs a state change. Stock edits and shipping values are not editable in the portal; "ERP receives stock" is a test control.
+- Test environment replaces presenter, demo and rehearsal wording: a header badge, the scripted reader named as such, and collapsed Test controls. Internal names changed with it (`testReader`, `resetTestData`, `order_mailbox`, `manual_upload`, `intake:order-mailbox`).
+- Order mailbox: the supplier's intake address with one sentence on auto-forwarding, as Procuros does. Sample emails are a test control.
+- Procuros alignment: Transactions tab (all documents in and out, filtered), Settings (Connections, Company, Team read-only; Notifications, Approval mode, Who handles findings), test and live marking. Not used: network invitations, price catalogs, order forms, dispatch instructions, inventory reports, API and ERP connectors.
+- Notifications: when on (default), an order that fails a check records "Review notification sent (test)" in its history. No email is sent.
+- Known behaviours recorded, not changed: printed money keeps its thousands separator in stored values; the merchandise-total check excludes freight; the stock-short deadline comes from the retailer's own order note.
+- Verification: `scripts/verify.sh` passed with 230 Vitest tests and 11 Playwright tests. Not run: live AI reading, a projector walkthrough, any real retailer.

@@ -56,4 +56,4 @@ export const FICTIONAL_GLN = {
 /** Fictional GLN for a demo customer or ship-to: 952 prefix, a kind digit and a sequence number. */
 export const fictionalGln = (kind: "buyer" | "ship_to", n: number) =>
   gln(`95200${kind === "buyer" ? "1" : "2"}${String(n).padStart(6, "0")}`);
-export const FICTIONAL_LABEL = "FICTIONAL identifiers (GS1 demo prefix 952), simulated EDI - not sent to any real partner";
+export const FICTIONAL_LABEL = "Fictional identifiers (GS1 example prefix 952). Test environment: nothing is sent to a real partner.";

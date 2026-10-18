@@ -1,56 +1,51 @@
-# PDF Order Agent (prototype)
+# Trading Grid Portal (prototype)
 
-A local prototype showing how a forwarded email with a PDF purchase order can be read, checked against business rules, reviewed only where needed, and delivered to a simulated ERP. All data is fictional. Nothing connects to a real mailbox, marketplace or ERP.
+A supplier portal for orders that arrive as PDF emails. The portal reads each purchase order, checks it against the
+supplier's ERP data, asks a person only when a check fails, writes the order to the ERP, and sends the retailer a
+confirmation, a ship notice and an invoice as X12 documents. The retailer has its own view of what it received and any
+change it must accept.
 
-Status: the prototype's 7 slices are done; the Vercel rebuild has reached slice 5 of 7 (one Next.js app, run held in the browser tab). See IMPLEMENTATION_PLAN.md, DECISIONS.md and docs/acceptance-results.md.
+This build shows one fictional retailer (Maple Retail Group) and one fictional supplier (Northern Foods Manufacturing).
+It runs as a test environment: the mailbox, the ERP and Trading Grid are simulated and nothing reaches a real
+retailer. See docs/07-demo-scenario.md for the two orders and docs/14-leadership-demo.md for the narrative.
 
 ## Start it
-`cd frontend && npm ci && npm run dev`, then open http://localhost:3000. That is the whole app: one Next.js server. The run you build up lives in your browser tab; it survives a reload of that tab, and a new tab starts empty. Nothing is saved on the server.
-
-The Python prototype in `backend/` is kept only for comparison tests until it is retired (rebuild slice 7); the app does not use it.
+`cd frontend && npm ci && npm run dev`, then open http://localhost:3000. One Next.js server runs everything. The run you
+build lives in your browser tab and survives a reload; a new tab starts empty. Nothing is stored on the server.
 
 ## Use it
-The app opens on "Inbox & review". Upload a PDF purchase order (or a forwarded .eml with the PDF attached) by clicking or dropping it on the upload box. The agent reads it, matches the customer and products, checks MOQ, agreed price and retired product codes, and holds only what needs a person. Decide each held issue with a reason; when nothing is left, the order goes to the ERP simulator by itself, with no Send button. Sample fictional orders are one click away under the upload box.
-- Switch role top right. As Administrator you can turn on Exception-only mode (clean orders go straight through), activate or revoke learned rules under "Agent memory", switch rehearsal mode (TEST ADAPTER, labelled "not AI") and make the ERP simulator fail or time out to see the safe retry.
-- "ERP records" shows what the simulator holds.
-- Supplier portal (simulated EDI): once an order is in the ERP, an order confirmation (EDIFACT ORDRSP) goes to a simulated retailer outbox by itself. On the order, "Create ASN" lets you enter what actually ships (it starts at the ordered quantity; more than ordered needs a reason); Submit sends a shipping notice (DESADV) to the retailer outbox and a shipment record to the ERP simulator. "Create invoice" then bills the shipped quantities at the order's prices; Submit sends an INVOIC and an ERP invoice record. Each message shows its own status (for example "ERP synced, EDI to retailer pending") with a safe retry. The "EDI" tab lists every message with the raw EDIFACT, what each line means, and a download. GLNs are fictional; nothing is sent to a real retailer.
-- Retailer EDI rules: messages are EANCOM 2002 (D.01B). Before anything goes to the retailer outbox it is checked against that retailer's rules, and anything that would be rejected is held with the reasons and links to the guide they come from. For a customer added from a real PO, open "EDI setup" on the order and enter your GLN, VAT number and GS1 company prefix, the retailer's GLNs, and pick its rules (EANCOM 2002 baseline or MediaMarktSaturn); then "Check again and send" releases the held confirmation. The ASN form packs goods into cartons and pallets with SSCC numbers; the invoice form shows a three-way match with the PO and ASN, tax per line and discounts or freight. The field-by-field mapping, its sources and what still needs a real retailer test is in docs/08-edi-mapping.md.
-
-## Trading Grid Portal: Orders (D71 to D74)
-The app is the Trading Grid Portal and opens on Orders. Supplier tabs: Orders, Command Center, Sent, Rules, Settings. The inbox on Orders holds five fictional retailer emails; forward each one to see it read, checked, decided, sent to the simulated ERP, confirmed to the retailer (855), shipped (856) and invoiced (810). Each order shows this as a lifecycle bar with the next action. Rules is where the supplier decides which orders need a person and which failed checks are accepted automatically (order policies). The leadership narrative and a list of what the demo uses are in docs/14-leadership-demo.md.
-
-## What v1.2 adds (17 October 2026)
-- Orders: add a PDF, a forwarded email (.eml) or an X12 850 file. An email without a PDF is read from its text. Messages that are not orders are kept in the intake list as "Not an order" with the reason; "Treat as order" corrects a wrong call. Search and filter the list by partner, issue, outcome and age.
-- On an order: route and supervision chips, "Put on hold" with a reason, "Reject order" with an optional reason, value sources (how each value was read and checked), order history and a technical trace.
-- Command Center (supplier and retailer views): findings such as a stock shortage, with owner, rule, deadline source, priority basis, suggested action, and verification that stays pending until the records show the outcome. Labelled "Proposed composition".
-- Settings: supervision per retailer and route; automatic needs a reason. Ownership per finding type.
-- Test files: `fixtures/test-pack/` (also downloadable at `/test-pack/<file>` from the running app), with expected results in `expected-results.json`.
-- Storage: the run lives in this browser tab (sessionStorage, about 5 MB) and ends when the tab closes; PDFs are kept in this browser's IndexedDB. A new tab is a new run. Nothing is stored on the server.
-
-## Real purchase orders from new customers
-The bundled reference data only knows fictional demo customers and products, so a real PO first shows "Customer not recognised" and "Item not recognised". As a reviewer, click "Add as new customer" (or pick a customer and "Assign to existing customer"), then "Add to catalogue" on each line: the printed unit price becomes that customer's agreed price and the minimum order quantity starts at 1 (you can change it). The order then clears for approval, and later POs from that customer are checked against what you added. Additions last for this browser tab only, are listed on the Agent memory tab under "Added in this session" with who added them, and Reset demo removes them (DECISIONS.md D46).
+Supplier view: Orders, Transactions, Command Center, Rules, Settings. Retailer view: Documents received, Suppliers,
+Command Center.
+- Orders: the order mailbox shows the supplier's intake address. In production a supplier sets one auto-forward rule on
+  the mailbox that receives retailer POs, or retailers send there directly. In the test environment, "Receive sample
+  email" brings in the milk and cheese POs; "Add a document by hand" takes a PDF, an .eml or an X12 850.
+- An order opens in one review: lifecycle bar (Received, Read, Checked, Decision, In your ERP, Confirmed to retailer,
+  Shipped, Invoiced), the PDF beside the structured order, decisions, stock and ship date, ship notice and invoice.
+- Rules is read-only: values synced from the ERP (a bundled snapshot in the test environment), the 17 checks, and the
+  corrections reviewers saved for reuse.
+- Settings: Connections, Company and Team are read-only; Notifications, Approval mode (Review all, or Automatic when
+  checks pass with a recorded reason) and Who handles findings can be changed by an administrator. Test controls
+  (collapsed, test environment only) make the events a real connection would produce, such as an ERP that does not
+  answer.
 
 ## Check everything
-`scripts/verify.sh` runs the Python comparison tests, the TypeScript tests, the typecheck, the production build and two independent EDIFACT validators (ts-edifact and pydifact) and the browser tests (which save screenshots to docs/screenshots/).
+`scripts/verify.sh` runs the TypeScript tests (including the Maple and intake test packs), the typecheck, the production
+build and the browser tests, which save screenshots to docs/screenshots/.
 
 ## Configuration
-Put `GEMINI_API_KEY`, `GEMINI_MODEL` and optional `GEMINI_FALLBACK_MODEL` in `frontend/.env.local` (never committed) to enable real PDF reading; the live browser test reads the same lines from the repo-root `.env`. The key stays on the server. Without them the app says extraction is unavailable; it never pretends.
+Put `GEMINI_API_KEY`, `GEMINI_MODEL` and optional `GEMINI_FALLBACK_MODEL` in `frontend/.env.local` (never committed) to
+read PDFs with AI. The key stays on the server. Without a key the app says reading is unavailable; it never pretends.
+The browser tests and `ORDER_AGENT_EXTRACTOR=test` use a labelled scripted reader instead.
 
 ## Folders
-- `docs/` requirements (Markdown is the source; the .docx has the same content)
-- `fixtures/regression/` the original sample order and expected results
-- `fixtures/example/` the one example purchase order the app offers (fictional, USD); ERP stock is in `frontend/lib/domain/erp-stock.v1.json` (fictional)
-- `fixtures/demo/` the video-aligned demo orders, expected results and generated fictional PDFs/emails
-- `fixtures/reference-data.v1.json` fictional customers, products, prices, MOQ rules and identifiers
-- `frontend/` the app (screens, server actions, /api/extract); `backend/` the Python prototype, kept for comparison tests; `scripts/` fixture generators and verify
-
-## Server
-- Every screen action (decide, approve, retry, policy, memory rules, demo settings, reset) is a server action: the browser sends its run and the action, the server checks both, applies the business rules and returns the next run. Nothing is stored on the server.
-- `POST /api/extract` page text in, evidence-checked extraction out (TEST ADAPTER in rehearsal mode, Gemini otherwise). `GET /api/extract` says whether extraction is available, without showing the key.
-- Emails and PDFs are read in the browser; only page text is sent to the server.
-
-Demo roles are picked top right and travel with each action. This is demo-only, not authentication.
+- `docs/` requirements (01 to 06 are the owner's spec), scenario, X12 mapping, specs, results
+- `fixtures/maple/` the Maple purchase orders and hand-written expected results; `fixtures/test-pack/` the intake test pack; `fixtures/onboarding/` an unknown buyer; `fixtures/edi-samples/` X12 output samples; `fixtures/reference-data.v1.json` the ERP snapshot
+- `frontend/` the app (screens, server actions, /api/extract)
+- `scripts/` fixture generators (Python, `pip install -r tools/requirements.lock`) and `verify.sh`
 
 ## What is real and what is simulated
-Real: PDF reading (Gemini when a key is set), evidence checks, business rules, decisions, versions, approvals, automatic delivery, idempotency and reconciliation, memory rules, audit trail, the run kept for the browser tab's session.
-Simulated: email arrives from local .eml files (no Outlook); the ERP and the retailer EDI outbox are simulators held in the browser tab (EDIFACT messages are generated but never sent); sign-in is demo-only; all data is fictional. Time saved is not measured.
+Real: PDF reading (Gemini when a key is set), evidence checks, business rules, decisions, versions, approvals, automatic
+delivery, idempotency and reconciliation, approved correction rules, the audit trail, the X12 messages and their rule
+checks.
+Simulated: the mailbox (sample emails and manual upload), the ERP, Trading Grid delivery and the retailer's answers,
+sign-in (the signed-in user is chosen in the header, test environment only), and all data. Time saved is not measured.

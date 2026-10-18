@@ -54,13 +54,13 @@ export function RetailerSuppliers({ customerId }: { customerId: string | null })
     <section className="panel" aria-label="Suppliers">
       <header className="panel-head"><h3>Suppliers</h3></header>
       <table className="grid-table stack-table">
-        <thead><tr><th>Supplier</th><th>How they connect</th><th>Orders</th><th>Documents received</th><th>Went through untouched</th></tr></thead>
+        <thead><tr><th>Supplier</th><th>How they connect</th><th>Orders</th><th>Documents received</th><th>Went through without a person</th></tr></thead>
         <tbody>
           <tr>
             <td data-label="Supplier"><b>{supplier}</b><div className="muted small">Fictional</div></td>
             <td data-label="How they connect"><span className="pill info"><Mail size={14} aria-hidden /> Email, read by the portal</span></td>
             <td data-label="Orders">{orders.length}</td><td data-label="Documents received">{msgs.length}</td>
-            <td data-label="Went through untouched">{orders.length ? `${untouched} of ${orders.length}` : "–"}</td>
+            <td data-label="Went through without a person">{orders.length ? `${untouched} of ${orders.length}` : "–"}</td>
           </tr>
         </tbody>
       </table>

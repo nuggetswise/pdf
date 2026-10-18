@@ -70,7 +70,7 @@ export function engineRows(s: RunState): Row[] {
     if (!summary) summary = said.text;
     return {
       detail: ATTENTION.includes(bucket) ? said.shipments : [said.text, ...said.shipments],
-      key: `doc-${d.id}`, target: { kind: "engine", docId: d.id }, po: o?.validation.order.po_number ?? d.originalFilename ?? `Document ${d.id}`,
+      key: `doc-${d.id}`, target: { kind: "engine", docId: d.id }, po: o?.validation.order.po_number ?? d.originalFilename ?? env?.subjectMetadata?.replace(/ \[FICTIONAL.*$/, "") ?? `Document ${d.id}`,
       customer: o?.validation.order.customer_name ?? "Unknown customer", sender: env?.sender ?? "a document added by hand",
       receivedAt: env?.createdAt ?? d.createdAt, channel: d.kind === "email_body" ? "Email text" : d.kind === "edi" ? "X12 850 file" : env?.sender ? "Email with PDF" : "Added by hand",
       bucket, issue, summary, state, erp: o?.erpOrderId ? `Accepted · ${o.erpOrderId}` : "Not sent",

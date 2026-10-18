@@ -33,7 +33,7 @@ export function CommandCenter({ audience, role, customerId, onOpen }: {
   const go = async (f: () => Promise<unknown>) => { try { await f(); setError(null); } catch (e) { setError((e as Error).message); } };
   return (
     <section className="command-center" aria-label="Command Center">
-      <p className="concept">Proposed composition. Findings are derived from this app&apos;s order, ERP simulator and sent-document records. No CCIM or CCPM connection.</p>
+      <p className="concept">Findings come from the orders, stock and documents in this portal. A finding stays open until its outcome is confirmed, not only until someone acts.</p>
       {error && <div className="alert bad" role="alert">{error}</div>}
       <div className="kpis" aria-label="Finding counts">
         <div className="kpi warn"><b>{counts.open}</b><span>Open findings</span></div>
@@ -111,7 +111,7 @@ function FindingCard({ f, audience, role, customerId, onOpen, onAssign, onRespon
           {canRespond && <>
             <button className="primary" onClick={() => onRespond("accepted")}>Accept revision</button>
             <button className="ghost danger" onClick={() => onRespond("declined")}>Decline revision</button>
-            <span className="muted small">Simulated retailer response. In a pilot, this evidence comes from the retailer&apos;s own system.</span>
+            <span className="muted small">Test environment: the retailer&apos;s answer is recorded here. In production it comes from the retailer&apos;s own system.</span>
           </>}
         </div>
       </div>

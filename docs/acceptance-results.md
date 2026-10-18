@@ -1,219 +1,58 @@
 # Acceptance results
 
-Updated after each slice. "Not run" means the check is not yet implemented.
+Run on 18 October 2026 after D75. Earlier results (Python backend, guided demo, EDIFACT checks) were removed with the code
+they described; they stay in git history.
 
-## Slice 2 run (2026-10-15)
-Commands:
-- `cd backend && .venv/bin/python -m pytest -q` -> 27 passed
+## Command
+`scripts/verify.sh` -> VERIFY PASSED
+- `cd frontend && npm test` -> 19 files, 230 tests passed (scripted reader; no AI key used)
 - `cd frontend && npm run typecheck && npm run build` -> passed
-- `cd frontend && npx playwright test` -> 1 passed (test adapter, screenshot docs/screenshots/slice2-inbox.png)
-- Live Gemini (manual, not part of automated tests): VIDEO-DEMO-001 and DEMO-PO-001 extracted with every field verified against the PDF text. Google returned overload errors; extraction succeeded through the fallback model after retries.
+- `cd frontend && npx playwright test` -> 11 passed (supplier story, retailer story, approval modes, notifications, onboarding, intake edge cases, filters, phone width). Screenshots are in docs/screenshots/ (01 to 18) and were opened and read against the requirements register in docs/14-leadership-demo.md.
+
+## Acceptance checks (docs/04-acceptance.md)
+Test names are in `frontend/lib/domain/workflow.test.ts` unless stated. "Maple pack" is `lib/maple-pack.test.ts` with the hand-written `fixtures/maple/expected-results.json`; "Test pack" is `lib/test-pack.test.ts`.
 
 | Check | Status | Evidence |
 |---|---|---|
-| P01 typed fields with evidence | Pass | test_p01_typed_fields_with_traceable_evidence; live Gemini run |
-| P02 scanned input blocked | Pass | test_p02_scanned_pdf_is_explicitly_blocked |
-| P15 restart preserves records | Partial pass | test_p15_restart_preserves_records; role checks Not run (Slice 4) |
-| P16 no key/content in logs or files | Pass | test_p16_logs_contain_no_document_content_or_key; test_no_secrets_in_tracked_files |
-| P17 no credentials means unavailable | Pass | test_p17_no_credentials_means_unavailable_not_simulated |
-| P18 email intake persists and auto-starts | Pass | test_p18_...; e2e slice2-inbox |
-| P28 subject is metadata only | Pass | test_p28_subject_is_metadata_only |
-| P07 identical file | Partial | duplicate flagged at intake; ERP check Not run (Slice 5) |
-| All other checks | Not run | Slices 3-7 |
+| P01 typed fields with evidence | Pass | P01 typed fields with traceable evidence; `maple-po.test.ts` |
+| P02 scanned input blocked | Pass | P02 scanned PDF; e2e `intake.spec.ts` (no-text PDF) |
+| P03 unknown customer not reassigned | Pass | P03 unknown customer; Test pack TP-04; `onboarding.test.ts` |
+| P04 unknown item blocks | Pass | P04 unknown item; Test pack TP-05 |
+| P05 price mismatch visible, printed price kept | Pass | the cheese PO has exactly one price issue; Maple pack M-02 |
+| P06 EA to CASE with supplied factor | Pass | P06 milk ordered in each; Maple pack M-06 |
+| P07 identical file, no second ERP order | Pass | P07 re-uploading an identical file; Maple pack M-07; Test pack TP-07 |
+| P08 changed content held as revision | Pass | P08 same customer and PO number; Maple pack M-07 (accepted revision updates the one ERP order) |
+| P09 edit after approval invalidates it | Pass | P09 an edit after approval |
+| P10 failed delivery, same idempotency key on retry | Pass | P10 a failed delivery retry; Test pack TP-10 |
+| P11 timeout reconciles to one ERP order | Pass | P11 a timeout after create; Test pack TP-11 |
+| P12 missing currency blocks | Pass | P12 missing currency |
+| P13 totals use decimal arithmetic | Pass | P13 and P27 totals; hand-computed totals in `workflow.test.ts` slice 1 |
+| P14 audit history | Pass | P23 and P14 approving the final exception; history shown in e2e screenshots 03 to 06 |
+| P15 reload preserves records; roles block | Pass | P15 reload; `governance.test.ts`; e2e `approval-modes.spec.ts` (viewer) |
+| P16 no key or content in logs or files | Pass | `lib/server/extract.test.ts` (log content check) |
+| P17 no credentials means unavailable | Pass | P17 no credentials; `route.test.ts` |
+| P18 mailbox intake persists and starts processing | Pass | P18 eml intake; `intake.test.ts` |
+| P19 MOQ held, quantity not raised | Pass | P19 a quantity below the minimum; Maple pack M-03 |
+| P20 price mismatch keeps printed and reference | Pass | as P05 |
+| P21 retired GTIN held; approved mapping traceable | Pass | P21 mapping a retired GTIN; Maple pack M-04 |
+| P22 Exception-only: clean order, no approval or Send | Pass | P22 exception-only; Maple pack M-08; e2e `approval-modes.spec.ts` |
+| P23 final exception starts delivery | Pass | P23 and P14; Maple pack M-02 |
+| P24 Review-all holds clean orders | Pass | P24 a clean order in review-all; Maple pack M-01 |
+| P25 saved correction is a candidate until activated | Pass | P25 memory rule lifecycle; Maple pack M-04 |
+| P26 later order uses active rule; other buyer or revoked rule does not | Pass | P26 lifecycle; Maple pack M-04 and M-05 |
+| P27 changed totals keep printed values | Pass | P09 (recomputed 6,432.00 against printed 6,540.00) |
+| P28 subject is metadata only | Pass | P28 subject is metadata only; `intake.test.ts` |
 
-## Slices 3-7 run (2026-10-15)
-Single verify command: `scripts/verify.sh` -> VERIFY PASSED
-- Backend: `cd backend && .venv/bin/python -m pytest -q` -> 47 passed (adds reference-data import and rule revalidation)
-- Frontend: `cd frontend && npm run typecheck && npm run build` -> passed
-- End to end: `cd frontend && npx playwright test` -> 3 passed (guided demo, manual review, inbox), rehearsal mode (TEST ADAPTER)
-- Browser evidence: headless Chromium screenshots of every guided-demo step in docs/screenshots/demo-01 ... demo-15, plus manual-review-delivered.png and memory-active.png. Headless Chromium cannot render the embedded PDF (D18); the "Evidence in PDF text" view is shown instead.
-- Live Gemini during the guided demo: **Not run**. This cloud container has no GEMINI_API_KEY. The live path is unchanged from Slice 2 and the demo offers it when a key is configured.
-
-| Check | Status | Evidence |
+## Claims check (docs/14, requirements register)
+| # | Claim | Result |
 |---|---|---|
-| P01 typed fields with evidence | Pass | Slice 2 tests; evidence highlighting in UI (e2e slice2-inbox) |
-| P02 scanned input blocked | Pass | test_p02_scanned_pdf_is_explicitly_blocked |
-| P03 unknown customer never reassigned | Pass | test_p03_unknown_customer_blocks_and_is_never_reassigned |
-| P04 unknown item blocks until mapped | Pass | test_regression_sample_produces_three_golden_issues |
-| P05 price mismatch, source price kept | Pass | test_regression_sample...; test_video_demo_001... |
-| P06 EA-to-CASE with supplied factor | Pass | test_regression_sample... (24 EA -> 2 CASE, both kept) |
-| P07 identical file, no second ERP order | Pass | test_p07_...; guided demo step 14 |
-| P08 same customer/PO changed content held | Pass | test_p08_same_customer_and_po_with_changed_content_is_held_as_revision |
-| P09 edit after approval invalidates | Pass | test_p09_edit_after_approval_invalidates_it |
-| P10 failed delivery retry, same key | Pass | test_p10_failed_delivery_retry_uses_same_idempotency_key |
-| P11 timeout after create reconciles | Pass | test_p11_...; test_restart_mid_delivery_recovers_without_duplicates; guided demo steps 13-14 |
-| P12 missing currency blocks | Pass | test_p12_missing_currency_stays_unknown_and_blocks |
-| P13 totals with Decimal | Pass | test_p13_and_p27_...; Slice 1 fixture total tests |
-| P14 audit covers extraction to delivery | Pass | test_p23_and_p14_... |
-| P15 restart and role checks | Pass | Slice 2 restart tests; test_p24 (viewer 403), test_p22 (reviewer cannot change mode), test_p25_p26 (reviewer cannot activate), test_reset_restores_known_state; e2e manual-review |
-| P16 no key/content in logs or files | Pass | Slice 2 tests |
-| P17 no credentials means unavailable | Pass | Slice 2 test; demo disables live start without a key |
-| P18 email intake auto-starts | Pass | test_p18_...; e2e |
-| P19 MOQ held, quantity unchanged | Pass | test_video_demo_001...; test_moq_quantity_is_never_raised_without_authorised_change |
-| P20 price: printed and reference kept | Pass | test_video_demo_001... |
-| P21 outdated GTIN held; mapping traceable | Pass | test_video_demo_001...; test_p23_and_p14_... |
-| P22 Exception-only clean order auto-delivers | Pass | test_p22_...; guided demo step 9 |
-| P23 final exception approval starts delivery | Pass | test_p23_...; e2e manual-review; guided demo step 7 |
-| P24 Review-all holds clean orders | Pass | guided demo step 12 (VIDEO-DEMO-005 waits for approval) |
-| P25 saved correction is only a candidate | Pass | test_p25_p26_... |
-| P26 active rule reused; other customer/revoked not | Pass | test_p25_p26_...; guided demo steps 9-11 |
-| P27 changed totals keep printed values | Pass | test_p09_... (computed 186.00 vs printed 190.00 needs a recorded resolution) |
-| P28 subject is metadata only | Pass | test_p28_subject_is_metadata_only |
+| 1 | One retailer, one supplier in product data and screens | Pass: reference data and screenshots; Birchwood Test Market only in test fixtures |
+| 3 | ERP rules read-only | Pass: e2e asserts no input, select or textarea on Rules |
+| 5 | Ship notice and invoice are order steps | Pass: e2e creates both from the order and sees the lifecycle bar advance |
+| 6 | Tiles clickable | Pass: e2e `intake.spec.ts` |
+| 9 | No demo-world wording | Pass by text search of `frontend/app`; the word "forward" remains only in the mailbox explanation |
+| 10 | Copy review | Done; two files of technical text left for a user pass (see docs/14) |
 
-Honest gaps: P24 has no dedicated backend unit test (covered end to end only). Live Gemini was not exercised in this run. Demo sign-in is not real authentication.
-
-## Live Gemini rehearsal (2026-10-15)
-Command: `cd frontend && npx playwright test -c playwright.live.config.ts` (key read from the git-ignored .env; not part of verify.sh)
-Result: 1 passed. All 15 guided-demo steps reached their expected real states with AI extraction. Screenshots: docs/screenshots/live/.
-Observed: Google returned frequent 429/503; every extraction succeeded through the retry and fallback path (gemini-3.8-flash), typically 20-60 s per order. The demo showed "waiting" status honestly during these delays.
-
-## Vercel rebuild, slice 1 (2026-10-15)
-- `cd frontend && npx playwright test e2e/guided-demo.spec.ts` -> 1 passed; its SQLite state was exported with `backend/.venv/bin/python scripts/export_run_state.py <sqlite> frontend/lib/domain/__fixtures__/full-demo-run.json`
-- `cd frontend && npm test` -> 8 passed: the full-demo export parses into RunState with nothing dropped or changed; JSON-number money, a malformed decimal, an unknown field and an unknown review state are each rejected; a fresh run starts in Review-all; the run is about 110 KB, well under the sessionStorage limit
-- `cd frontend && npm run typecheck && npm run build` -> passed
-
-## Vercel rebuild, slice 2 (2026-10-15)
-- `backend/.venv/bin/python scripts/validation_parity.py` -> wrote 41 decimal, 44 normalise and 148 validate cases from the Python prototype (every fixture PDF, the regression sample, 33 edge-case orders, 4 raw model-style results; all 17 issue codes appear)
-- `cd frontend && npm test` -> 249 passed; every parity case matches Python byte for byte. Mutation check: changing one issue title failed 23 cases, and switching half-even rounding to half-up failed 5
-- `cd frontend && npm run typecheck` -> passed
-
-## Vercel rebuild, slice 3 (2026-10-15)
-- `backend/.venv/bin/python scripts/demo_inbox.py` -> wrote the six fictional demo emails as intake keeps them (envelope fields, PDF hash, size, page count, native page text)
-- `cd frontend && npm test` -> 308 passed. The guided-demo replay through workflow.ts matches the Python run in all 13 RunState sections, timestamps masked; changing one revoke reason fails it. 38 of the 47 pytest cases are rewritten in Vitest (all 20 workflow cases); 7 wait for slice 4 and 2 repository checks for slice 7 (IMPLEMENTATION_PLAN.md). The new double-retry test retries one delivery twice (lost answer, then reconcile) and ends with exactly one ERP record and one idempotency key; a third retry is refused
-- `scripts/verify.sh` -> VERIFY PASSED: 47 backend tests, 308 Vitest tests, typecheck, build, 3 Playwright tests
-
-## Vercel rebuild, slice 4 (2026-10-15)
-- `backend/.venv/bin/python scripts/intake_fixtures.py` -> wrote encrypted.pdf, encrypted-no-password.pdf and no-text.pdf (pypdf reports the first two encrypted)
-- `cd frontend && npm test` -> 357 passed. For all six demo emails, browser intake gives the same envelope, file name, hash, size and page count as Python; page text is identical apart from pypdf's trailing newline, and extraction with evidence checks gives identical results. Also covered: unsafe inputs, encrypted PDFs (with and without a password), damaged PDF, filename sanitising, unknown demo names, scanned PDF, subject as metadata, a recorded 429 then 200, fallback model, timeouts, logs free of content and key, health without key, and the /api/extract route's input limits
-- All 47 pytest cases now have a Vitest counterpart except the two repository checks kept for slice 7 (fixture generator reproducible, no secrets in tracked files)
-- Not run yet: pdf.js in a real browser (the UI is wired in slice 5); no live Gemini call was made
-- `scripts/verify.sh` -> VERIFY PASSED: 47 backend tests, 357 Vitest tests, typecheck, build (route /api/extract built), 3 Playwright tests
-
-## Vercel rebuild, slice 5 (2026-10-15)
-- `backend/.venv/bin/python scripts/read_models.py` -> recorded the FastAPI read endpoints after the 15-step guided demo (timestamps masked; two runs give identical files)
-- `cd frontend && npm test` -> 381 passed. Every selector gives exactly the FastAPI answer for documents, each document and its text, orders, memory rules, ERP orders (apart from Python's duplicate payload_json string), policy and summary. The guided demo performed through the server action, one action per call, gives the same run as the workflow replay; changing the reviewer's actor label fails it. Refusals come back as values (bad run or action 400, wrong role 403, missing reason 409); a payload claiming evidence that is not in the page text is stored as unverified
-- `cd frontend && npx playwright test` -> 5 passed, with one Next.js server and no Python backend. The three existing specs are unchanged, including the 15-step guided demo, whose screenshots in docs/screenshots/ are regenerated as browser evidence; pdf.js read the demo PDFs in Chromium. New browser-run.spec.ts: run survives a reload, a new tab starts empty, an interrupted extraction is marked for retry and the retry completes it
-- Client bundle check: `grep -rl "GEMINI\|generativelanguage\|x-goog-api-key" frontend/.next/static` -> nothing
-- Not run: the live Gemini rehearsal through the new screens (needs the key)
-- `scripts/verify.sh` -> VERIFY PASSED: 47 backend tests, 381 Vitest tests, typecheck, build, 5 Playwright tests
-
-
-## Real app instead of guided demo (2026-10-15, D44)
-- `scripts/verify.sh` -> VERIFY PASSED: 47 backend tests, 381 Vitest tests, typecheck, build, 6 Playwright tests. e2e/app-flow.spec.ts uploads the fictional PDFs through the upload box and clicks the full story through the real screens; screenshots in docs/screenshots/app-*.png. A non-PDF upload is refused with "Attachment is not a PDF"
-- Not run: live Gemini upload (e2e-live/app-live.spec.ts needs the key) and the production site (not reachable from this environment)
-
-## Supplier portal: ORDRSP, ASN, invoice (2026-10-15, D45)
-- `scripts/verify.sh` -> VERIFY PASSED: 47 backend tests, 403 Vitest tests, typecheck, build, 8 Playwright tests. Parity fixtures (validation-parity, demo-inbox, read-models) regenerated and byte-identical; existing selector and replay checks unchanged and passing.
-- New Vitest (lib/domain/portal.test.ts, run-action.test.ts): UNT equals the UNH..UNT segment count for ORDRSP, DESADV and INVOIC; ? ' + : and line breaks in document text are escaped; output is deterministic; GLN check digit; ASN short shipment, over-shipment refused without a reason, bad/negative/zero/partial input refused; invoice uses ASN quantity (4, not ordered 5) and order price with exact totals; mismatched or second invoice refused; EDI held/failed and ERP timeout give honest mixed states and a retry reconciles without a duplicate; strict action schema refuses extra fields and JSON numbers.
-- New e2e/supplier-portal.spec.ts: PO approved -> ORDRSP delivered -> ASN ships 10 of 12 (over-shipment button disabled) -> invoice 312.00 from shipped quantities -> EDI tab shows ORDRSP, DESADV (QTY+12:10) and INVOIC (QTY+47:10, MOA+86:312.00), mapping and download; a held EDI message shows Pending and the safe retry delivers it. Screenshots docs/screenshots/app-04-supplier-portal.png, app-05-edi-tab.png.
-- Not run: live Gemini; no real EDI or ERP endpoint exists by design.
-
-## Session onboarding for real POs (2026-10-15, D46)
-`scripts/verify.sh`: VERIFY PASSED. Backend 47 passed; parity, demo-inbox and read-model fixtures byte-identical; Vitest 411 passed (13 files, incl. 7 new onboarding tests); typecheck and build ok; Playwright 9 passed (incl. new e2e/onboarding.spec.ts: unknown customer + 2 unknown products added, order approved and delivered, repeat PO from same customer has no issues, additions listed on Agent memory). Screenshots: docs/screenshots/app-07-onboarding-held.png, app-08-session-additions.png.
-Owner's real sample PO (not committed): its text with a Gemini-like extraction raised 5 issues (Customer not recognised for "Maple Retail Group Inc."; Item not recognised for 4 supplier item codes). After Add as new customer and 4x Add to catalogue, 0 open issues and the order was ready for approval (computed total 10708.16 matched the printed total). Checked locally in a throwaway test; live Gemini on that PDF: Not run.
-
-## Retailer EDI compliance (2026-10-15, D47)
-`scripts/verify.sh` -> VERIFY PASSED. Backend 47 passed; Vitest 445 passed (15 files, incl. compliance.test.ts and edifact-independent.test.ts); pydifact syntax check 6 of 6 samples passed; typecheck and build ok; Playwright 10 passed.
-- Independent structure check: `cd frontend && npx vitest run edifact-independent` builds the four DESADV and INVOIC samples against the UN/EDIFACT D.01B tables in ts-edifact 0.0.14; four negative controls (missing BGM, misplaced NAD, over-long element, unknown segment) fail as they should. ORDRSP: Not run in ts-edifact (no table); covered by pydifact and the app's rules.
-- Independent syntax check: `backend/.venv/bin/python scripts/edi_syntax_check.py` -> 6 of 6 samples passed (UNOC charset, UNB syntax, UNT and UNZ counts and references, D.01B). Checked by hand that it fails on a wrong UNT or UNZ count.
-- Retailer rules: the three retailer samples pass every blocking rule of the mediamarktsaturn profile. Tests cover GS1 check digits (incl. GS1's SSCC example 106141411234567897), held ORDRSP until GLNs exist, blocked ASN and invoice with reasons, pallet and carton packing, tax and allowances (216.06 case), tamper detection on edited totals, and the three-way match.
-- New e2e/retailer-compliance.spec.ts: a customer onboarded from a fictional PO starts with its confirmation Held and the ASN blocked (app-09-edi-blocked.png); an invalid GLN is refused; after EDI setup on the MediaMarktSaturn profile the confirmation is checked again and sent, the ASN packs 2 pallets and 4 cartons, and the invoice with 19 % and 7 % lines and a 2 % discount totals 191.38 EUR (app-10-invoice-tax-match.png); the EDI tab shows each message's check (app-11-edi-compliance.png).
-- Not run: any real retailer test environment, AS2/VAN transport, CONTRL/APERAK acknowledgements, real PO PDFs beyond the one owner sample from D46, and the full MMS guide PDFs (not reachable from this environment). See docs/08-edi-mapping.md.
-
-## 2026-10-16: page view, example PO, stock check and ship dates (D57-D61)
-`scripts/verify.sh` exit 0: backend 47 passed; Vitest 496 passed (22 files); pydifact 5 of 5; typecheck clean;
-production build ok; Playwright 12 passed, including the new `stock.spec.ts` (example PO page view, short stock,
-split with backorder, retailer sees per-line dates, ship lowers stock). Live AI reading of varied layouts and scans:
-Not run (no Gemini key in this container); the request shape is covered by mocked tests in `lib/server/extract.test.ts`.
-
-## 2026-10-17: v1.2 runtime verification (D62-D68)
-Established first by running the app before changes: verify.sh passed; an email without a PDF was refused (now fixed);
-duplicate detection worked; a duplicate's timeline showed "Received" in red with a Processing label (minor, unchanged).
-
-`scripts/verify.sh` -> VERIFY PASSED (exit 0): backend 47 passed; parity, demo-inbox and read-model fixtures
-byte-identical; Vitest 520 passed (24 files); pydifact 5 of 5; typecheck clean; production build ok; Playwright 14
-passed. Client bundle check for the AI key name and endpoint: nothing found.
-
-| Item | Result | How verified |
-|---|---|---|
-| Email + PDF order (TP-01) | Passed | Vitest test pack; e2e app-flow |
-| Order in email text, embedded instruction ignored (TP-02) | Passed | Vitest test pack; e2e command-center (Email text chip, Supervised, text shown, approval still required) |
-| Not an order kept and correctable (TP-03) | Passed | Vitest test pack; e2e (Not an order pill, Treat as order button) |
-| Unknown customer, unknown product (TP-04, TP-05) | Passed | Vitest test pack |
-| Ambiguous date, choice applied (TP-06); weekday date | Passed | Vitest test pack; governance.test.ts |
-| Repeat makes no second order (TP-07) | Passed | Vitest test pack; e2e app-flow |
-| Email and attachment conflict (TP-08) | Passed | Vitest test pack; mutation check (expected result changed to no issue -> test failed) |
-| Multiple attachments, CSV evidence-only (TP-09) | Passed | Vitest test pack; e2e (attachments table, search, outcome filter) |
-| ERP failure and unknown outcome, verified after retry (TP-10, TP-11) | Passed, simulated | Vitest test pack (ERP simulator) |
-| Wrong field or line (TP-12) | Passed with a simulated AI result | Vitest test pack; hand-written stand-in, not model output |
-| Stock shortage finding, condition change, pending, verified, access (TP-13 to TP-17) | Passed, outcomes simulated | Vitest test pack; e2e command-center (supplier and retailer) |
-| Structured X12 850 without AI (TP-18) | Passed | Vitest test pack |
-| Hold with reason, release, reject reason | Passed | governance.test.ts; e2e (hold and release, history entries) |
-| Supervision per retailer and route with reason | Passed | governance.test.ts; e2e (Settings row, reason shown, other route unchanged); e2e app-flow refuses Automatic without a reason |
-| Location choice from those on file | Passed (workflow) | governance.test.ts; Not run in the browser |
-| Findings idempotent and never duplicated | Passed | asserted after every test pack step |
-| Pilot export columns | Passed | pilot.test.ts (column order); values not checked against a baseline (none exists) |
-| Live AI reading of email text, classification and dates | Not run | No AI key in this environment |
-| Real ERP, Trading Grid, retailer systems | Not tested | Simulated by design |
-| Multi-user permissions | Not tested | One browser tab with demo identities |
-
-Manual observations (headless Chromium screenshots, not automated assertions): app-20 intake history, app-21 finding
-with Unassigned, Not available and Not established, app-22 verified and pending side by side, app-23 retailer view
-with no supplier stock text, app-24 supervision table. Copy reviewed against the enterprise writing standard.
-
-## 2026-10-17: Forwarded orders in the review, phone layout, ERP attribution (D72)
-
-Command: `scripts/verify.sh` from the repository root. Result: exit 0. Backend 47 passed; Vitest 537 passed; typecheck
-clean; production build ok; pydifact 5 of 5; Playwright 29 passed, including "phone width: no screen scrolls sideways"
-(home, five reviews, a forwarded order, six supplier tabs and three retailer tabs measured at 390 px) and "a forwarded
-order opens in the order review with field states and your ERP". Scenario 5 also checks that the ERP panel names your
-ERP as the one that accepts or rejects. Not run: a physical phone (Mandip's screenshot was from one; the fix was
-measured in Chromium at 390 px).
-
-## 2026-10-17: Order Operations (D71)
-
-Command: `scripts/verify.sh` from the repository root. Result: exit 0. Backend 47 passed; Vitest 537 passed (25 files,
-including 17 new in `lib/domain/ops/engine.test.ts`); typecheck clean; production build ok; pydifact 5 of 5; Playwright 27
-passed (including 11 new in `e2e/order-ops.spec.ts`).
-
-| Brief acceptance criterion | Result | Evidence |
-|---|---|---|
-| 1 Find an order needing attention | Passed | e2e home: attention list first, most severe first |
-| 2 Explain why it needs attention | Passed | e2e scenarios 2 to 6: issue type, summary, rule, why it matters |
-| 3 Compare source with structured order | Passed | e2e: "Show in source" highlights the PDF value; field table with states |
-| 4 Inspect evidence behind a recommendation | Passed | e2e scenario 2: evidence hidden until requested, then listed with sources |
-| 5 Accept or reject a recommendation | Passed | e2e scenarios 2, 2b and 6; engine tests |
-| 6 Resolve an ambiguous product | Passed | e2e scenario 3: no recommendation, selection required, validation reruns |
-| 7 Identify why an order is blocked | Passed | e2e scenario 4: reason, affected field, no proposed fix, cannot be sent |
-| 8 Understand and resolve an ERP rejection | Passed, ERP simulated | e2e scenario 5: rejection, correction, resend, accepted |
-| 9 Determine the final outcome | Passed | e2e: state label and ERP order number on the review and home |
-| 10 Read a complete history | Passed | e2e: history with System, AI agent, Person and Simulated ERP labels |
-| 11 Normal orders need no intervention | Passed | engine test and e2e scenario 1: 13 of 18 samples, no person event |
-| 12 Uncertainty stays visible | Passed | field states Uncertain, Missing, Invalid; ambiguity has no recommendation |
-| 13 Controls change state | Passed | every journey asserts the state after each action |
-| 14 Home counts reflect changes | Passed | e2e scenarios 2 and 5 return home and check the tiles |
-| 15 Simulations labelled | Passed | e2e: "Simulated downstream ERP" and "Simulated system. No live ERP connection." |
-| 16 Existing functionality works | Passed | the 16 earlier Playwright tests and all earlier Vitest tests pass |
-| 17 Critical flows automated | Passed | 17 engine tests, 11 browser tests |
-| 18 Builds and runs | Passed | production build; Playwright runs against `next start` |
-| Narrow screens | Passed at 390 px | e2e: decision above source, no horizontal scroll |
-| Usability with an unfamiliar user | Not run | Needs a session with someone who has not seen the app |
-| Live AI on the sample inbox | Not applicable | The sample reading step is simulated (docs/13-order-operations.md) |
-
-Screenshots: docs/screenshots/ops-01-home.png to ops-05-erp-rejection.png (headless Chromium, 1440 px).
-
-## 2026-10-17: D72 (portal name, one retailer view, unit change told to buyer)
-`scripts/verify.sh` exit 0: backend 47 passed; Vitest 537 passed (25 files); typecheck and build passed; pydifact 5 of 5; Playwright 29 passed. In an earlier run, browser-run.spec.ts failed once and passed on the next two runs (base and change). Not yet re-proven as a flake.
-
-## 2026-10-17: D73 claims check
-| Capability | Label | Outside judge |
-|---|---|---|
-| Sample inbox: 14 automatic, 4 need attention | Runtime-tested (Playwright, fresh state, screenshot ops-01-home) | Counts asserted in Vitest and Playwright |
-| R8 lead time, confirm date, acknowledgement text | Runtime-tested (ops-02-lead-time) | Expected dates hand-written in tests |
-| R9 revision updates the same ERP order; duplicate makes no order | Revision runtime-tested (ops-03-revision); duplicate Vitest only | Unique-order assertion |
-| R7 previous price list | Runtime-tested | Hand-written expected price |
-| ERP declines retired ship-to, corrected, resent | Runtime-tested (ops-05-erp-rejection) | SHIPTO_INACTIVE from simulator master |
-| R3, R5, R6 on built POs | Implemented, Vitest only; no longer in the sample screens | None beyond tests |
-| Rules tab lists 9 + 17 checks | Runtime-tested (ops-10-rules); Vitest checks issue rule text matches the list | Test |
-| ERP and acknowledgement | Simulated | None |
-| AI extraction | Not exercised here; e2e uses the scripted test adapter | Test pack, hand-written expected results |
+## Not run
+Live AI reading (no key in this environment); a projector or owner walkthrough; any test against a real mailbox, ERP,
+Trading Grid or retailer; an independent X12 validator (the Python EDIFACT validator was removed with EDIFACT).

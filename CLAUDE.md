@@ -13,26 +13,18 @@
 - Implement the documented acceptance checks; do not weaken them to manufacture success.
 - Keep this file concise. Add actual verified start/build/test/verify commands after setup.
 
-## Verified commands (Slices 1-5)
-- Backend setup: `python3 -m venv backend/.venv && backend/.venv/bin/pip install -r backend/requirements.lock`
-- Backend tests: `cd backend && .venv/bin/python -m pytest -q`
-- Backend start (Python prototype only; the app no longer needs it): `backend/.venv/bin/uvicorn app.main:app --app-dir backend --port 8000`
-- Frontend setup/build: `cd frontend && npm ci && npm run typecheck && npm run build`
-- Frontend unit tests (Vitest, lib/): `cd frontend && npm test`
-- App start: `cd frontend && npm run dev` (open http://localhost:3000; Gemini key in frontend/.env.local)
-- End-to-end (deterministic, test adapter): `cd frontend && npx playwright test`
-- Regenerate fictional fixtures: `backend/.venv/bin/python scripts/generate_fixtures.py`
-- Regenerate the example PO (PDF and .eml): `backend/.venv/bin/python scripts/example_po.py`
-- Regenerate the Python side of the TypeScript parity check: `backend/.venv/bin/python scripts/validation_parity.py`
-- Regenerate the demo inbox the Vitest workflow tests forward: `backend/.venv/bin/python scripts/demo_inbox.py` (then copy VIDEO-DEMO-001/002/005/006.eml from fixtures/demo/generated to frontend/public/demo)
-- Regenerate the FastAPI read-endpoint answers the selectors are compared with: `backend/.venv/bin/python scripts/read_models.py`
-- Regenerate the edge-case intake PDFs (encrypted, text-free): `backend/.venv/bin/python scripts/intake_fixtures.py`
-- Regenerate the fictional intake test pack (expected results are hand-written, not regenerated): `backend/.venv/bin/python scripts/test_pack.py`
-- Run only the test pack: `cd frontend && npx vitest run lib/test-pack.test.ts`
-- Export SQLite state as RunState JSON: `backend/.venv/bin/python scripts/export_run_state.py <sqlite> <out.json>`
-- Independent EDIFACT syntax check (pydifact): `backend/.venv/bin/python scripts/edi_syntax_check.py`
-- Regenerate the EDI samples it reads: `cd frontend && UPDATE_EDI_SAMPLES=1 npx vitest run edifact-independent`
-- Single verify command: `scripts/verify.sh` (backend tests, Vitest, typecheck, build, pydifact EDI check, Playwright e2e incl. the full app flow)
+## Verified commands (D75)
+- Setup/build: `cd frontend && npm ci && npm run typecheck && npm run build`
+- Unit tests (Vitest, includes the Maple and intake test packs): `cd frontend && npm test`
+- App start: `cd frontend && npm run dev` (open http://localhost:3000; Gemini key in frontend/.env.local; `ORDER_AGENT_EXTRACTOR=test` uses the labelled scripted reader)
+- End-to-end (test environment, scripted reader): `cd frontend && npx playwright test`
+- Single verify command: `scripts/verify.sh` (Vitest, typecheck, build, Playwright)
+- Fixture tools (Python, `pip install -r tools/requirements.lock`; nothing runs them at app run time):
+  - Maple POs and test orders: `python3 scripts/maple_pos.py [--publish]`, then `UPDATE_MAPLE_INBOX=1 npx vitest run lib/domain/__fixtures__/maple-inbox.test.ts` (in frontend)
+  - Intake test pack: `python3 scripts/test_pack.py` (keeps expected-results.json, README.md and TP-12-ai-output.json, which are hand-written)
+  - Onboarding PDFs: `python3 scripts/onboarding_fixtures.py`; edge-case PDFs: `python3 scripts/intake_fixtures.py`
+  - X12 samples: `cd frontend && UPDATE_EDI_SAMPLES=1 npx vitest run lib/domain/x12.test.ts`
+- Run only the Maple pack: `cd frontend && npx vitest run lib/maple-pack.test.ts`
 
 ## Invariants
 - No binary floats for money. Keep currencies, units, original values and versions explicit.
@@ -53,11 +45,11 @@
 - Written instructions do not replace permission controls or executable safeguards.
 
 ## Primary experience
-- Local forwarded-email intake -> automatic extraction/matching -> MOQ/price/obsolete-GTIN validation -> exception review -> automatic ERP delivery.
+- Order mailbox intake (sample emails in the test environment) -> automatic extraction/matching -> MOQ/price/obsolete-GTIN validation -> exception review -> automatic ERP delivery.
 - Implement Review-all and explicitly enabled Exception-only modes.
 - No second mandatory Send click after approval. No live Outlook dependency.
 - Learning means approved scoped rule reuse, not autonomous model retraining.
-- EDI mapping and retailer rules: docs/08-edi-mapping.md (provisional).
-- Read docs/07-demo-scenario.md for the video-aligned fictional demonstration.
-- v1.2 spec and status labels: docs/09-spec-v1.2.md; Command Center: docs/10-command-center.md; records: docs/11-system-of-record.md; pilot: docs/12-pilot-readiness.md.
+- X12 mapping and retailer rules: docs/08-edi-mapping.md (provisional). Scenario: docs/07-demo-scenario.md (Maple and Northern Foods, one retailer, one supplier).
+- Product narrative, requirements register and copy review: docs/14-leadership-demo.md. v1.2 spec: docs/09-spec-v1.2.md; Command Center: docs/10-command-center.md; records: docs/11-system-of-record.md.
+- ERP-owned values (prices, minimums, stock, shipping values) are read-only in the portal. No demo-world wording in screens: use test environment, test controls, order mailbox.
 - New session? Read HANDOFF.md first.

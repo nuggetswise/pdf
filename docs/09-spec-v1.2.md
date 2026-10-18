@@ -1,3 +1,5 @@
+> D75 note: screens named here were reorganised (Orders, Transactions, Command Center, Rules, Settings), EDIFACT was removed and the demo data is Maple and Northern Foods only. Status labels below describe the v1.2 behaviour; see docs/14-leadership-demo.md for the current product.
+
 # Trading Grid Order Operations: product vision and prototype specification v1.2
 
 Retail / CPG · Concept vision · 17 October 2026 · v1.2 (supersedes v1.1 of 16 October 2026)

@@ -1,3 +1,5 @@
+> D75 (18 October 2026): this log describes earlier slices. The Python backend, the guided demo, EDIFACT and the Northfield fixtures it mentions were removed; see DECISIONS.md D75 and HANDOFF.md.
+
 # Implementation Plan: PDF Order Agent (leadership demo prototype)
 
 Status: Slices 1-7 complete (2026-10-15). Live Gemini run during the guided demo still pending a key in the cloud environment. Requirements source: Markdown docs (v3.0, identical to functional-specification.docx).

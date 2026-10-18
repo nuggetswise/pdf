@@ -13,7 +13,7 @@ export type Summary = {
   resolved_by_memory: number; delivery_problems: number;
 };
 
-/** Demo-only identity: the role picked on screen travels with each action. Not real authentication. */
+/** Test sign-in: the role picked on screen travels with each action. Not real authentication. */
 export type Role = "reviewer" | "administrator" | "viewer";
 export const PEOPLE: Record<Role, string> = { reviewer: "Rita, order desk (reviewer)", administrator: "Alex, operations lead", viewer: "Read-only viewer" };
 

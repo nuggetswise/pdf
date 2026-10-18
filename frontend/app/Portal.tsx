@@ -20,9 +20,9 @@ import { useAgent } from "./run/RunProvider";
 
 const KIND_LABEL: Record<OutboundMessage["kind"], string> = {
   ORDRSP: "Order confirmation (X12 855)", DESADV: "Ship notice (X12 856)",
-  INVOIC: "Invoice (X12 810)", ERP_SHIPMENT: "Shipment record in supplier ERP", ERP_INVOICE: "Invoice record in supplier ERP", ERP_ORDER_CHANGE: "Backorder cancelled in supplier ERP",
+  INVOIC: "Invoice (X12 810)", ERP_SHIPMENT: "Shipment record in your ERP", ERP_INVOICE: "Invoice record in your ERP", ERP_ORDER_CHANGE: "Backorder cancelled in your ERP",
 };
-const CHANNEL_LABEL = { retailer_edi_outbox: "Trading Grid, to the retailer (simulated)", supplier_erp: "Supplier ERP simulator" };
+const CHANNEL_LABEL = { retailer_edi_outbox: "Trading Grid, to the retailer (test)", supplier_erp: "Your ERP (test)" };
 const STATUS_TONE = { delivered: "ok", pending: "warn", failed: "bad" } as const;
 
 function useWrap() {
@@ -59,7 +59,7 @@ export function ComplianceBox({ result, sent = false }: { result: ComplianceResu
           ))}
         </ul>
       )}
-      {blocks.length > 0 && <p className="muted small">Nothing is sent while a rule blocks. Fix the cause above, then submit.</p>}
+      {blocks.length > 0 && <p className="muted small">Nothing is sent while a rule blocks. Fix the cause above, then send.</p>}
     </div>
   );
 }
@@ -115,7 +115,7 @@ export function OrderPortal({ docId, role }: { docId: number; role: Role }) {
       {p.shipments.length === 0 ? (
         <div className="flow" aria-label="Ship notice">
           <h4>Ship notice</h4>
-          {order.fulfilment?.status === "needs_decision" ? <p className="muted small">Select a shipping option in Stock and ship date to create the ASN.</p>
+          {order.fulfilment?.status === "needs_decision" ? <p className="muted small">Choose how to ship under Stock and ship date first. The ship notice follows.</p>
             : asnOpen ? <AsnForm docId={docId} role={role} onDone={() => setAsnOpen(false)} />
             : role !== "viewer" ? <button className="primary" onClick={() => setAsnOpen(true)}>Create ship notice</button>
             : <p className="muted small">No ASN yet.</p>}
@@ -211,7 +211,7 @@ function Backorder({ docId, role }: { docId: number; role: Role }) {
           </form>
         ) : role !== "viewer" ? (
           <div className="btns">
-            <button className="primary" onClick={() => setMode("asn")}>Ship the rest (next ASN)</button>
+            <button className="primary" onClick={() => setMode("asn")}>Ship the rest (next ship notice)</button>
             <button className="ghost" onClick={() => setMode("cancel")}>Cancel the rest</button>
           </div>
         ) : null}
@@ -383,7 +383,7 @@ function AsnForm({ docId, role, onDone }: { docId: number; role: Role; onDone: (
         <button className="primary" type="submit" disabled={blocked}>Send ship notice</button>
         <button className="ghost" type="button" onClick={onDone}>Cancel</button>
       </div>
-      <p className="muted small">Submit sends the ship notice to the retailer through Trading Grid and records the shipment in the ERP simulator. No second step.</p>
+      <p className="muted small">Sending the ship notice delivers it to the retailer through Trading Grid and records the shipment in your ERP. There is no second step.</p>
     </form>
   );
 }
@@ -410,7 +410,7 @@ function LabelsButton({ asn, po }: { asn: Asn; po: string | null }) {
       <div class="row"><b>${l.kind === "pallet" ? "PALLET" : "CARTON"}</b> ${esc(l.index)}</div>
       <div class="row small">${l.contents.map((c) => `${esc(c.quantity)} ${esc(c.unit)} ${esc(c.sku)} GTIN ${esc(c.gtin)}`).join("<br>")}</div>
       <div class="bc">${ssccBarcodeSvg(l.sscc)}</div><div class="hr">${esc(ssccText(l.sscc))}</div>
-      <div class="note">FICTIONAL DEMO LABEL · not for real shipments</div></section>`).join("");
+      <div class="note">FICTIONAL LABEL · not for real shipments</div></section>`).join("");
     const w = window.open("", "_blank");
     if (!w) return;
     w.document.write(`<!doctype html><meta charset="utf-8"><title>Labels ${esc(asn.asnNumber)}</title><style>
@@ -454,8 +454,8 @@ function InvoiceForm({ docId, asnId, role, onDone }: { docId: number; asnId: num
       void wrap(async () => { await agent.run({ type: "submitInvoice", role, asnId: asn.id, lines: input.lines, allowances: input.allowances }); onDone(); });
     }}>
       <p className="muted small">Quantities come from {asn.asnNumber} (what shipped), prices from the order. Exact decimals; tax per rate rounded half-up to cents.</p>
-      <table className="lines" aria-label="Order, ASN and invoice check">
-        <thead><tr><th>Line</th><th>Item</th><th>PO qty</th><th>ASN qty</th><th>Invoice qty</th><th>Price</th><th>Amount</th><th>{sup.taxType === "SALES" ? "Sales tax" : sup.taxType} %</th><th>Match</th></tr></thead>
+      <table className="lines" aria-label="Order, ship notice and invoice check">
+        <thead><tr><th>Line</th><th>Item</th><th>PO qty</th><th>Shipped qty</th><th>Invoice qty</th><th>Price</th><th>Amount</th><th>{sup.taxType === "SALES" ? "Sales tax" : sup.taxType} %</th><th>Match</th></tr></thead>
         <tbody>
           {shipped.map((l) => {
             const m = d?.match.find((x) => x.sourceLineId === l.sourceLineId);
@@ -505,7 +505,7 @@ function InvoiceForm({ docId, asnId, role, onDone }: { docId: number; asnId: num
         </div>
       )}
       {d && <ComplianceBox result={d.compliance} />}
-      {mismatch && <div className="alert bad" role="alert">The invoice does not match the order and ASN; see the Match column.</div>}
+      {mismatch && <div className="alert bad" role="alert">The invoice does not match the order and ship notice; see the Match column.</div>}
       {error && <div className="alert bad" role="alert">{error}</div>}
       <div className="btns">
         <button className="primary" type="submit" disabled={blocked}>Send invoice</button>
