@@ -30,8 +30,12 @@
       "customer_id": "MAPLE-01",
       "name": "Maple Retail Group Inc.",
       "currency": "USD",
-      "ship_tos": [],
-      "ship_to_not_on_file": true
+      "ship_tos": [
+        {
+          "ship_to_id": "MAPLE-DC-01",
+          "name": "FreshMart Distribution Center"
+        }
+      ]
     }
   ],
   "products": [
@@ -104,11 +108,43 @@
       "gtin": "614141000548",
       "unit": "CASE",
       "status": "active"
+    },
+    {
+      "sku": "NF-MLK-001",
+      "description": "Whole Milk 1 L (case of 12)",
+      "gtin": "614141100019",
+      "unit": "CASE",
+      "status": "active"
+    },
+    {
+      "sku": "NF-MLK-002",
+      "description": "Semi-Skimmed Milk 1 L (case of 12)",
+      "gtin": "614141100026",
+      "unit": "CASE",
+      "status": "active"
+    },
+    {
+      "sku": "NF-CHS-001",
+      "description": "Cheddar Block 400 g (case of 12)",
+      "gtin": "614141200016",
+      "unit": "CASE",
+      "status": "active"
+    },
+    {
+      "sku": "NF-CHS-002",
+      "description": "Mozzarella 250 g (case of 12)",
+      "gtin": "614141200023",
+      "unit": "CASE",
+      "status": "active"
     }
   ],
   "obsolete_identifiers": [
     {
       "identifier": "614141000043",
+      "note": "Retired fictional item GTIN (GS1 example company prefix 0614141)."
+    },
+    {
+      "identifier": "614141200078",
       "note": "Retired fictional item GTIN (GS1 example company prefix 0614141)."
     }
   ],
@@ -118,6 +154,15 @@
       "obsolete_identifier": "614141000043",
       "replacement_identifier": "614141000036",
       "replacement_sku": "DEMO-SKU-C",
+      "source": "supplier product notice (fictional)",
+      "state": "proposed",
+      "note": "Proposal only. Requires an approved review decision before use."
+    },
+    {
+      "mapping_id": "MAP-PROP-NF-CHS-001",
+      "obsolete_identifier": "614141200078",
+      "replacement_identifier": "614141200016",
+      "replacement_sku": "NF-CHS-001",
       "source": "supplier product notice (fictional)",
       "state": "proposed",
       "note": "Proposal only. Requires an approved review decision before use."
@@ -138,6 +183,14 @@
   "unit_conversions": [
     {
       "sku": "JUICE-CASE",
+      "from_unit": "EA",
+      "to_unit": "CASE",
+      "factor": "12",
+      "direction": "divide",
+      "approved": true
+    },
+    {
+      "sku": "NF-MLK-001",
       "from_unit": "EA",
       "to_unit": "CASE",
       "factor": "12",
@@ -222,6 +275,34 @@
       "currency": "USD",
       "unit": "CASE",
       "price": "27.40"
+    },
+    {
+      "customer_id": "MAPLE-01",
+      "sku": "NF-MLK-001",
+      "currency": "USD",
+      "unit": "CASE",
+      "price": "18.00"
+    },
+    {
+      "customer_id": "MAPLE-01",
+      "sku": "NF-MLK-002",
+      "currency": "USD",
+      "unit": "CASE",
+      "price": "17.40"
+    },
+    {
+      "customer_id": "MAPLE-01",
+      "sku": "NF-CHS-001",
+      "currency": "USD",
+      "unit": "CASE",
+      "price": "52.80"
+    },
+    {
+      "customer_id": "MAPLE-01",
+      "sku": "NF-CHS-002",
+      "currency": "USD",
+      "unit": "CASE",
+      "price": "38.40"
     }
   ],
   "moq_rules": [
@@ -229,6 +310,14 @@
       "rule_id": "MOQ-001",
       "customer_id": "DEMO-CUST-01",
       "sku": "DEMO-SKU-A",
+      "minimum": "10",
+      "unit": "CASE",
+      "version": "MOQ-v1"
+    },
+    {
+      "rule_id": "MOQ-NF-CHS-002",
+      "customer_id": "MAPLE-01",
+      "sku": "NF-CHS-002",
       "minimum": "10",
       "unit": "CASE",
       "version": "MOQ-v1"

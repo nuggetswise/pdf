@@ -1,0 +1,539 @@
+{
+  "_label": "FICTIONAL TEST DATA. Hand-written expected results for the Maple Retail Group purchase orders sent to Northern Foods. They are written from the acceptance checks in docs/04-acceptance.md and the reference data, not copied from program output, and are edited only for names, never to make a test pass.",
+  "_how": "Run by frontend/lib/maple-pack.test.ts with the same generic runner as the intake test pack. Every email goes through normal intake and the same server actions the screens use, with the labelled test reader.",
+  "clock": "2026-10-15T15:00:00.000Z",
+  "cases": [
+    {
+      "id": "M-01",
+      "title": "Milk PO: every check passes; in Review-all mode it waits for one approval, then reaches the ERP (P22 counterpart, P24, P23)",
+      "steps": [
+        {
+          "forward": "PO-2026-104620.eml",
+          "expect": {
+            "documents_created": 1,
+            "orders": 1,
+            "erp_orders": 0,
+            "default_policy": "review_all",
+            "docs": [
+              {
+                "status": "ready_for_approval",
+                "kind": "pdf",
+                "review_state": "ready",
+                "open_issues": [],
+                "lines": 2,
+                "delivery_state": "not_started"
+              }
+            ]
+          }
+        },
+        {
+          "action": {
+            "type": "approve",
+            "role": "reviewer",
+            "docId": "$1"
+          },
+          "expect": {
+            "erp_orders": 1,
+            "docs": [
+              {
+                "doc_id": 1,
+                "review_state": "approved",
+                "delivery_state": "erp_created",
+                "open_issues": []
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "M-02",
+      "title": "Cheese PO: one printed price differs from the agreed price (P05, P20); a recorded decision starts delivery (P23); Mozzarella is short, the supplier splits, the retailer accepts",
+      "steps": [
+        {
+          "forward": "PO-2026-104633.eml",
+          "expect": {
+            "docs": [
+              {
+                "status": "needs_review",
+                "review_state": "needs_review",
+                "open_issues": [
+                  "price_mismatch"
+                ],
+                "issue_lines": {
+                  "price_mismatch": 0
+                },
+                "lines": 2
+              }
+            ]
+          }
+        },
+        {
+          "action": {
+            "type": "decide",
+            "role": "reviewer",
+            "docId": "$1",
+            "issueKey": "price_mismatch:0",
+            "action": "accept_printed_price",
+            "reason": "Retailer confirmed the new Cheddar price by phone (fictional)"
+          },
+          "expect": {
+            "_note": "The decision on the last blocking issue is the approval; delivery follows without a second click.",
+            "erp_orders": 1,
+            "docs": [
+              {
+                "doc_id": 1,
+                "review_state": "approved",
+                "delivery_state": "erp_created",
+                "open_issues": []
+              }
+            ],
+            "findings": [
+              {
+                "type": "stock_short",
+                "verification": "pending",
+                "action": "not_started",
+                "visibility": "supplier",
+                "condition_active": true,
+                "lines": 1
+              }
+            ]
+          }
+        },
+        {
+          "action": {
+            "type": "decideFulfilment",
+            "role": "reviewer",
+            "docId": "$1",
+            "choice": "split"
+          },
+          "expect": {
+            "findings": [
+              {
+                "type": "stock_short",
+                "condition_active": false,
+                "action": "completed",
+                "verification": "pending"
+              },
+              {
+                "type": "revised_delivery",
+                "verification": "pending",
+                "visibility": "shared"
+              }
+            ],
+            "_note": "The confirmation reaches the retailer at once, so there is no 'document not delivered' finding (docs/10). The shortage stays pending until the retailer answers."
+          }
+        },
+        {
+          "retailer_view": "MAPLE-01",
+          "expect": {
+            "visible_findings": [
+              "revised_delivery"
+            ]
+          }
+        },
+        {
+          "action": {
+            "type": "respondToRevision",
+            "messageId": "$message:ORDRSP",
+            "customerId": "MAPLE-01",
+            "decision": "accepted"
+          },
+          "expect": {
+            "findings": [
+              {
+                "type": "revised_delivery",
+                "verification": "verified"
+              },
+              {
+                "type": "stock_short",
+                "verification": "verified"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "M-03",
+      "title": "Mozzarella below the minimum of 10 cases is held; the quantity is not raised (P19)",
+      "steps": [
+        {
+          "forward": "tests/PO-2026-104701.eml",
+          "expect": {
+            "docs": [
+              {
+                "status": "needs_review",
+                "review_state": "needs_review",
+                "open_issues": [
+                  "moq_violation"
+                ],
+                "issue_lines": {
+                  "moq_violation": 0
+                },
+                "delivery_state": "not_started"
+              }
+            ],
+            "erp_orders": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "M-04",
+      "title": "Retired Cheddar GTIN: held until a scoped mapping is approved (P21); a saved correction is only a candidate (P25); an active rule fixes the next order and a revoked rule does not (P26)",
+      "steps": [
+        {
+          "forward": "tests/PO-2026-104702.eml",
+          "expect": {
+            "docs": [
+              {
+                "status": "needs_review",
+                "open_issues": [
+                  "outdated_identifier"
+                ]
+              }
+            ],
+            "memory_rules": []
+          }
+        },
+        {
+          "action": {
+            "type": "decide",
+            "role": "reviewer",
+            "docId": "$1",
+            "issueKey": "outdated_identifier:0",
+            "action": "apply_mapping",
+            "reason": null,
+            "params": {
+              "save_for_future": true
+            }
+          },
+          "expect": {
+            "memory_rules": [
+              "candidate"
+            ],
+            "docs": [
+              {
+                "doc_id": 1,
+                "review_state": "approved",
+                "delivery_state": "erp_created",
+                "open_issues": []
+              }
+            ]
+          }
+        },
+        {
+          "forward": "tests/PO-2026-104703.eml",
+          "expect": {
+            "_note": "A candidate is not used before an administrator activates it.",
+            "docs": [
+              {
+                "status": "needs_review",
+                "open_issues": [
+                  "outdated_identifier"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "action": {
+            "type": "setRuleState",
+            "role": "administrator",
+            "ruleId": 1,
+            "state": "active"
+          },
+          "expect": {
+            "memory_rules": [
+              "active"
+            ]
+          }
+        },
+        {
+          "forward": "tests/PO-2026-104704.eml",
+          "expect": {
+            "docs": [
+              {
+                "status": "ready_for_approval",
+                "open_issues": [],
+                "line_resolved_by": [
+                  "memory_rule"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "action": {
+            "type": "setRuleState",
+            "role": "administrator",
+            "ruleId": 1,
+            "state": "revoked",
+            "reason": "Supplier withdrew the notice (fictional)"
+          },
+          "expect": {
+            "memory_rules": [
+              "revoked"
+            ]
+          }
+        },
+        {
+          "forward": "tests/PO-2026-104705.eml",
+          "expect": {
+            "docs": [
+              {
+                "status": "needs_review",
+                "open_issues": [
+                  "outdated_identifier"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "M-05",
+      "title": "A rule approved for Maple does not apply to another customer (P26)",
+      "steps": [
+        {
+          "forward": "tests/PO-2026-104702.eml",
+          "expect": {
+            "docs": [
+              {
+                "open_issues": [
+                  "outdated_identifier"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "action": {
+            "type": "decide",
+            "role": "reviewer",
+            "docId": "$1",
+            "issueKey": "outdated_identifier:0",
+            "action": "apply_mapping",
+            "reason": null,
+            "params": {
+              "save_for_future": true
+            }
+          },
+          "expect": {
+            "memory_rules": [
+              "candidate"
+            ]
+          }
+        },
+        {
+          "action": {
+            "type": "setRuleState",
+            "role": "administrator",
+            "ruleId": 1,
+            "state": "active"
+          },
+          "expect": {
+            "memory_rules": [
+              "active"
+            ]
+          }
+        },
+        {
+          "forward": "tests/PO-2026-104707.eml",
+          "expect": {
+            "docs": [
+              {
+                "status": "needs_review",
+                "open_issues_include": [
+                  "unknown_customer",
+                  "outdated_identifier"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "action": {
+            "type": "addCustomer",
+            "role": "reviewer",
+            "docId": "$2"
+          },
+          "expect": {
+            "_note": "The new customer is known now; the rule belongs to MAPLE-01, so the retired GTIN is still held.",
+            "docs": [
+              {
+                "doc_id": 2,
+                "open_issues": [
+                  "outdated_identifier"
+                ],
+                "line_resolved_by": [
+                  null
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "M-06",
+      "title": "Milk ordered in each: the supplied factor converts 120 each to 10 cases, both units kept (P06)",
+      "steps": [
+        {
+          "forward": "tests/PO-2026-104706.eml",
+          "expect": {
+            "docs": [
+              {
+                "status": "needs_review",
+                "open_issues": [
+                  "unit_conversion"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "action": {
+            "type": "decide",
+            "role": "reviewer",
+            "docId": "$1",
+            "issueKey": "unit_conversion:0",
+            "action": "confirm_conversion",
+            "reason": null
+          },
+          "expect": {
+            "docs": [
+              {
+                "doc_id": 1,
+                "review_state": "approved",
+                "delivery_state": "erp_created",
+                "open_issues": []
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "M-07",
+      "title": "The same email twice makes no second order (P07); a changed PO with the same number is a revision that updates the one ERP order (P08)",
+      "steps": [
+        {
+          "forward": "PO-2026-104620.eml",
+          "expect": {
+            "orders": 1
+          }
+        },
+        {
+          "forward": "PO-2026-104620.eml",
+          "expect": {
+            "documents_created": 1,
+            "orders": 1,
+            "docs": [
+              {
+                "status": "duplicate"
+              }
+            ]
+          }
+        },
+        {
+          "action": {
+            "type": "approve",
+            "role": "reviewer",
+            "docId": "$1"
+          },
+          "expect": {
+            "erp_orders": 1
+          }
+        },
+        {
+          "forward": "tests/PO-2026-104620-r2.eml",
+          "expect": {
+            "orders": 2,
+            "docs": [
+              {
+                "status": "needs_review",
+                "open_issues": [
+                  "possible_revision"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "action": {
+            "type": "decide",
+            "role": "reviewer",
+            "docId": "$3",
+            "issueKey": "possible_revision:H",
+            "action": "accept_as_revision",
+            "reason": "Buyer sent revision 2 (fictional)"
+          },
+          "expect": {
+            "_note": "The ERP updates the order it already holds; it never creates a second order number.",
+            "docs": [
+              {
+                "doc_id": 3,
+                "review_state": "approved",
+                "delivery_state": "erp_created"
+              }
+            ],
+            "erp_order_ids": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "M-08",
+      "title": "Exception-only mode, enabled with a reason: a clean order reaches the ERP with no approval and no Send (P22)",
+      "steps": [
+        {
+          "action": {
+            "type": "setPolicy",
+            "role": "administrator",
+            "mode": "exception_only",
+            "reason": "Review phase finished (fictional)"
+          },
+          "expect": {
+            "default_policy": "exception_only"
+          }
+        },
+        {
+          "forward": "PO-2026-104620.eml",
+          "expect": {
+            "erp_orders": 1,
+            "docs": [
+              {
+                "review_state": "approved",
+                "delivery_state": "erp_created",
+                "open_issues": []
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "M-09",
+      "title": "A ship-to code that is not on file for Maple is held, not booked to another location",
+      "steps": [
+        {
+          "forward": "tests/PO-2026-104708.eml",
+          "expect": {
+            "docs": [
+              {
+                "status": "needs_review",
+                "open_issues": [
+                  "unknown_ship_to"
+                ]
+              }
+            ],
+            "erp_orders": 0
+          }
+        }
+      ]
+    }
+  ]
+}

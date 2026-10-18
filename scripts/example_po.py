@@ -101,7 +101,8 @@ def write_pdf(path: Path) -> None:
                    "procurement@mapleretail.example", "+1 614-555-0182"]),
         ("SUPPLIER", ["Northern Foods Manufacturing Inc.", "Supplier ID: SUP-100245", "Contact: David Chen",
                       "orders@northernfoods.example", "+1 312-555-0198"]),
-        ("SHIP TO", ["FreshMart Distribution Center", "275 Logistics Parkway", "Columbus, OH 43217", "United States"]),
+        ("SHIP TO", ["FreshMart Distribution Center", "275 Logistics Parkway", "Columbus, OH 43217", "United States",
+                     "Ship-To ID: MAPLE-DC-01"]),
         ("BILL TO", ["Maple Retail Group Inc.", "500 Commerce Boulevard", "Columbus, OH 43215", "United States"]),
     ]
     for row in range(2):

@@ -84,10 +84,14 @@ export function retailerLayoutExtract(pages: string[]) {
       const m = ROW.exec(line);
       if (m) {
         const f = (value: string) => ({ value, page, evidence: line });
-        lines.push({ source_line_id: f(m[1]), supplier_sku: f(m[2]), description: f(m[3]), unit: f(m[4]),
+        // An item column holding a 12 to 14 digit number is a GTIN; anything else is the supplier's own item number.
+        const id: Record<string, Raw> = /^\d{12,14}$/.test(m[2]) ? { gtin: f(m[2]) } : { supplier_sku: f(m[2]) };
+        lines.push({ source_line_id: f(m[1]), ...id, description: f(m[3]), unit: f(m[4]),
           quantity: f(m[5]), unit_price: f(m[6]), line_amount: f(m[7]) });
         return;
       }
+      const shipTo = /^ship-to id:\s*(.+)$/i.exec(line);
+      if (shipTo && !("ship_to_id" in header)) header.ship_to_id = at(shipTo[1]);
       for (const [re, field] of TOTAL_LABELS) {
         const t = re.exec(line);
         const amount = /([\d,]+\.\d+)$/.exec(line);
