@@ -91,7 +91,7 @@ function MessageRow({ m, role }: { m: OutboundMessage; role: Role }) {
   );
 }
 
-/** Shown on a delivered order: EDI setup, the confirmation, then Create ASN, then Create invoice. */
+/** Shown on a delivered order: EDI setup, the confirmation, then the ship notice, then the invoice. */
 export function OrderPortal({ docId, role }: { docId: number; role: Role }) {
   const agent = useAgent();
   const p = portalForOrder(agent.state, docId);
@@ -113,11 +113,11 @@ export function OrderPortal({ docId, role }: { docId: number; role: Role }) {
           requested={order.validation.order.requested_delivery_date} />
       ))}
       {p.shipments.length === 0 ? (
-        <div className="flow" aria-label="Shipping notice">
-          <h4>Shipping notice (ASN)</h4>
+        <div className="flow" aria-label="Ship notice">
+          <h4>Ship notice</h4>
           {order.fulfilment?.status === "needs_decision" ? <p className="muted small">Select a shipping option in Stock and ship date to create the ASN.</p>
             : asnOpen ? <AsnForm docId={docId} role={role} onDone={() => setAsnOpen(false)} />
-            : role !== "viewer" ? <button className="primary" onClick={() => setAsnOpen(true)}>Create ASN</button>
+            : role !== "viewer" ? <button className="primary" onClick={() => setAsnOpen(true)}>Create ship notice</button>
             : <p className="muted small">No ASN yet.</p>}
         </div>
       ) : <Backorder docId={docId} role={role} />}
@@ -138,7 +138,7 @@ function Shipment({ n, sh, docId, role, po, requested }: { n: number; sh: Shipme
   return (
     <>
       <div className="flow" aria-label={`Shipping notice${suffix}`}>
-        <h4>Shipping notice (ASN): {asn.asnNumber}{n > 0 && <span className="muted small"> · shipment {n + 1}</span>}</h4>
+        <h4>Ship notice: {asn.asnNumber}{n > 0 && <span className="muted small"> · shipment {n + 1}</span>}</h4>
         <p className="flowstate"><b>{deliverySummary(asnMessages)}</b></p>
         <p className="muted small">Shipped {asn.lines.filter((l) => !Dec.of(l.shippedQty).isZero()).map((l) => `${l.shippedQty} ${l.unit} line ${l.sourceLineId}`).join(", ")}</p>
         {asn.pallets && (
@@ -380,7 +380,7 @@ function AsnForm({ docId, role, onDone }: { docId: number; role: Role; onDone: (
       )}
       {error && <div className="alert bad" role="alert">{error}</div>}
       <div className="btns">
-        <button className="primary" type="submit" disabled={blocked}>Submit ASN</button>
+        <button className="primary" type="submit" disabled={blocked}>Send ship notice</button>
         <button className="ghost" type="button" onClick={onDone}>Cancel</button>
       </div>
       <p className="muted small">Submit sends the ship notice to the retailer through Trading Grid and records the shipment in the ERP simulator. No second step.</p>
@@ -508,7 +508,7 @@ function InvoiceForm({ docId, asnId, role, onDone }: { docId: number; asnId: num
       {mismatch && <div className="alert bad" role="alert">The invoice does not match the order and ASN; see the Match column.</div>}
       {error && <div className="alert bad" role="alert">{error}</div>}
       <div className="btns">
-        <button className="primary" type="submit" disabled={blocked}>Submit invoice</button>
+        <button className="primary" type="submit" disabled={blocked}>Send invoice</button>
         <button className="ghost" type="button" onClick={onDone}>Cancel</button>
       </div>
     </form>

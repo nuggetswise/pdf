@@ -101,7 +101,7 @@ export function FulfilmentPanel({ docId, role }: { docId: number; role: Role }) 
 
       {deciding && (
         <div className="stock-decide" aria-label="Choose how to ship">
-          <p><b>Stock is short.</b> Select a shipping option. The acknowledgement is held until you confirm.</p>
+          <p><b>Stock is short.</b> Select a shipping option. The confirmation to the retailer is held until you choose.</p>
           <div className="choices" role="radiogroup" aria-label="Shipping choice">
             {(["ship_complete", "split", "ship_available"] as Choice[]).filter((c) => f.options[c]).map((c) => {
               const opt = f.options[c]!;
@@ -128,7 +128,7 @@ export function FulfilmentPanel({ docId, role }: { docId: number; role: Role }) 
               </label>
               <button className="primary" onClick={() => wrap(() => agent.run({ type: "decideFulfilment", role, docId, choice: pick,
                 shipOn: shipOn && shipOn !== earliest ? shipOn : null }))}>Confirm to the retailer</button>
-              <span className="muted small">Updates the ERP order and sends the acknowledgement with line-level dates.</span>
+              <span className="muted small">Updates the ERP order and sends the confirmation with each line's dates.</span>
             </div>
           )}
         </div>
@@ -150,7 +150,7 @@ export function FulfilmentPanel({ docId, role }: { docId: number; role: Role }) 
                 onClick={() => wrap(() => agent.run({ type: "shipFromErp", role, docId, carrierScac: scac.trim(), trackingNumber: track.trim() }))}>Mark shipped in ERP</button>
               <span className="muted small">Ships available stock. The ship notice and invoice are sent automatically.</span>
             </div>
-          ) : <p className="muted small"><PackageX size={14} aria-hidden /> Nothing to ship yet. Receive incoming stock under Sent.</p>}
+          ) : <p className="muted small"><PackageX size={14} aria-hidden /> Nothing to ship yet. Waiting for stock. Your ERP records it when the incoming delivery arrives (in the test environment: Settings, Test controls).</p>}
         </div>
       )}
       {error && <div className="alert bad" role="alert">{error}</div>}
