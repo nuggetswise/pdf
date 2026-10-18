@@ -1,44 +1,43 @@
-"""Write the fictional purchase orders the session-onboarding tests upload (D46).
+"""Write the fictional purchase orders the session-onboarding screens upload (D46, D75).
 
-FICTIONAL TEST DATA. "Birchwood Demo Market" and its items are invented; they are deliberately NOT in
+FICTIONAL TEST DATA. "Birchwood Test Market Ltd." and its items are invented; they are deliberately NOT in
 reference-data.v1.json, like a real retailer the supplier has not set up yet. Like that real PO, these print no
 customer ID and no ship-to ID.
-  ONBOARD-DEMO-001.pdf  first order: unknown customer and two unknown products
-  ONBOARD-DEMO-002.pdf  repeat order from the same customer with the same products (clean once onboarded)
-  ONBOARD-DEMO-003.pdf  D47: "Fernhill Demo Electronics", a second invented retailer whose items carry valid GTINs on
-                        the GS1 demonstration prefix 952, for the retailer-compliant ASN and invoice
+  ONBOARD-01.pdf  first order: unknown customer and two unknown products
+  ONBOARD-02.pdf  repeat order from the same customer with the same products (clean once onboarded)
 
-Usage (from the repository root):
-  backend/.venv/bin/python scripts/onboarding_fixtures.py
+Usage (from the repository root, after pip install -r tools/requirements.lock):
+  python3 scripts/onboarding_fixtures.py
 """
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 from reportlab.lib.pagesizes import LETTER
 from reportlab.pdfgen import canvas
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from generate_fixtures import draw_page_frame  # noqa: E402
+BANNER = "FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER"
+
+
+def draw_page_frame(c: canvas.Canvas) -> None:
+    c.setFont("Helvetica-Bold", 10)
+    _, height = LETTER
+    c.drawString(40, height - 30, BANNER)
+    c.drawString(40, 25, BANNER)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "fixtures" / "onboarding"
 
 ORDERS = [
-    {"file": "ONBOARD-DEMO-001", "po": "BW-DEMO-5001", "date": "2026-10-15", "lines": [
-        ["1", "FICT-GTIN-7001", "Demo maple cookies 300g", "40", "CASE", "12.50", "500.00"],
-        ["2", "FICT-GTIN-7002", "Demo apple chips 150g", "25", "CASE", "9.80", "245.00"],
+    {"file": "ONBOARD-01", "po": "BW-TEST-5001", "date": "2026-10-15", "lines": [
+        ["1", "FICT-GTIN-7001", "Test maple cookies 300g", "40", "CASE", "12.50", "500.00"],
+        ["2", "FICT-GTIN-7002", "Test apple chips 150g", "25", "CASE", "9.80", "245.00"],
     ], "subtotal": "745.00", "tax": "96.85", "shipping": "20.00", "total": "861.85"},
-    {"file": "ONBOARD-DEMO-002", "po": "BW-DEMO-5002", "date": "2026-10-16", "lines": [
-        ["1", "FICT-GTIN-7001", "Demo maple cookies 300g", "10", "CASE", "12.50", "125.00"],
-        ["2", "FICT-GTIN-7002", "Demo apple chips 150g", "5", "CASE", "9.80", "49.00"],
+    {"file": "ONBOARD-02", "po": "BW-TEST-5002", "date": "2026-10-16", "lines": [
+        ["1", "FICT-GTIN-7001", "Test maple cookies 300g", "10", "CASE", "12.50", "125.00"],
+        ["2", "FICT-GTIN-7002", "Test apple chips 150g", "5", "CASE", "9.80", "49.00"],
     ], "subtotal": "174.00", "tax": "22.62", "shipping": "0.00", "total": "196.62"},
-    {"file": "ONBOARD-DEMO-003", "po": "FH-DEMO-7001", "date": "2026-10-15", "customer": "Fernhill Demo Electronics",
-     "currency": "EUR", "lines": [
-        ["1", "9520000002015", "Demo USB-C cable 1m", "24", "EA", "4.20", "100.80"],
-        ["2", "9520000002022", "Demo phone stand", "6", "EA", "11.50", "69.00"],
-    ], "subtotal": "169.80", "tax": "32.26", "shipping": "0.00", "total": "202.06"},
 ]
 
 
@@ -52,8 +51,8 @@ def write(order: dict, path: Path) -> None:
     c.drawString(40, y, "PURCHASE ORDER")
     y -= 28
     c.setFont("Helvetica", 11)
-    for label, value in [("PO", order["po"]), ("Customer", order.get("customer", "Birchwood Demo Market")),
-                         ("Supplier", "Marlow Demo Foods"), ("Order date", order["date"]),
+    for label, value in [("PO", order["po"]), ("Customer", order.get("customer", "Birchwood Test Market Ltd.")),
+                         ("Supplier", "Northern Foods Manufacturing Inc."), ("Order date", order["date"]),
                          ("Requested delivery date", "2026-10-28"), ("Currency", order.get("currency", "USD"))]:
         c.drawString(40, y, f"{label}: {value}")
         y -= 16

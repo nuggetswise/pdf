@@ -224,7 +224,7 @@ def write_eml(spec: Po, pdf: Path, path: Path) -> None:
     msg["Subject"] = f"Purchase Order {spec.number} - FreshMart Markets [FICTIONAL SAMPLE]"
     msg["Date"] = format_datetime(spec.sent)
     msg["Message-ID"] = f"<{spec.file.lower()}@mapleretail.example>"
-    msg["X-Demo-Notice"] = "Fictional sample email. Not sent over the internet."
+    msg["X-Sample-Notice"] = "Fictional sample email. Not sent over the internet."
     msg.set_content(f"Hello David,\n\nPlease find attached purchase order {spec.number}. "
                     f"{spec.note or 'Please confirm receipt and expected ship date.'}\n\nThanks,\nSarah Thompson\n"
                     "Maple Retail Group Inc. (fictional sample)\n")
@@ -269,6 +269,8 @@ TESTS = [
        buyer=OTHER, ship_to_id="BIRCH-DC-01"),
     # A ship-to code that is not on file for Maple.
     Po("PO-2026-104708", "PO-2026-104708", [("1", MILK2[0], MILK2[1], "Case", "40", "17.40")], at(16, 16), ship_to_id="MAPLE-DC-09"),
+    # Mozzarella above ERP stock and nothing else: the intake test pack's stock-short case (TP-13).
+    Po("PO-2026-104709", "PO-2026-104709", [("1", MOZZA[0], MOZZA[1], "Case", "85", "38.40")], at(16, 17)),
     Po("PO-2026-104620", "PO-2026-104620-r2", [
         ("1", MILK1[0], MILK1[1], "Case", "150", "18.00"),
         ("2", MILK2[0], MILK2[1], "Case", "100", "17.40")], at(16, 15), freight=Decimal("275.00"),

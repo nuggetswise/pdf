@@ -1,5 +1,5 @@
 // D46 session onboarding: a reviewer adds the customer and products a real PO uses, for this session only.
-// All data is FICTIONAL test data ("Birchwood Demo Market" is invented and not in the reference file).
+// All data is FICTIONAL test data ("Birchwood Test Market Ltd." is invented and not in the reference file).
 import { describe, expect, it } from "vitest";
 import { ADMIN, INTAKE_ACTOR, REVIEWER, VIEWER, extract, tickClock } from "./__fixtures__/maple";
 import { RunState, emptyRunState } from "./run-state";
@@ -12,8 +12,8 @@ const PO = (po: string, lines: string[], totals: string[], opts: { customer?: st
   shipTo?: string } = {}) => `FICTIONAL TEST DATA - NOT A REAL CUSTOMER ORDER
 PURCHASE ORDER
 PO: ${po}
-Customer: ${opts.customer ?? "Birchwood Demo Market"}
-${opts.shipTo ? `Ship-to: ${opts.shipTo}\n` : ""}Supplier: Marlow Demo Foods
+Customer: ${opts.customer ?? "Birchwood Test Market Ltd."}
+${opts.shipTo ? `Ship-to: ${opts.shipTo}\n` : ""}Supplier: Northern Foods Manufacturing Inc.
 Currency: USD
 Line | ${opts.itemCodes ? "Customer item" : "GTIN"} | Description | Quantity | Unit | Unit price | Amount
 ${lines.join("\n")}
@@ -22,10 +22,10 @@ Tax amount: ${totals[1]}
 Shipping amount: ${totals[2]}
 Total: ${totals[3]}
 `;
-const FIRST = PO("BW-DEMO-5001", ["1 | FICT-GTIN-7001 | Demo maple cookies 300g | 40 | CASE | 12.50 | 500.00",
-  "2 | FICT-GTIN-7002 | Demo apple chips 150g | 25 | CASE | 9.80 | 245.00"], ["745.00", "96.85", "20.00", "861.85"]);
-const REPEAT = PO("BW-DEMO-5002", ["1 | FICT-GTIN-7001 | Demo maple cookies 300g | 10 | CASE | 12.50 | 125.00",
-  "2 | FICT-GTIN-7002 | Demo apple chips 150g | 5 | CASE | 9.80 | 49.00"], ["174.00", "22.62", "0.00", "196.62"]);
+const FIRST = PO("BW-TEST-5001", ["1 | FICT-GTIN-7001 | Test maple cookies 300g | 40 | CASE | 12.50 | 500.00",
+  "2 | FICT-GTIN-7002 | Test apple chips 150g | 25 | CASE | 9.80 | 245.00"], ["745.00", "96.85", "20.00", "861.85"]);
+const REPEAT = PO("BW-TEST-5002", ["1 | FICT-GTIN-7001 | Test maple cookies 300g | 10 | CASE | 12.50 | 125.00",
+  "2 | FICT-GTIN-7002 | Test apple chips 150g | 5 | CASE | 9.80 | 49.00"], ["174.00", "22.62", "0.00", "196.62"]);
 
 let n = 0;
 function upload(s: RunState, text: string, clock = tickClock()) {
@@ -50,7 +50,7 @@ describe("session onboarding (D46)", () => {
     s = addCustomer(s, docId, {}, REVIEWER, clock);
     expect(codes(s, docId)).toEqual(["unknown_item", "unknown_item"]);
     expect(s.referenceOverlay!.customers[0]).toMatchObject({ customerId: "SESSION-CUST-01",
-      name: "Birchwood Demo Market", currency: "USD", shipToIds: [], addedBy: "reviewer:rita", sourceDocumentId: docId });
+      name: "Birchwood Test Market Ltd.", currency: "USD", shipToIds: [], addedBy: "reviewer:rita", sourceDocumentId: docId });
     expect(order(s, docId).customerId).toBe("SESSION-CUST-01");
 
     s = addProduct(s, docId, "unknown_item:0", {}, REVIEWER, clock);
@@ -84,40 +84,40 @@ describe("session onboarding (D46)", () => {
     s = addCustomer(s, docId, {}, REVIEWER, clock);
     s = addProduct(s, docId, "unknown_item:0", { moq: "20" }, REVIEWER, clock);
     s = addProduct(s, docId, "unknown_item:1", {}, REVIEWER, clock);
-    const later = upload(s, PO("BW-DEMO-5003", ["1 | FICT-GTIN-7001 | Demo maple cookies 300g | 10 | CASE | 13.00 | 130.00"],
+    const later = upload(s, PO("BW-TEST-5003", ["1 | FICT-GTIN-7001 | Test maple cookies 300g | 10 | CASE | 13.00 | 130.00"],
       ["130.00", "0.00", "0.00", "130.00"]), clock);
     expect(codes(later.state, later.docId)).toEqual(["moq_violation", "price_mismatch"]);
   });
 
   it("matches item-code-only lines (like the owner's real PO) through a customer alias", () => {
     const clock = tickClock();
-    const text = PO("BW-DEMO-6001", ["1 | NF-DEMO-001 | Demo crackers 250g | 120 | Case | 18.50 | 2220.00"],
+    const text = PO("BW-TEST-6001", ["1 | BW-ITEM-001 | Test crackers 250g | 120 | Case | 18.50 | 2220.00"],
       ["2220.00", "0.00", "0.00", "2220.00"], { itemCodes: true });
     let { state: s, docId } = upload(emptyRunState(clock.now()), text, clock);
     expect(codes(s, docId)).toEqual(["unknown_customer", "unknown_item"]);
     s = addCustomer(s, docId, { name: "Birchwood Market (renamed)" }, REVIEWER, clock);
     s = addProduct(s, docId, "unknown_item:0", { sku: "BW-CRACKERS" }, REVIEWER, clock);
     expect(open(s, docId)).toEqual([]);
-    expect(s.referenceOverlay!.products[0]).toMatchObject({ sku: "BW-CRACKERS", gtin: null, customerItemCode: "NF-DEMO-001",
+    expect(s.referenceOverlay!.products[0]).toMatchObject({ sku: "BW-CRACKERS", gtin: null, customerItemCode: "BW-ITEM-001",
       unit: "Case", price: "18.50" });
     // The edited name keeps matching what the customer prints.
-    expect(s.referenceOverlay!.customerAliases[0]).toMatchObject({ printed: "Birchwood Demo Market", customerId: "SESSION-CUST-01" });
-    const again = upload(s, text.replace("BW-DEMO-6001", "BW-DEMO-6002"), clock);
+    expect(s.referenceOverlay!.customerAliases[0]).toMatchObject({ printed: "Birchwood Test Market Ltd.", customerId: "SESSION-CUST-01" });
+    const again = upload(s, text.replace("BW-TEST-6001", "BW-TEST-6002"), clock);
     expect(order(again.state, again.docId).validation.issues).toEqual([]);
   });
 
   it("assigns a printed name to an existing customer, and a printed ship-to can be added", () => {
     const clock = tickClock();
-    const text = PO("NF-ALT-1", ["A | 614141000012 | Demo granola case | 10 | CASE | 24.00 | 240.00"],
-      ["240.00", "0.00", "0.00", "240.00"], { customer: "Northfield Retail (head office)", shipTo: "NF-STORE-77" });
+    const text = PO("MAPLE-ALT-1", ["A | 614141100019 | Whole Milk 1 L (case of 12) | 10 | CASE | 18.00 | 180.00"],
+      ["180.00", "0.00", "0.00", "180.00"], { customer: "Maple Retail Group (head office)", shipTo: "MAPLE-STORE-77" });
     let { state: s, docId } = upload(emptyRunState(clock.now()), text, clock);
     expect(codes(s, docId)).toEqual(["unknown_customer"]);
     expect(() => assignCustomer(s, docId, "NOPE", REVIEWER, clock)).toThrow(Conflict);
-    s = assignCustomer(s, docId, "DEMO-CUST-01", REVIEWER, clock);
+    s = assignCustomer(s, docId, "MAPLE-01", REVIEWER, clock);
     expect(codes(s, docId)).toEqual(["unknown_ship_to"]);
     s = addShipTo(s, docId, REVIEWER, clock);
     expect(open(s, docId)).toEqual([]);
-    expect(order(s, docId).customerId).toBe("DEMO-CUST-01");
+    expect(order(s, docId).customerId).toBe("MAPLE-01");
   });
 
   it("is never automatic, needs a reviewer, refuses clashes, and reset removes the additions", () => {
@@ -127,7 +127,7 @@ describe("session onboarding (D46)", () => {
     expect(s.referenceOverlay).toBeUndefined();
     s = addCustomer(s, docId, {}, REVIEWER, clock);
     expect(() => addCustomer(s, docId, {}, REVIEWER, clock)).toThrow(Conflict); // issue already resolved
-    expect(() => addProduct(s, docId, "unknown_item:0", { sku: "DEMO-SKU-A" }, REVIEWER, clock)).toThrow(/already in the catalogue/);
+    expect(() => addProduct(s, docId, "unknown_item:0", { sku: "NF-MLK-001" }, REVIEWER, clock)).toThrow(/already in the catalogue/);
     expect(() => addProduct(s, docId, "unknown_item:0", { moq: "0" }, REVIEWER, clock)).toThrow(Conflict);
     expect(resetDemo(s, ADMIN, clock).referenceOverlay).toBeUndefined();
   });
@@ -158,7 +158,7 @@ describe("session onboarding (D46)", () => {
     ];
     for (const a of bad) expect(applyAction(s, a)).toMatchObject({ ok: false, status: 400 });
     expect(applyAction(s, { type: "addCustomer", role: "viewer", docId })).toMatchObject({ ok: false, status: 403 });
-    const ok = applyAction(s, { type: "addCustomer", role: "reviewer", docId, name: "Birchwood Demo Market" });
+    const ok = applyAction(s, { type: "addCustomer", role: "reviewer", docId, name: "Birchwood Test Market Ltd." });
     expect(ok.ok).toBe(true);
   });
 });

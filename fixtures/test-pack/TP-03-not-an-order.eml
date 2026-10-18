@@ -1,5 +1,5 @@
-From: buyer@northfield-demo.example
-To: orders@supplier-demo.example
+From: procurement@mapleretail.example
+To: orders@intake.tradinggrid.example
 Subject: Delivery last week [FICTIONAL TEST DATA]
 Date: Fri, 16 Oct 2026 09:20:00 +0000
 Message-ID: <tp03@test-pack.invalid>

@@ -1,31 +1,9 @@
 {
   "fictional": true,
-  "notice": "FICTIONAL TEST DATA. All organisations, identifiers and prices are invented for the prototype demo. Maple Retail Group and Northern Foods (the example purchase order) are fictional too.",
+  "notice": "FICTIONAL TEST DATA. Maple Retail Group, Northern Foods Manufacturing, their items, codes and prices are invented for the prototype. Not real master data.",
   "reference_version": "REF-2026-10-v1",
   "policy_version": "POLICY-v1",
   "customers": [
-    {
-      "customer_id": "DEMO-CUST-01",
-      "name": "Northfield Demo Retail",
-      "currency": "USD",
-      "ship_tos": [
-        {
-          "ship_to_id": "DEMO-DC-01",
-          "name": "Northfield Demo DC 1"
-        }
-      ]
-    },
-    {
-      "customer_id": "DEMO-CUST-02",
-      "name": "Lakeshore Demo Grocers",
-      "currency": "USD",
-      "ship_tos": [
-        {
-          "ship_to_id": "DEMO-DC-02",
-          "name": "Lakeshore Demo DC 2"
-        }
-      ]
-    },
     {
       "customer_id": "MAPLE-01",
       "name": "Maple Retail Group Inc.",
@@ -39,76 +17,6 @@
     }
   ],
   "products": [
-    {
-      "sku": "DEMO-SKU-A",
-      "description": "Demo granola case",
-      "gtin": "614141000012",
-      "unit": "CASE",
-      "status": "active"
-    },
-    {
-      "sku": "DEMO-SKU-B",
-      "description": "Demo cracker case",
-      "gtin": "614141000029",
-      "unit": "CASE",
-      "status": "active"
-    },
-    {
-      "sku": "DEMO-SKU-C",
-      "description": "Demo trail mix case",
-      "gtin": "614141000036",
-      "unit": "CASE",
-      "status": "active"
-    },
-    {
-      "sku": "OAT-CASE",
-      "description": "Oat snack case",
-      "gtin": null,
-      "unit": "CASE",
-      "status": "active"
-    },
-    {
-      "sku": "JUICE-CASE",
-      "description": "Juice bottles case of 12",
-      "gtin": null,
-      "unit": "CASE",
-      "status": "active"
-    },
-    {
-      "sku": "NEW-CASE",
-      "description": "New snack case",
-      "gtin": null,
-      "unit": "CASE",
-      "status": "active"
-    },
-    {
-      "sku": "NF-CRK-001",
-      "description": "Whole Grain Crackers 250g",
-      "gtin": "614141000517",
-      "unit": "CASE",
-      "status": "active"
-    },
-    {
-      "sku": "NF-SNP-017",
-      "description": "Cheese Snack Mix 500g",
-      "gtin": "614141000524",
-      "unit": "CASE",
-      "status": "active"
-    },
-    {
-      "sku": "NF-BEV-042",
-      "description": "Sparkling Water Variety Pack 24x355ml",
-      "gtin": "614141000531",
-      "unit": "CASE",
-      "status": "active"
-    },
-    {
-      "sku": "NF-CER-010",
-      "description": "Honey Oat Cereal 750g",
-      "gtin": "614141000548",
-      "unit": "CASE",
-      "status": "active"
-    },
     {
       "sku": "NF-MLK-001",
       "description": "Whole Milk 1 L (case of 12)",
@@ -140,24 +48,11 @@
   ],
   "obsolete_identifiers": [
     {
-      "identifier": "614141000043",
-      "note": "Retired fictional item GTIN (GS1 example company prefix 0614141)."
-    },
-    {
       "identifier": "614141200078",
       "note": "Retired fictional item GTIN (GS1 example company prefix 0614141)."
     }
   ],
   "proposed_identifier_mappings": [
-    {
-      "mapping_id": "MAP-PROP-001",
-      "obsolete_identifier": "614141000043",
-      "replacement_identifier": "614141000036",
-      "replacement_sku": "DEMO-SKU-C",
-      "source": "supplier product notice (fictional)",
-      "state": "proposed",
-      "note": "Proposal only. Requires an approved review decision before use."
-    },
     {
       "mapping_id": "MAP-PROP-NF-CHS-001",
       "obsolete_identifier": "614141200078",
@@ -168,27 +63,8 @@
       "note": "Proposal only. Requires an approved review decision before use."
     }
   ],
-  "customer_aliases": [
-    {
-      "customer_id": "DEMO-CUST-01",
-      "customer_item_code": "NF-OAT",
-      "sku": "OAT-CASE"
-    },
-    {
-      "customer_id": "DEMO-CUST-01",
-      "customer_item_code": "NF-JUICE",
-      "sku": "JUICE-CASE"
-    }
-  ],
+  "customer_aliases": [],
   "unit_conversions": [
-    {
-      "sku": "JUICE-CASE",
-      "from_unit": "EA",
-      "to_unit": "CASE",
-      "factor": "12",
-      "direction": "divide",
-      "approved": true
-    },
     {
       "sku": "NF-MLK-001",
       "from_unit": "EA",
@@ -199,83 +75,6 @@
     }
   ],
   "reference_prices": [
-    {
-      "customer_id": "DEMO-CUST-01",
-      "sku": "DEMO-SKU-A",
-      "currency": "USD",
-      "unit": "CASE",
-      "price": "24.00"
-    },
-    {
-      "customer_id": "DEMO-CUST-01",
-      "sku": "DEMO-SKU-B",
-      "currency": "USD",
-      "unit": "CASE",
-      "price": "24.00"
-    },
-    {
-      "customer_id": "DEMO-CUST-01",
-      "sku": "DEMO-SKU-C",
-      "currency": "USD",
-      "unit": "CASE",
-      "price": "18.00"
-    },
-    {
-      "customer_id": "DEMO-CUST-02",
-      "sku": "DEMO-SKU-C",
-      "currency": "USD",
-      "unit": "CASE",
-      "price": "18.00"
-    },
-    {
-      "customer_id": "DEMO-CUST-01",
-      "sku": "OAT-CASE",
-      "currency": "USD",
-      "unit": "CASE",
-      "price": "23.00"
-    },
-    {
-      "customer_id": "DEMO-CUST-01",
-      "sku": "JUICE-CASE",
-      "currency": "USD",
-      "unit": "CASE",
-      "price": "24.00"
-    },
-    {
-      "customer_id": "DEMO-CUST-01",
-      "sku": "NEW-CASE",
-      "currency": "USD",
-      "unit": "CASE",
-      "price": "18.00"
-    },
-    {
-      "customer_id": "MAPLE-01",
-      "sku": "NF-CRK-001",
-      "currency": "USD",
-      "unit": "CASE",
-      "price": "18.50"
-    },
-    {
-      "customer_id": "MAPLE-01",
-      "sku": "NF-SNP-017",
-      "currency": "USD",
-      "unit": "CASE",
-      "price": "24.75"
-    },
-    {
-      "customer_id": "MAPLE-01",
-      "sku": "NF-BEV-042",
-      "currency": "USD",
-      "unit": "CASE",
-      "price": "14.25"
-    },
-    {
-      "customer_id": "MAPLE-01",
-      "sku": "NF-CER-010",
-      "currency": "USD",
-      "unit": "CASE",
-      "price": "27.40"
-    },
     {
       "customer_id": "MAPLE-01",
       "sku": "NF-MLK-001",
@@ -306,14 +105,6 @@
     }
   ],
   "moq_rules": [
-    {
-      "rule_id": "MOQ-001",
-      "customer_id": "DEMO-CUST-01",
-      "sku": "DEMO-SKU-A",
-      "minimum": "10",
-      "unit": "CASE",
-      "version": "MOQ-v1"
-    },
     {
       "rule_id": "MOQ-NF-CHS-002",
       "customer_id": "MAPLE-01",

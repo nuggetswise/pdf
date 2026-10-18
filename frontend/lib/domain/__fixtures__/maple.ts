@@ -72,14 +72,15 @@ const maskEdi = (v: string) =>
  * A run the screens could have produced (test helper): the milk PO approved and delivered (document 1, two lines,
  * confirmed to the retailer), then the cheese PO decided on its price and delivered (document 2, Mozzarella short).
  */
-export function mapleRun(): RunState {
+export function mapleRunWithClock(): { s: RunState; clock: Clock } {
   const clock = tickClock();
   let s = resetDemo(emptyRunState(clock.now()), ADMIN, clock);
   s = setDemoSetting(s, "rehearsal_mode", "on", ADMIN, clock);
   ({ state: s } = forward(s, "milk", clock));
   s = approve(s, 1, REVIEWER, clock);
   ({ state: s } = forward(s, "cheese", clock));
-  s = decide(s, 2, { issueKey: "price_mismatch:0", action: "accept_printed_price",
-    reason: "Retailer confirmed the new Cheddar price by phone (fictional)" }, REVIEWER, clock);
-  return s;
+  s = decide(s, 2, { issueKey: "price_mismatch:0", action: "accept_printed_price", reason: "Retailer confirmed the new Cheddar price by phone (fictional)" }, REVIEWER, clock);
+  return { s, clock };
 }
+
+export const mapleRun = (): RunState => mapleRunWithClock().s;
