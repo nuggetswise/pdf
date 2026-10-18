@@ -1,8 +1,6 @@
-// Port of backend/app/validation.py: deterministic matching and business-rule validation.
+// Deterministic matching and business-rule validation (checks against the ERP snapshot).
 // AI may extract and explain; every comparison here is exact, uses Dec and the versioned reference data.
 // Rounding rule: money is quantised to 2 places with ROUND_HALF_UP (DECISIONS.md D07).
-// Output key order, wording and number formatting match the Python code exactly (checked by the
-// parity test in validation.test.ts).
 import { Dec, dec, money, qty } from "./money";
 import { pyJsonDumps } from "./pyjson";
 import type { ExtractionPayload } from "./run-state";

@@ -1,5 +1,5 @@
-// Port of backend/app/workflow.py (plus the state changes of intake.py and pipeline.py) as pure functions
-// over RunState. Every action takes the current run and returns the next one; nothing is kept elsewhere.
+// The order workflow as pure functions: intake and extraction state, validation results, review, approval and ERP delivery.
+// Every action takes the current run and returns the next one; nothing is kept elsewhere.
 //
 // Separate states are kept separate: processing (documents[].status) -> review (orders[].reviewState) ->
 // approval (approvals[]) -> delivery (orders[].deliveryState, deliveries[]) -> ERP acknowledgement (erpOrders[]).

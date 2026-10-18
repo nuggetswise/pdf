@@ -1,4 +1,4 @@
-// GS1 identification keys used in EANCOM messages (D47): GLN (party/location), GTIN (trade item) and
+// GS1 identification keys used in X12 messages (D47): GLN (party/location), GTIN (trade item) and
 // SSCC (logistic unit: pallet or carton). All three end in the same GS1 mod-10 check digit.
 //
 // Fictional identifiers use GS1 prefix 952, which GS1 reserves for demonstrations and examples, so they can

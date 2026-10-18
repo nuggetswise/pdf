@@ -1,7 +1,6 @@
 // Simulated ANSI ASC X12 004010 documents for US retail (D50): 855 purchase order acknowledgement, 856 ship
 // notice (ASN) and 810 invoice, sent through a simulated Trading Grid web form. Nothing is sent anywhere real.
-// They take exactly the inputs of the EANCOM builders in edifact.ts, so the portal picks one by the retailer's
-// rules profile. Every interchange is flagged as test data (ISA15 = T).
+// Every interchange is flagged as test data (ISA15 = T).
 //
 // Separators: element "*", component ">", segment "~". Values copied from documents are untrusted text: the
 // separators and control characters are replaced by a space, never passed through.

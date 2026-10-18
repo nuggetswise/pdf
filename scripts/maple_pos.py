@@ -2,7 +2,7 @@
 
 Two demo POs (milk, cheese) are served by the app from frontend/public/samples/. The rest are test fixtures in
 fixtures/maple/tests/, one condition each, so a test proves one acceptance check. Every page says it is fictional.
-Run: backend/.venv/bin/python scripts/maple_pos.py [--publish]   (needs reportlab only; --publish also copies the
+Run: python3 scripts/maple_pos.py [--publish]   (needs reportlab only; --publish also copies the
 two demo emails into frontend/public/samples/ for the app to serve)
 """
 from __future__ import annotations

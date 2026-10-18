@@ -515,7 +515,7 @@ function InvoiceForm({ docId, asnId, role, onDone }: { docId: number; asnId: num
   );
 }
 
-/** The EDI tab: every outbound message, raw EDIFACT, what each segment means, the retailer check, and a download. */
+
 /** One sent document in full: the retailer check, each delivery attempt, the raw message and how it maps to plain words. */
 export function MessageDetail({ m, role }: { m: OutboundMessage; role: Role }) {
   const agent = useAgent();
