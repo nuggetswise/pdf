@@ -1,12 +1,13 @@
 "use client";
 import { useState } from "react";
 import {
-  Activity, ArrowLeft, Bot, Brain, Building2, Database, FileStack, Home, Inbox, type LucideIcon, Send as Outbox, Settings, Store, Users,
+  Activity, ArrowLeft, Bot, Building2, FileStack, Home, Inbox, ListChecks, type LucideIcon, Send as Outbox, Settings, Store, Users,
 } from "lucide-react";
 import { pilotRows, toCsv } from "../lib/domain/pilot";
 import { PEOPLE, Role } from "./api";
 import { ErpView, MemoryView, SettingsView, Workspace } from "./Panels";
 import { EdiView } from "./Portal";
+import { RulesView } from "./Rules";
 import { Forward, RetailerInbox, RetailerSuppliers } from "./LiveView";
 import { ForwardedReview } from "./ForwardedReview";
 import { OpsHome, OpsReview, OrderExceptions } from "./OrderOps";
@@ -15,25 +16,24 @@ import { needsAttention } from "../lib/domain/ops/engine";
 import { findingCounts, supplierFindings } from "../lib/domain/command-center";
 import { CommandCenter, type OpenTarget } from "./CommandCenter";
 import { RunProvider, useAgent, useHealth } from "./run/RunProvider";
+import bundledReference from "../lib/domain/reference-data.v1.json";
 
 // D55: one product, two audiences. A toggle at the top switches between the supplier's workspace and what the
 // retailer receives; each has its own short navigation. The data underneath is one run.
 type View = "supplier" | "retailer";
-type Tab = "ops" | "work" | "command" | "memory" | "erp" | "edi" | "settings" | "received" | "suppliers" | "rcommand";
+type Tab = "ops" | "work" | "command" | "sent" | "rules" | "settings" | "received" | "suppliers" | "rcommand";
 const NAV: Record<View, [Tab, string, LucideIcon, string][]> = {
   supplier: [
-    ["ops", "Order operations", Home, "Orders received by email, checked and sent to the ERP"],
-    ["work", "Intake", Inbox, "Every forwarded document, how the agent read it, and any decision waiting"],
-    ["command", "Command Center", Activity, "Findings from order, ERP and outbox records, with owner, action and verification"],
-    ["memory", "Agent memory", Brain, "Corrections an administrator approved for reuse"],
-    ["erp", "ERP records", Database, "What the agent wrote to your ERP (simulated)"],
-    ["edi", "Trading Grid outbox", Outbox, "Every document sent to the retailer, with its X12"],
-    ["settings", "Settings", Settings, "Approvals, retailer EDI setup and your company details"],
+    ["ops", "Orders", Home, "Review orders received by email and track them to your ERP"],
+    ["command", "Command Center", Activity, "Resolve findings across orders, stock and sent documents"],
+    ["sent", "Sent", Outbox, "Orders written to your ERP and documents sent to retailers (simulated)"],
+    ["rules", "Rules", ListChecks, "Checks applied to every order, and rules approved for reuse"],
+    ["settings", "Settings", Settings, "Approval mode, retailer EDI setup and company details"],
   ],
   retailer: [
-    ["received", "Documents received", FileStack, "Standard X12 arriving from suppliers who stay on email"],
-    ["suppliers", "Suppliers", Users, "How each supplier connects, and their path onto Trading Grid EDI"],
-    ["rcommand", "Command Center", Activity, "Findings shared by suppliers on your orders, with the response each one needs"],
+    ["received", "Documents received", FileStack, "Standard X12 from suppliers who send by email"],
+    ["suppliers", "Suppliers", Users, "Connection type for each supplier and its path to EDI"],
+    ["rcommand", "Command Center", Activity, "Findings suppliers shared on your orders, with the response needed"],
   ],
 };
 
@@ -49,7 +49,6 @@ function App() {
   const [focus, setFocus] = useState<number | null>(null);
   const [section, setSection] = useState<string | null>(null);
   const [fromCc, setFromCc] = useState(false);
-  const [retailer, setRetailer] = useState<string | null>(null);
   // One signed-in user with full rights. Switching to a restricted demo user stays possible (role checks are
   // an acceptance check, P15) but is tucked away in the account menu.
   const [role, setRole] = useState<Role>("administrator");
@@ -65,10 +64,12 @@ function App() {
   const ops = useOps();
   const ccOpen = (agent.ready ? findingCounts(supplierFindings(agent.state)).open : 0) + (ops.state?.orders.filter(needsAttention).length ?? 0);
   const openFromCc = (t: OpenTarget) => { setFocus(t.docId); setSection(t.section); setFromCc(true); setTab("work"); };
-  // D66: the retailer view is scoped to one retailer at a time; it sees only its own orders.
-  const retailers = agent.ready ? [...new Set(agent.state.orders.map((o) => o.customerId).filter(Boolean))] as string[] : [];
-  const viewingAs = retailer && retailers.includes(retailer) ? retailer : retailers[0] ?? null;
-  const current = NAV[view].find((n) => n[0] === tab) ?? NAV[view][0];
+  // D72: one retailer view, with no picker. It is the retailer of the first order in the run and sees only its own orders.
+  const viewingAs = agent.ready ? agent.state.orders.map((o) => o.customerId).find(Boolean) ?? null : null;
+  const retailerName = viewingAs ? bundledReference.customers.find((c) => c.customer_id === viewingAs)?.name ?? viewingAs : null;
+  // D73: the document workspace is part of Orders, opened from "All documents"; it has no tab of its own.
+  const current: [Tab, string, LucideIcon, string] = tab === "work" ? ["work", "All documents", Inbox, "Every forwarded document, how it was read, and any decision waiting"]
+    : NAV[view].find((n) => n[0] === tab) ?? NAV[view][0];
 
   const pilot = agent.ready && agent.state.orders.length > 0 && (
     <div className="btns pilot-export">
@@ -87,7 +88,7 @@ function App() {
     <div className="app">
       <header className="masthead">
         <div className="brand"><span className="logo" aria-hidden><Bot size={20} /></span>
-          <span>Trading Grid <b>Order Agent</b></span><small>prototype</small></div>
+          <span>Trading Grid <b>Portal</b></span><small>prototype</small></div>
         <div className="viewswitch" role="group" aria-label="View as">
           <button aria-pressed={view === "supplier"} onClick={() => switchView("supplier")}><Building2 size={16} aria-hidden /> Supplier</button>
           <button aria-pressed={view === "retailer"} onClick={() => switchView("retailer")}><Store size={16} aria-hidden /> Retailer</button>
@@ -109,16 +110,9 @@ function App() {
       <div className="shell">
         <nav className="sidenav" role="tablist" aria-label="Sections" aria-orientation="vertical">
           <div className="nav-label">{view === "supplier" ? "Supplier workspace" : "Retailer workspace"}</div>
-          {view === "retailer" && (
-            <label className="viewing-as">Viewing as
-              <select aria-label="Viewing as retailer" value={viewingAs ?? ""} onChange={(e) => setRetailer(e.target.value || null)}>
-                {retailers.length === 0 && <option value="">No retailers yet</option>}
-                {retailers.map((r) => <option key={r} value={r}>{r}</option>)}
-              </select>
-            </label>
-          )}
+          {view === "retailer" && <div className="viewing-as">Signed in as <b>{retailerName ?? "No retailer yet"}</b></div>}
           {NAV[view].map(([k, label, Icon]) => (
-            <button key={k} role="tab" aria-selected={tab === k} onClick={() => goTab(k)}>
+            <button key={k} role="tab" aria-selected={tab === k || (k === "ops" && tab === "work")} onClick={() => goTab(k)}>
               <Icon size={18} aria-hidden /><span>{label}</span>
             </button>
           ))}
@@ -143,7 +137,8 @@ function App() {
               )}
               forward={(
                 <section className="panel forward-panel" aria-label="Forward a purchase order">
-                  <header className="panel-head"><h3>New purchase order</h3></header>
+                  <header className="panel-head"><h3>New purchase order</h3>
+                    <button className="ghost" onClick={() => { setFocus(null); setSection(null); setTab("work"); }}><Inbox size={16} aria-hidden /> All documents</button></header>
                   <Forward />
                 </section>
               )} />
@@ -160,9 +155,10 @@ function App() {
           {tab === "command" && <OrderExceptions onOpen={(id) => openOps(id, "command")} />}
           {tab === "command" && <CommandCenter audience="supplier" role={role} customerId={null} onOpen={openFromCc} />}
           {tab === "rcommand" && <CommandCenter audience="retailer" role={role} customerId={viewingAs} />}
-          {tab === "memory" && <MemoryView role={role} />}
-          {tab === "erp" && <ErpView role={role} />}
-          {tab === "edi" && <EdiView role={role} />}
+          {tab === "rules" && <RulesView />}
+          {tab === "rules" && <MemoryView role={role} />}
+          {tab === "sent" && <ErpView role={role} />}
+          {tab === "sent" && <EdiView role={role} />}
           {tab === "settings" && <SettingsView role={role} health={health} pilot={pilot} />}
           {tab === "received" && <RetailerInbox customerId={viewingAs} />}
           {tab === "suppliers" && <RetailerSuppliers customerId={viewingAs} />}

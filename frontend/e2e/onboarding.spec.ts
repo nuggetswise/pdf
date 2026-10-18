@@ -10,7 +10,7 @@ test("a reviewer onboards an unknown customer and products from a PO", async ({ 
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  await page.getByRole("tab", { name: "Intake" }).click();
+  await page.getByRole("tab", { name: "Orders", exact: true }).click(); await page.getByRole("button", { name: "All documents" }).click();
   await asRole(page, "reviewer");
   const card = (text: string) => page.locator(".issue.open", { hasText: text });
 
@@ -40,7 +40,7 @@ test("a reviewer onboards an unknown customer and products from a PO", async ({ 
   await expect(page.getByRole("button", { name: "Approve order" })).toBeVisible();
 
   // The additions are visible and labelled on the memory screen.
-  await page.getByRole("tab", { name: "Agent memory" }).click();
+  await page.getByRole("tab", { name: "Rules" }).click();
   const added = page.getByRole("region", { name: "Added in this session" });
   await expect(added).toContainText("Birchwood Demo Market");
   await expect(added).toContainText("FICT-GTIN-7002");

@@ -154,7 +154,7 @@ export function FulfilmentPanel({ docId, role }: { docId: number; role: Role }) 
                 onClick={() => wrap(() => agent.run({ type: "shipFromErp", role, docId, carrierScac: scac.trim(), trackingNumber: track.trim() }))}>Mark shipped in ERP</button>
               <span className="muted small">Ships available stock. The ship notice and invoice are sent automatically.</span>
             </div>
-          ) : <p className="muted small"><PackageX size={14} aria-hidden /> Nothing to ship yet. Receive incoming stock in ERP records.</p>}
+          ) : <p className="muted small"><PackageX size={14} aria-hidden /> Nothing to ship yet. Receive incoming stock under Sent.</p>}
         </div>
       )}
       {error && <div className="alert bad" role="alert">{error}</div>}

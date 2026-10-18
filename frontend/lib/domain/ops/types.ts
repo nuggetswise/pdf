@@ -2,7 +2,7 @@
 // states, field states, issues, human decisions and a readable event history. Pure data; no React here.
 // Money and quantities are decimal strings, never JSON numbers.
 
-/** Who did something. "agent" is reserved for AI recommendations, so they stay visibly apart from rules. */
+/** Who did something. "agent" is the order agent's rule-based recommendations; the sample inbox involves no AI (D73). */
 export type ActorKind = "system" | "agent" | "person" | "erp";
 export type Actor = { kind: ActorKind; name: string };
 
@@ -11,7 +11,7 @@ export const ORDER_STATES = ["received", "understanding", "validating", "needs_r
 export type OrderState = (typeof ORDER_STATES)[number];
 
 export const ISSUE_TYPES = ["correctable_discrepancy", "ambiguous_match", "missing_required_data", "validation_failure",
-  "downstream_rejection"] as const;
+  "downstream_rejection", "revision"] as const;
 export type IssueType = (typeof ISSUE_TYPES)[number];
 
 export const DECISION_OUTCOMES = ["accepted_recommendation", "rejected_recommendation", "selected_option",
@@ -72,10 +72,12 @@ export type OpsIssue = {
   summary: string;
   whyItMatters: string;
   rule: { id: string; text: string };
+  /** Who resolves it (D73): named by function, never as fault of a trading partner. */
+  owner: string;
   original: string | null;
   expected: string | null;
   proposed: string | null;
-  /** The AI's explanation of the recommendation, uncertainty or stop. Null when no AI statement is made. */
+  /** The order agent's explanation of the recommendation, uncertainty or stop, from rules and evidence. */
   agentNote: string | null;
   options: IssueOption[];
   evidence: Evidence[];
@@ -168,7 +170,9 @@ export type OpsOrder = {
   version: number;
   erp: { status: ErpStatus; attempts: ErpAttempt[]; erpOrderId: string | null };
   history: OpsEvent[];
+  /** Set when this PO number from the same buyer arrived before with different content (D73). */
+  revisionOf: { orderId: string; revision: number; erpOrderId: string | null; previous: PrintedPo } | null;
 };
 
-export const OPS_SCHEMA = "order-ops-v1";
+export const OPS_SCHEMA = "order-ops-v2";
 export type OpsState = { schema: typeof OPS_SCHEMA; seededAt: string; orders: OpsOrder[] };

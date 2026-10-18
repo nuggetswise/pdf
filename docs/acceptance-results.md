@@ -201,3 +201,19 @@ passed (including 11 new in `e2e/order-ops.spec.ts`).
 | Live AI on the sample inbox | Not applicable | The sample reading step is simulated (docs/13-order-operations.md) |
 
 Screenshots: docs/screenshots/ops-01-home.png to ops-05-erp-rejection.png (headless Chromium, 1440 px).
+
+## 2026-10-17: D72 (portal name, one retailer view, unit change told to buyer)
+`scripts/verify.sh` exit 0: backend 47 passed; Vitest 537 passed (25 files); typecheck and build passed; pydifact 5 of 5; Playwright 29 passed. In an earlier run, browser-run.spec.ts failed once and passed on the next two runs (base and change). Not yet re-proven as a flake.
+
+## 2026-10-17: D73 claims check
+| Capability | Label | Outside judge |
+|---|---|---|
+| Sample inbox: 14 automatic, 4 need attention | Runtime-tested (Playwright, fresh state, screenshot ops-01-home) | Counts asserted in Vitest and Playwright |
+| R8 lead time, confirm date, acknowledgement text | Runtime-tested (ops-02-lead-time) | Expected dates hand-written in tests |
+| R9 revision updates the same ERP order; duplicate makes no order | Revision runtime-tested (ops-03-revision); duplicate Vitest only | Unique-order assertion |
+| R7 previous price list | Runtime-tested | Hand-written expected price |
+| ERP declines retired ship-to, corrected, resent | Runtime-tested (ops-05-erp-rejection) | SHIPTO_INACTIVE from simulator master |
+| R3, R5, R6 on built POs | Implemented, Vitest only; no longer in the sample screens | None beyond tests |
+| Rules tab lists 9 + 17 checks | Runtime-tested (ops-10-rules); Vitest checks issue rule text matches the list | Test |
+| ERP and acknowledgement | Simulated | None |
+| AI extraction | Not exercised here; e2e uses the scripted test adapter | Test pack, hand-written expected results |

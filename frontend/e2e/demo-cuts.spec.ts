@@ -71,18 +71,18 @@ test("supplier cut: steps 1 to 5, then 7, plus the email-text order", async ({ p
   await expect(stock).toContainText(/ship \w{3}, \w{3} \d+ · \d+ backordered to/);
 
   // Ship and invoice in one step from the confirmed quantities.
-  await page.getByRole("tab", { name: "Order operations" }).click();
+  await page.getByRole("tab", { name: "Orders", exact: true }).click();
   await card.getByRole("button").click();
   await stock.getByLabel("Carrier SCAC").fill("UPSN");
   await stock.getByLabel("Tracking number").fill("1ZTEST200001");
   await stock.getByRole("button", { name: "Mark shipped in ERP" }).click();
   await expect(stock).toContainText("Nothing to ship yet");
-  await page.getByRole("tab", { name: "Trading Grid outbox" }).click();
+  await page.getByRole("tab", { name: "Sent" }).click();
   await expect(page.getByRole("region", { name: "Outbound messages" })).toBeVisible();
   await shot(page, "09-outbox");
 
   // Second beat: an order written in the email body.
-  await page.getByRole("tab", { name: "Intake" }).click();
+  await page.getByRole("tab", { name: "Orders", exact: true }).click(); await page.getByRole("button", { name: "All documents" }).click();
   await page.getByLabel("Upload a purchase order").setInputFiles(PACK("TP-02-email-body.eml"));
   await expect(page.getByRole("complementary", { name: "Inbox" })).toContainText("PO TP-2026-0802");
   await shot(page, "10-email-text-order");

@@ -4,9 +4,9 @@
 // recommendation, its evidence and the action together, with history and the simulated ERP below.
 import { useEffect, useRef, useState } from "react";
 import {
-  AlertOctagon, ArrowLeft, Bot, CheckCircle2, ChevronRight, CircleDot, Cog, FileText, HelpCircle, Mail, Server, Undo2, User,
+  AlertOctagon, ArrowLeft, Bot, CheckCircle2, ChevronRight, CircleDot, Cog, FileText, HelpCircle, Mail, Server, Store, Undo2, User,
 } from "lucide-react";
-import { canUndo, FIELD_LABEL, isAutomatic, needsAttention, primaryIssue } from "../lib/domain/ops/engine";
+import { acknowledgement, canUndo, FIELD_LABEL, isAutomatic, needsAttention, primaryIssue } from "../lib/domain/ops/engine";
 import { BUYERS } from "../lib/domain/ops/reference";
 import type {
   Actor, ActorKind, Evidence, FieldState, IssueType, OpsField, OpsIssue, OpsOrder, OrderState, SourceRef,
@@ -22,17 +22,18 @@ import { supplierState } from "./LiveView";
 export const STATE_LABEL: Record<OrderState, [string, string]> = {
   received: ["Received", "info"], understanding: ["Reading", "info"], validating: ["Validating", "info"],
   needs_review: ["Needs review", "warn"], blocked: ["Blocked", "bad"], ready_to_send: ["Ready to send", "warn"],
-  sending: ["Sending", "info"], accepted: ["Accepted by ERP", "ok"], rejected: ["Rejected by ERP", "bad"],
+  sending: ["Sending", "info"], accepted: ["Accepted by ERP", "ok"], rejected: ["Declined by ERP", "bad"],
 };
 export const ISSUE_LABEL: Record<IssueType, string> = {
   correctable_discrepancy: "Recommendation available", ambiguous_match: "Judgement required",
-  missing_required_data: "Missing required data", validation_failure: "Validation failed", downstream_rejection: "ERP rejection",
+  missing_required_data: "Missing required data", validation_failure: "Validation failed", downstream_rejection: "ERP response",
+  revision: "Revision",
 };
 export const FIELD_STATE: Record<FieldState, [string, string]> = {
   accepted: ["Accepted", "ok"], changed: ["Changed", "info"], uncertain: ["Uncertain", "warn"], missing: ["Missing", "bad"], invalid: ["Invalid", "bad"],
 };
 export const ACTOR: Record<ActorKind, [string, typeof Cog]> = {
-  system: ["System", Cog], agent: ["AI agent", Bot], person: ["Person", User], erp: ["Your ERP", Server],
+  system: ["System", Cog], agent: ["Order agent (rules)", Bot], person: ["Person", User], erp: ["Your ERP", Server],
 };
 
 const time = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
@@ -119,12 +120,13 @@ export function OpsHome({ onOpen, forward, commandCenter }: {
     <div className="ops-home">
       <section aria-label="Today" className="ops-today">
         <h2 className="eyebrow">Today</h2>
+        <p className="muted small how-it-works">AI reads uploaded and forwarded documents into fields. Rules check every order. People decide exceptions.</p>
         <div className="kpis ops-kpis">
           <Tile n={rows.length} label="Orders received" />
           <Tile n={by("automatic")} label="Processed automatically" tone="ok" />
           <Tile n={by("needs_review") + by("ready")} label="Need review" tone="warn" />
           <Tile n={by("blocked")} label="Blocked" tone="bad" />
-          <Tile n={by("rejected")} label="Rejected by ERP" tone="bad" />
+          <Tile n={by("rejected")} label="Declined by ERP" tone="bad" />
           <Tile n={by("after_review")} label="Completed after review" />
         </div>
       </section>
@@ -202,14 +204,15 @@ export function OpsReview({ id, role, onBack }: { id: string; role: Role; onBack
   return (
     <article className="ops-review" aria-label={`Order ${o.po.poNumber ?? o.id}`}>
       <div className="review-top">
-        <button className="ghost" onClick={onBack}><ArrowLeft size={16} aria-hidden /> Back to order operations</button>
+        <button className="ghost" onClick={onBack}><ArrowLeft size={16} aria-hidden /> Back to orders</button>
       </div>
       <header className="review-head">
         <div>
           <p className="eyebrow">Purchase order from {o.email.fromName} &lt;{o.email.from}&gt;</p>
           <h2>{o.po.poNumber ?? "No PO number"} <span className="sub">· {o.po.buyerName}</span></h2>
           <div className="chips"><span className="chip">Email with PDF</span><span className="chip">Received {dateTime(o.email.receivedAt)}</span>
-            <span className="chip">Sample order, fictional</span></div>
+            <span className="chip">Read by: sample data, not AI</span>
+            {o.revisionOf && <span className="chip">Revision {o.revisionOf.revision}</span>}</div>
         </div>
         <span className={`pill ${tone} big-pill`} aria-label={`Order state: ${label}`}>{label}</span>
       </header>
@@ -255,6 +258,7 @@ export function OpsReview({ id, role, onBack }: { id: string; role: Role; onBack
               </ul>
             </section>
           )}
+          <BuyerReceives o={o} />
           <StructuredOrder o={o} show={show} />
           <ErpPanel o={o} />
         </div>
@@ -303,18 +307,19 @@ function IssueCard({ o, iss, canAct, show, onDecide }: { o: OpsOrder; iss: OpsIs
       <p className="what">{iss.summary}</p>
       <dl className="facts">
         <div><dt>Affected field</dt><dd>{where}</dd></div>
-        <div><dt>Rule</dt><dd>{iss.rule.text}</dd></div>
+        <div><dt>Resolved by</dt><dd>{iss.owner}</dd></div>
+        <div className="wide"><dt>Rule {iss.rule.id}</dt><dd>{iss.rule.text}</dd></div>
         <div className="wide"><dt>{iss.type === "missing_required_data" ? "Why processing stopped" : "Why it matters"}</dt><dd>{iss.whyItMatters}</dd></div>
       </dl>
       {iss.proposed !== null && iss.type !== "downstream_rejection" && (
         <div className="compare" aria-label="Proposed change">
-          <div><span className="eyebrow">Received</span><del>{iss.original}</del></div>
+          <div><span className="eyebrow">{iss.type === "revision" ? `Revision ${o.revisionOf!.revision - 1}` : "Received"}</span><del>{iss.original}</del></div>
           <span className="arrow" aria-hidden>→</span>
-          <div><span className="eyebrow">Proposed</span><ins>{iss.type === "correctable_discrepancy" && iss.field === "unit" ? iss.expected : iss.proposed}</ins></div>
+          <div><span className="eyebrow">{iss.type === "revision" ? `Revision ${o.revisionOf!.revision}` : "Proposed"}</span><ins>{iss.type === "correctable_discrepancy" && iss.field === "unit" ? iss.expected : iss.proposed}</ins></div>
         </div>
       )}
       {iss.agentNote && (
-        <div className="agent-note"><Bot size={16} aria-hidden /><div><span className="eyebrow">Order agent (AI)</span><p>{iss.agentNote}</p></div></div>
+        <div className="agent-note"><Bot size={16} aria-hidden /><div><span className="eyebrow">Recommendation · Rule {iss.rule.id}</span><p>{iss.agentNote}</p></div></div>
       )}
 
       {(iss.type === "ambiguous_match" || iss.type === "downstream_rejection") && iss.options.length > 0 && (
@@ -343,7 +348,8 @@ function IssueCard({ o, iss, canAct, show, onDecide }: { o: OpsOrder; iss: OpsIs
       )}
 
       <div className="btns issue-actions">
-        {iss.actions.includes("accept") && <button className="primary" disabled={!canAct} onClick={() => onDecide({ outcome: "accepted_recommendation" })}>Accept change</button>}
+        {iss.actions.includes("accept") && <button className="primary" disabled={!canAct} onClick={() => onDecide({ outcome: "accepted_recommendation" })}>
+          {iss.type === "revision" ? "Apply revision" : iss.field === "delivery_date" ? "Confirm proposed date" : "Accept change"}</button>}
         {iss.actions.includes("keep_original") && <button disabled={!canAct} onClick={() => onDecide({ outcome: "rejected_recommendation" })}>Keep original</button>}
         {iss.actions.includes("select") && <button className="primary" disabled={!canAct || !pick} onClick={() => onDecide({ outcome: "selected_option", optionId: pick })}>
           {iss.type === "ambiguous_match" ? "Use selected item" : "Use selected ship-to"}</button>}
@@ -412,6 +418,22 @@ function StructuredOrder({ o, show }: { o: OpsOrder; show: (s: SourceRef | null)
   );
 }
 
+/** D73: what the buyer receives, beside the supplier's decision, so both sides of the order show on one screen. */
+function BuyerReceives({ o }: { o: OpsOrder }) {
+  const sent = o.history.find((e) => e.type === "acknowledgement");
+  const pending = acknowledgement(o);
+  return (
+    <section className="buyer-receives" aria-labelledby="buyer-h">
+      <h3 id="buyer-h" className="section-h"><Store size={16} aria-hidden /> What {o.po.buyerName} receives</h3>
+      {sent ? <p>{sent.text.replace(/^Acknowledgement to [^:]+: /, "Acknowledgement sent: ")}</p>
+        : o.state === "accepted" ? <p>Acknowledgement sent: order accepted as printed.</p>
+        : pending ? <p className="muted">On sending: {pending.replace(/^Acknowledgement to [^:]+: /, "")}</p>
+        : <p className="muted">Nothing yet. The acknowledgement is sent when your ERP accepts the order.</p>}
+      <p className="muted small">Simulated. Sent through Trading Grid as an order acknowledgement.</p>
+    </section>
+  );
+}
+
 function ErpPanel({ o }: { o: OpsOrder }) {
   const last = o.erp.attempts.at(-1);
   const steps: [string, boolean][] = [
@@ -424,7 +446,7 @@ function ErpPanel({ o }: { o: OpsOrder }) {
       <p className="muted small">Simulated system. No live ERP connection.</p>
       <dl className="facts erp-roles">
         <div><dt>Accepts or rejects</dt><dd>Your ERP, using its own checks such as active ship-to codes in its customer master.</dd></div>
-        <div><dt>Order Agent</dt><dd>Sends the order, records the ERP response and proposes a correction.</dd></div>
+        <div><dt>Order agent</dt><dd>Sends the order, records the ERP response and proposes a correction from rules.</dd></div>
       </dl>
       <ol className="lifecycle" aria-label="ERP lifecycle">
         {steps.map(([t, done], i) => <li key={t} className={done ? (i === 3 && o.state === "rejected" ? "stop" : "done") : ""}>{t}</li>)}
@@ -432,7 +454,7 @@ function ErpPanel({ o }: { o: OpsOrder }) {
       {o.erp.attempts.length === 0 && <p className="muted">Not sent. {o.state === "blocked" ? "Blocked orders cannot be sent." : "Sending starts when every blocking issue is resolved."}</p>}
       {[...o.erp.attempts].reverse().map((a) => (
         <details key={a.id} open={a.id === last?.id}>
-          <summary>Attempt {a.id} · {time(a.sentAt)} · <span className={`pill ${a.response.status === "accepted" ? "ok" : "bad"}`}>{a.response.status === "accepted" ? "Accepted" : "Rejected"}</span></summary>
+          <summary>Attempt {a.id} · {time(a.sentAt)} · <span className={`pill ${a.response.status === "accepted" ? "ok" : "bad"}`}>{a.response.code === "UPDATED" ? "Updated" : a.response.status === "accepted" ? "Accepted" : "Declined"}</span></summary>
           <dl className="facts">
             <div><dt>Response</dt><dd>{a.response.code}: {a.response.message}</dd></div>
             {a.response.erpOrderId && <div><dt>ERP order</dt><dd>{a.response.erpOrderId}</dd></div>}

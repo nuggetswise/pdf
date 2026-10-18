@@ -34,7 +34,7 @@ test("the example PO: page view, stock check, split shipment and backorder dates
   await page.getByRole("button", { name: "Retailer", exact: true }).click();
   await expect(page.locator(".rcard[data-kind=ORDRSP]")).toHaveCount(0);
   await page.getByRole("button", { name: "Supplier", exact: true }).click();
-  await page.getByRole("tab", { name: "Order operations" }).click();
+  await page.getByRole("tab", { name: "Orders", exact: true }).click();
   await expect(card).toContainText("Stock is short on 1 line");
   await card.getByRole("button").click();
 
@@ -52,12 +52,12 @@ test("the example PO: page view, stock check, split shipment and backorder dates
 
   // Ship what is in stock; ERP stock goes down.
   await page.getByRole("button", { name: "Supplier", exact: true }).click();
-  await page.getByRole("tab", { name: "Order operations" }).click();
+  await page.getByRole("tab", { name: "Orders", exact: true }).click();
   await card.getByRole("button").click();
   await stock.getByLabel("Carrier SCAC").fill("UPSN");
   await stock.getByLabel("Tracking number").fill("1ZTEST200001");
   await stock.getByRole("button", { name: "Mark shipped in ERP" }).click();
   await expect(stock).toContainText("Nothing to ship yet");
-  await page.getByRole("tab", { name: "ERP records" }).click();
+  await page.getByRole("tab", { name: "Sent" }).click();
   await expect(page.getByRole("region", { name: "Stock" }).locator("tr", { hasText: "NF-SNP-017" })).toContainText("SUP-PO-77120");
 });

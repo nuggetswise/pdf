@@ -34,7 +34,7 @@ export const ACTION_LABEL: Record<string, string> = {
   choose_ship_to: "Use this location",
 };
 export const REJECT_REASON_LABEL: Record<string, string> = {
-  not_an_order: "Not an order", duplicate: "Duplicate order", wrong_supplier: "Sent to the wrong supplier",
+  not_an_order: "Not an order", duplicate: "Duplicate order", wrong_supplier: "Addressed to another supplier",
   customer_cancelled: "Customer cancelled", cannot_supply: "Cannot supply", other: "Other",
 };
 export const HOLD_REASON_LABEL: Record<string, string> = {

@@ -7,7 +7,7 @@ import {
 } from "../../lib/domain/ops/engine";
 import type { Actor, OpsState } from "../../lib/domain/ops/types";
 
-const KEY = "order-ops-v1";
+const KEY = "order-ops-v2";
 
 type Ops = {
   state: OpsState | null;

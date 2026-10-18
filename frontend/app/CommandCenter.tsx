@@ -33,7 +33,7 @@ export function CommandCenter({ audience, role, customerId, onOpen }: {
   const go = async (f: () => Promise<unknown>) => { try { await f(); setError(null); } catch (e) { setError((e as Error).message); } };
   return (
     <section className="command-center" aria-label="Command Center">
-      <p className="concept">Proposed composition. Findings are derived from this app&apos;s order, ERP simulator and Trading Grid outbox records. No CCIM or CCPM connection.</p>
+      <p className="concept">Proposed composition. Findings are derived from this app&apos;s order, ERP simulator and sent-document records. No CCIM or CCPM connection.</p>
       {error && <div className="alert bad" role="alert">{error}</div>}
       <div className="kpis" aria-label="Finding counts">
         <div className="kpi warn"><b>{counts.open}</b><span>Open findings</span></div>

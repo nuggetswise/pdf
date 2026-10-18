@@ -8,7 +8,7 @@ test("EDI is held until the retailer is set up, then the ASN and invoice pass it
   test.setTimeout(120_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  await page.getByRole("tab", { name: "Intake" }).click();
+  await page.getByRole("tab", { name: "Orders", exact: true }).click(); await page.getByRole("button", { name: "All documents" }).click();
   await asRole(page, "reviewer");
   const card = (text: string) => page.locator(".issue.open", { hasText: text });
 
@@ -79,7 +79,7 @@ test("EDI is held until the retailer is set up, then the ASN and invoice pass it
   await expect(portal.getByLabel("Invoice", { exact: true }).locator(".flowstate")).toContainText("ERP synced, EDI to retailer delivered");
 
   // The EDI tab shows the SSCCs, the tax subtotals and the passed check.
-  await page.getByRole("tab", { name: "Trading Grid outbox" }).click();
+  await page.getByRole("tab", { name: "Sent" }).click();
   const desadv = page.locator(".edi-card[data-kind=DESADV]");
   await desadv.getByRole("button", { name: "Show message" }).click();
   await expect(desadv.getByLabel("Raw message")).toContainText(/PCI\+33E'\s*GIN\+BJ\+09520000\d{10}'/);
